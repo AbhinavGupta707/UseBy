@@ -123,9 +123,18 @@ export async function fetchEndpoint(
       }
     }
 
+    const payloadStatus = statusFromRecord(asRecord(data));
+    const unavailablePayload = payloadStatus === "unavailable" || payloadStatus === "warning";
+
     return {
       endpoint,
-      status: response.ok ? "ok" : response.status === 404 ? "unavailable" : "error",
+      status: response.ok
+        ? payloadStatus === "unknown"
+          ? "ok"
+          : payloadStatus
+        : response.status === 404 || unavailablePayload
+          ? "unavailable"
+          : "error",
       httpStatus: response.status,
       checkedAt,
       data,
@@ -208,6 +217,7 @@ function normalizeIntegrations(
     ...toArray(getFirst(state, ["integrations", "integrationStatus", "services"])),
     ...toArray(getFirst(dbProof, ["integrations", "integrationStatus", "services"])),
   ];
+  const stateIntegrations = asRecord(getFirst(state, ["integrations"]));
 
   const integrationLookup = new Map<string, Record<string, unknown>>();
   for (const entry of sourceIntegrations) {
@@ -228,7 +238,14 @@ function normalizeIntegrations(
         integrationLookup.get("aurora_postgresql") ?? integrationLookup.get("aurora") ?? dbProof,
         dbProofEndpoint.status === "ok" ? "ok" : dbProofEndpoint.status,
       ),
-      detail: getString(dbProof, ["database.engine", "engine", "databaseEngine"]) ?? endpointDetail(dbProofEndpoint),
+      detail:
+        getString(dbProof, [
+          "database.versionSummary",
+          "database.currentDatabase",
+          "database.engine",
+          "engine",
+          "databaseEngine",
+        ]) ?? endpointDetail(dbProofEndpoint),
     },
     {
       key: "data-api",
@@ -248,9 +265,16 @@ function normalizeIntegrations(
     {
       key: "s3",
       label: "S3 Storage",
-      status: statusFromRecord(integrationLookup.get("s3") ?? integrationLookup.get("s3_storage")),
+      status: statusFromRecord(
+        integrationLookup.get("s3") ?? integrationLookup.get("s3_storage") ?? asRecord(stateIntegrations?.s3),
+        getBoolean(asRecord(stateIntegrations?.s3), ["configured"]) === true ? "ok" : "unavailable",
+      ),
       detail:
-        getString(integrationLookup.get("s3") ?? integrationLookup.get("s3_storage"), ["detail", "message", "bucket"]) ??
+        getString(integrationLookup.get("s3") ?? integrationLookup.get("s3_storage") ?? asRecord(stateIntegrations?.s3), [
+          "detail",
+          "message",
+          "bucket",
+        ]) ??
         "Storage status must come from the system endpoint.",
     },
     {
@@ -335,12 +359,23 @@ function collectCounts(counts: Map<string, number>, value: unknown) {
     const count = toNumber(getFirst(row, ["count", "rowCount", "rows", "total"]));
     if (key && count !== null) {
       counts.set(slug(key), count);
+      for (const alias of ["table", "tableName", "name", "label"]) {
+        const aliasKey = getString(row, [alias]);
+        if (aliasKey) {
+          counts.set(slug(aliasKey), count);
+        }
+      }
     }
   }
 }
 
 function normalizeExtensions(dbProof: Record<string, unknown> | null): ExtensionProof[] {
-  const extensionRows = toArray(getFirst(dbProof, ["extensions", "extensionStatus", "database.extensions"]));
+  const extensionRows = toArray(getFirst(dbProof, [
+    "extensions.items",
+    "extensions",
+    "extensionStatus",
+    "database.extensions",
+  ]));
   const lookup = new Map<string, Record<string, unknown>>();
 
   for (const extension of extensionRows) {
@@ -368,7 +403,13 @@ function normalizeExtensions(dbProof: Record<string, unknown> | null): Extension
 }
 
 function normalizeAuditEvents(state: Record<string, unknown> | null): TimelineEventProof[] {
-  const events = toArray(getFirst(state, ["latestAuditEvents", "auditEvents", "audit.latest", "audit"]));
+  const events = toArray(getFirst(state, [
+    "latestAuditEvents.events",
+    "latestAuditEvents",
+    "auditEvents",
+    "audit.latest",
+    "audit",
+  ]));
 
   return events.slice(0, 6).map((event, index) => {
     const record = asRecord(event);
@@ -388,7 +429,13 @@ function normalizeAuditEvents(state: Record<string, unknown> | null): TimelineEv
 }
 
 function normalizeJobRuns(state: Record<string, unknown> | null): JobRunProof[] {
-  const runs = toArray(getFirst(state, ["latestJobRuns", "jobRuns", "jobs.latest", "jobs"]));
+  const runs = toArray(getFirst(state, [
+    "latestJobRuns.runs",
+    "latestJobRuns",
+    "jobRuns",
+    "jobs.latest",
+    "jobs",
+  ]));
 
   return runs.slice(0, 6).map((run, index) => {
     const record = asRecord(run);
@@ -396,7 +443,7 @@ function normalizeJobRuns(state: Record<string, unknown> | null): JobRunProof[] 
 
     return {
       id: getString(record, ["id", "jobRunId"]) ?? `job-${index}`,
-      name: getString(record, ["name", "jobName", "type"]) ?? `Job run ${index + 1}`,
+      name: getString(record, ["name", "jobName", "jobType", "type"]) ?? `Job run ${index + 1}`,
       status,
       detail:
         getString(record, ["summary", "detail", "message", "error"]) ??
@@ -428,7 +475,18 @@ function statusFromRecord(
   }
 
   const normalized = raw.toLowerCase();
-  if (["ok", "ready", "connected", "available", "enabled", "success", "healthy", "live"].includes(normalized)) {
+  if ([
+    "ok",
+    "ready",
+    "connected",
+    "available",
+    "enabled",
+    "success",
+    "succeeded",
+    "completed",
+    "healthy",
+    "live",
+  ].includes(normalized)) {
     return "ok";
   }
 

@@ -99,16 +99,24 @@ export function LiveProofDashboard() {
         method: control.method,
         headers: { accept: "application/json" },
       });
+      const data = await response.json().catch(() => null) as {
+        result?: { status?: string; message?: string };
+      } | null;
+      const resultStatus = data?.result?.status;
+      const unavailable =
+        response.status === 404 ||
+        resultStatus === "dry_run" ||
+        resultStatus === "unavailable";
 
       const message = response.ok
-        ? `${control.label} completed.`
+        ? data?.result?.message ?? `${control.label} completed.`
         : response.status === 404
           ? `${control.endpoint} is not installed yet.`
-          : `${control.endpoint} returned HTTP ${response.status}.`;
+          : data?.result?.message ?? `${control.endpoint} returned HTTP ${response.status}.`;
 
       setControlResult({
         key: control.key,
-        status: response.ok ? "ok" : response.status === 404 ? "unavailable" : "error",
+        status: response.ok ? "ok" : unavailable ? "unavailable" : "error",
         message,
       });
     } catch (controlError) {

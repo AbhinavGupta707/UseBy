@@ -6,6 +6,11 @@ export const SYSTEM_TABLES = {
 
 export const SYSTEM_COUNT_TABLES = [
   {
+    key: "neighbourhoods",
+    label: "Neighbourhoods",
+    table: "neighbourhoods",
+  },
+  {
     key: "households",
     label: "Households",
     table: "households",
@@ -24,6 +29,11 @@ export const SYSTEM_COUNT_TABLES = [
     key: "itemInstances",
     label: "Item instances",
     table: "item_instances",
+  },
+  {
+    key: "itemCatalog",
+    label: "Catalog items",
+    table: "item_catalog",
   },
   {
     key: "needs",
@@ -48,6 +58,16 @@ export const SYSTEM_COUNT_TABLES = [
     label: "Active demand pools",
     table: "demand_pools",
     where: "status in ('gathering', 'threshold_met', 'bidding', 'awarded')",
+  },
+  {
+    key: "demandPoolCommitments",
+    label: "Demand pool commitments",
+    table: "demand_pool_commitments",
+  },
+  {
+    key: "merchantBids",
+    label: "Merchant bids",
+    table: "merchant_bids",
   },
   {
     key: "seedBatches",

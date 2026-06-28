@@ -40,45 +40,54 @@ describe("proof UI adapters", () => {
   it("normalizes live counts, extensions, audit events, and jobs", () => {
     const snapshot = normalizeProofSnapshot(
       endpoint("/api/system/state", "ok", {
-        status: "connected",
-        dataApi: "enabled",
-        rowCounts: {
-          households: 8,
-          item_instances: 36,
-          needs: 5,
-          demand_pools: 3,
-          audit_events: 12,
-          job_runs: 2,
+        status: "available",
+        integrations: {
+          aurora: { configured: true, available: true, database: "useby" },
+          s3: { configured: true, bucket: "private bucket configured" },
         },
-        integrations: [
-          { key: "S3", status: "available", bucket: "private bucket configured" },
-          { key: "Vercel Runtime", status: "ready", environment: "preview" },
+        counts: [
+          { key: "households", table: "households", count: 8 },
+          { key: "itemInstances", table: "item_instances", count: 36 },
+          { key: "needs", table: "needs", count: 5 },
+          { key: "demandPools", table: "demand_pools", count: 3 },
+          { key: "auditEvents", table: "audit_events", count: 12 },
+          { key: "jobRuns", table: "job_runs", count: 2 },
         ],
-        latestAuditEvents: [
-          {
-            id: "audit_1",
-            action: "demo.seeded",
-            summary: "Seeded Riverside Quarter input world",
-            createdAt: "2026-06-29T10:02:00.000Z",
-          },
-        ],
-        latestJobRuns: [
-          {
-            id: "job_1",
-            jobName: "recompute-matches",
-            status: "success",
-            finishedAt: "2026-06-29T10:03:00.000Z",
-          },
-        ],
+        latestAuditEvents: {
+          available: true,
+          events: [
+            {
+              id: "audit_1",
+              eventType: "demo.seeded",
+              entityType: "seed_batch",
+              createdAt: "2026-06-29T10:02:00.000Z",
+            },
+          ],
+        },
+        latestJobRuns: {
+          available: true,
+          runs: [
+            {
+              id: "job_1",
+              jobType: "recompute-matches",
+              status: "succeeded",
+              finishedAt: "2026-06-29T10:03:00.000Z",
+            },
+          ],
+        },
       }),
       endpoint("/api/system/db-proof", "ok", {
-        database: { engine: "Aurora PostgreSQL" },
-        extensions: [
-          { name: "postgis", installed: true, version: "3.5.0" },
-          { name: "pgcrypto", installed: true },
-          { name: "pg_trgm", installed: true },
-          { name: "vector", installed: false, detail: "Not enabled for Checkpoint 1" },
-        ],
+        status: "available",
+        database: { available: true, currentDatabase: "useby", versionSummary: "PostgreSQL 17.7" },
+        extensions: {
+          available: true,
+          items: [
+            { name: "postgis", installed: true, installedVersion: "3.5.0" },
+            { name: "pgcrypto", installed: true },
+            { name: "pg_trgm", installed: true },
+            { name: "vector", installed: false, detail: "Not enabled for Checkpoint 1" },
+          ],
+        },
       }),
     );
 
@@ -91,4 +100,3 @@ describe("proof UI adapters", () => {
     expect(snapshot.jobRuns[0]?.name).toBe("recompute-matches");
   });
 });
-
