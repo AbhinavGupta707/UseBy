@@ -3,7 +3,8 @@
 Date: 2026-06-29
 Project: UseBy
 Integration branch: `main`
-Base commit: `5029affb8afdfaaa4ec979a271cdbc2cf2a383f4`
+Checkpoint 0 scaffold commit: `5029affb8afdfaaa4ec979a271cdbc2cf2a383f4`
+Worker launch base: current `main` HEAD after this orchestration document is committed.
 
 ## Readiness Verification
 
@@ -188,7 +189,7 @@ Workers are created from this checkpoint control document. The orchestrator must
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 1A Schema And Migrations | Pending | Pending | Pending launch | Base commit above |
-| 1C DB Runtime And System APIs | Pending | Pending | Pending launch | Base commit above |
-| 1B Seed And Reset | Pending | Pending | Pending launch | Base commit above |
-| 1D Live Proof UI | Pending | Pending | Pending launch | Base commit above |
+| 1A Schema And Migrations | Pending | Pending | Pending launch | Launch from current `main` HEAD |
+| 1C DB Runtime And System APIs | Pending | Pending | Pending launch | Launch from current `main` HEAD |
+| 1B Seed And Reset | Pending | Pending | Pending launch | Launch from current `main` HEAD |
+| 1D Live Proof UI | Pending | Pending | Pending launch | Launch from current `main` HEAD |
