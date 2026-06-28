@@ -1,0 +1,484 @@
+import {
+  loadRuntimeEnv,
+  sanitizeRuntimeEnv,
+} from "../../server/db/env";
+import {
+  getTableAvailability,
+  publicErrorMessage,
+} from "../../server/db/introspection";
+import {
+  ASSUMED_SYSTEM_COLUMNS,
+  SYSTEM_COUNT_TABLES,
+  SYSTEM_TABLES,
+  quoteIdentifier,
+} from "../../server/db/schema-contract";
+import { executeSql } from "../../server/db/sql";
+import type {
+  AvailabilityStatus,
+  DbProofResponse,
+  ExtensionProof,
+  LatestAuditEvent,
+  LatestJobRun,
+  SystemCount,
+  SystemStateResponse,
+} from "./types";
+
+function safeJson(value: unknown): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function unavailableCounts(reason: string): SystemCount[] {
+  return SYSTEM_COUNT_TABLES.map((contract) => ({
+    key: contract.key,
+    label: contract.label,
+    table: contract.table,
+    available: false,
+    count: null,
+    reason,
+  }));
+}
+
+async function getCounts(): Promise<SystemCount[]> {
+  const counts: SystemCount[] = [];
+
+  for (const contract of SYSTEM_COUNT_TABLES) {
+    try {
+      const availability = await getTableAvailability(contract.table);
+      if (!availability.exists) {
+        counts.push({
+          key: contract.key,
+          label: contract.label,
+          table: contract.table,
+          available: false,
+          count: null,
+          reason: "table is not available",
+        });
+        continue;
+      }
+
+      if ("where" in contract && !availability.columns.has("status")) {
+        counts.push({
+          key: contract.key,
+          label: contract.label,
+          table: contract.table,
+          available: false,
+          count: null,
+          reason: "status column is required for active count",
+        });
+        continue;
+      }
+
+      const table = quoteIdentifier(contract.table);
+      const result = await executeSql<{ count: number }>({
+        sql: `select count(*)::int8 as count from ${table} ${
+          "where" in contract ? `where ${contract.where}` : ""
+        }`,
+      });
+
+      counts.push({
+        key: contract.key,
+        label: contract.label,
+        table: contract.table,
+        available: true,
+        count: Number(result.rows[0]?.count ?? 0),
+      });
+    } catch (error) {
+      counts.push({
+        key: contract.key,
+        label: contract.label,
+        table: contract.table,
+        available: false,
+        count: null,
+        reason: publicErrorMessage(error),
+      });
+    }
+  }
+
+  return counts;
+}
+
+async function getLatestAuditEvents(): Promise<
+  SystemStateResponse["latestAuditEvents"]
+> {
+  const availability = await getTableAvailability(SYSTEM_TABLES.auditEvents);
+  const missing = ASSUMED_SYSTEM_COLUMNS.auditEvents.filter(
+    (column) => !availability.columns.has(column),
+  );
+
+  if (!availability.exists || missing.length > 0) {
+    return {
+      available: false,
+      events: [],
+      reason: availability.exists
+        ? `audit_events missing columns: ${missing.join(", ")}`
+        : "audit_events table is not available",
+    };
+  }
+
+  const result = await executeSql<{
+    id: string | null;
+    event_type: string;
+    actor_type: string | null;
+    source: string | null;
+    entity_type: string | null;
+    entity_id: string | null;
+    idempotency_key: string | null;
+    created_at: string | null;
+    metadata: string | null;
+  }>({
+    sql: `
+      select
+        id::text as id,
+        event_type,
+        actor_type,
+        source,
+        entity_type,
+        entity_id::text as entity_id,
+        idempotency_key,
+        created_at::text as created_at,
+        metadata::text as metadata
+      from audit_events
+      order by created_at desc
+      limit 8
+    `,
+  });
+
+  return {
+    available: true,
+    events: result.rows.map<LatestAuditEvent>((row) => ({
+      id: row.id,
+      eventType: row.event_type,
+      actorType: row.actor_type,
+      source: row.source,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      idempotencyKey: row.idempotency_key,
+      createdAt: row.created_at,
+      metadata: safeJson(row.metadata),
+    })),
+  };
+}
+
+async function getLatestJobRuns(): Promise<SystemStateResponse["latestJobRuns"]> {
+  const availability = await getTableAvailability(SYSTEM_TABLES.jobRuns);
+  const missing = ASSUMED_SYSTEM_COLUMNS.jobRuns.filter(
+    (column) => !availability.columns.has(column),
+  );
+
+  if (!availability.exists || missing.length > 0) {
+    return {
+      available: false,
+      runs: [],
+      reason: availability.exists
+        ? `job_runs missing columns: ${missing.join(", ")}`
+        : "job_runs table is not available",
+    };
+  }
+
+  const result = await executeSql<{
+    id: string | null;
+    job_type: string;
+    status: string;
+    source: string | null;
+    idempotency_key: string | null;
+    started_at: string | null;
+    completed_at: string | null;
+    metadata: string | null;
+  }>({
+    sql: `
+      select
+        id::text as id,
+        job_type,
+        status,
+        source,
+        idempotency_key,
+        started_at::text as started_at,
+        completed_at::text as completed_at,
+        metadata::text as metadata
+      from job_runs
+      order by started_at desc
+      limit 8
+    `,
+  });
+
+  return {
+    available: true,
+    runs: result.rows.map<LatestJobRun>((row) => ({
+      id: row.id,
+      jobType: row.job_type,
+      status: row.status,
+      source: row.source,
+      idempotencyKey: row.idempotency_key,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+      metadata: safeJson(row.metadata),
+    })),
+  };
+}
+
+function computeStatus(parts: boolean[]): AvailabilityStatus {
+  if (parts.every(Boolean)) {
+    return "available";
+  }
+
+  return parts.some(Boolean) ? "partial" : "unavailable";
+}
+
+export async function getSystemState(): Promise<SystemStateResponse> {
+  const env = loadRuntimeEnv();
+  const sanitizedEnv = sanitizeRuntimeEnv(env);
+  const generatedAt = new Date().toISOString();
+
+  if (!env.databaseConfigured) {
+    const reason = `Aurora env missing: ${env.missing.join(", ")}`;
+    return {
+      status: "unavailable",
+      generatedAt,
+      env: sanitizedEnv,
+      integrations: {
+        aurora: {
+          configured: false,
+          available: false,
+          missingEnv: env.missing,
+          region: sanitizedEnv.region,
+          database: sanitizedEnv.database,
+          error: reason,
+        },
+        s3: {
+          configured: env.storageConfigured,
+          bucket: sanitizedEnv.bucket,
+        },
+      },
+      counts: unavailableCounts(reason),
+      latestAuditEvents: {
+        available: false,
+        events: [],
+        reason,
+      },
+      latestJobRuns: {
+        available: false,
+        runs: [],
+        reason,
+      },
+    };
+  }
+
+  try {
+    const [counts, latestAuditEvents, latestJobRuns] = await Promise.all([
+      getCounts(),
+      getLatestAuditEvents(),
+      getLatestJobRuns(),
+    ]);
+    const countAvailable = counts.some((count) => count.available);
+    const status = computeStatus([
+      countAvailable,
+      latestAuditEvents.available,
+      latestJobRuns.available,
+    ]);
+
+    return {
+      status,
+      generatedAt,
+      env: sanitizedEnv,
+      integrations: {
+        aurora: {
+          configured: true,
+          available: status !== "unavailable",
+          missingEnv: [],
+          region: sanitizedEnv.region,
+          database: sanitizedEnv.database,
+        },
+        s3: {
+          configured: env.storageConfigured,
+          bucket: sanitizedEnv.bucket,
+        },
+      },
+      counts,
+      latestAuditEvents,
+      latestJobRuns,
+    };
+  } catch (error) {
+    const reason = publicErrorMessage(error);
+    return {
+      status: "unavailable",
+      generatedAt,
+      env: sanitizedEnv,
+      integrations: {
+        aurora: {
+          configured: true,
+          available: false,
+          missingEnv: [],
+          region: sanitizedEnv.region,
+          database: sanitizedEnv.database,
+          error: reason,
+        },
+        s3: {
+          configured: env.storageConfigured,
+          bucket: sanitizedEnv.bucket,
+        },
+      },
+      counts: unavailableCounts(reason),
+      latestAuditEvents: {
+        available: false,
+        events: [],
+        reason,
+      },
+      latestJobRuns: {
+        available: false,
+        runs: [],
+        reason,
+      },
+    };
+  }
+}
+
+function summarizeVersion(version: unknown): string | null {
+  if (typeof version !== "string") {
+    return null;
+  }
+
+  const match = version.match(/^PostgreSQL\s+\S+/);
+  return match?.[0] ?? "PostgreSQL";
+}
+
+const PROOF_EXTENSION_NAMES = [
+  "postgis",
+  "vector",
+  "pgcrypto",
+  "pg_trgm",
+] as const;
+
+export async function getDbProof(): Promise<DbProofResponse> {
+  const env = loadRuntimeEnv();
+  const sanitizedEnv = sanitizeRuntimeEnv(env);
+  const generatedAt = new Date().toISOString();
+
+  const unavailable: DbProofResponse = {
+    status: "unavailable",
+    generatedAt,
+    env: sanitizedEnv,
+    database: {
+      available: false,
+      currentDatabase: null,
+      currentSchema: null,
+      versionSummary: null,
+      error: `Aurora env missing: ${env.missing.join(", ")}`,
+    },
+    extensions: {
+      available: false,
+      items: PROOF_EXTENSION_NAMES.map((name) => ({
+        name,
+        available: false,
+        installed: false,
+        defaultVersion: null,
+        installedVersion: null,
+      })),
+      error: `Aurora env missing: ${env.missing.join(", ")}`,
+    },
+  };
+
+  if (!env.databaseConfigured) {
+    return unavailable;
+  }
+
+  try {
+    const [metadata, extensions] = await Promise.all([
+      executeSql<{
+        current_database: string | null;
+        current_schema: string | null;
+        version: string | null;
+      }>({
+        sql: `
+          select
+            current_database() as current_database,
+            current_schema() as current_schema,
+            version() as version
+        `,
+      }),
+      executeSql<{
+        name: ExtensionProof["name"];
+        default_version: string | null;
+        installed_version: string | null;
+      }>({
+        sql: `
+          select
+            available.name,
+            available.default_version,
+            installed.extversion as installed_version
+          from pg_available_extensions available
+          left join pg_extension installed on installed.extname = available.name
+          where available.name in ('postgis', 'vector', 'pgcrypto', 'pg_trgm')
+        `,
+      }),
+    ]);
+
+    const extensionRows = new Map(
+      extensions.rows.map((row) => [row.name, row] as const),
+    );
+    const items: ExtensionProof[] = PROOF_EXTENSION_NAMES.map((name) => {
+      const row = extensionRows.get(name);
+      return {
+        name,
+        available: Boolean(row),
+        installed: Boolean(row?.installed_version),
+        defaultVersion: row?.default_version ?? null,
+        installedVersion: row?.installed_version ?? null,
+      };
+    });
+    const row = metadata.rows[0];
+
+    return {
+      status: "available",
+      generatedAt,
+      env: sanitizedEnv,
+      database: {
+        available: true,
+        currentDatabase: row?.current_database ?? null,
+        currentSchema: row?.current_schema ?? null,
+        versionSummary: summarizeVersion(row?.version),
+      },
+      extensions: {
+        available: true,
+        items,
+      },
+    };
+  } catch (error) {
+    const reason = publicErrorMessage(error);
+    return {
+      status: "unavailable",
+      generatedAt,
+      env: sanitizedEnv,
+      database: {
+        available: false,
+        currentDatabase: null,
+        currentSchema: null,
+        versionSummary: null,
+        error: reason,
+      },
+      extensions: {
+        available: false,
+        items: unavailable.extensions.items,
+        error: reason,
+      },
+    };
+  }
+}
