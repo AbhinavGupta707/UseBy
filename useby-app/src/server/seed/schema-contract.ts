@@ -1,11 +1,11 @@
 import { DEMO_SCOPE } from "../fixtures/demo-world";
 
-export const DEMO_SCHEMA_CONTRACT_VERSION = "checkpoint-1-lane-1b-draft";
+export const DEMO_SCHEMA_CONTRACT_VERSION = "checkpoint-1-live-v1";
 
 export const DEMO_SCOPE_FILTER = {
-  column: "demo_scope",
+  column: "demo_scope_id",
   value: DEMO_SCOPE,
-  fallbackJsonPath: "metadata.demo_scope",
+  fallbackJsonPath: "metadata.demoScope",
 } as const;
 
 export const DEMO_RESET_DELETE_ORDER = [
@@ -73,7 +73,7 @@ export const FINAL_OUTPUT_TABLES_NOT_SEEDED = [
 ] as const;
 
 export const DEMO_SCHEMA_ASSUMPTIONS = [
-  "Every demo-owned row either has a demo_scope column or metadata JSON containing metadata.demo_scope.",
+  "Every demo-owned row either has a demo_scope_id column or metadata JSON containing metadata.demoScope.",
   "Stable fixture demoId values map to canonical IDs or external IDs during insertion.",
   "Lane 1C will provide an RDS Data API executor that deletes by demo scope in dependency order.",
   "Seed inserts must write seed_batches and an audit_events mutation row after input rows are inserted.",

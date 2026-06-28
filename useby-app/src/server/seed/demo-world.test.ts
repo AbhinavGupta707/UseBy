@@ -10,6 +10,9 @@ import {
 } from "../fixtures/demo-world";
 import {
   buildDemoSeedPlan,
+  createDryRunDemoSeedAdapter,
+  createLiveDemoSeedAdapter,
+  demoUuidFor,
   runDemoSeedOperation,
   type DemoSeedAdapter,
 } from "./demo-seed-adapter";
@@ -90,8 +93,9 @@ describe("demo seed/reset plan", () => {
     }
   });
 
-  it("is dry-run until the Lane 1C database adapter is wired", async () => {
+  it("is dry-run when Aurora env is unavailable", async () => {
     const result = await runDemoSeedOperation("reset", {
+      adapter: createDryRunDemoSeedAdapter(),
       requestedAt: "2026-06-29T10:00:00.000Z",
       requestedBy: "test",
     });
@@ -100,7 +104,18 @@ describe("demo seed/reset plan", () => {
     expect(result.applied).toBe(false);
     expect(result.mutationTimestamp).toBe("2026-06-29T10:00:00.000Z");
     expect(result.integrationRequired).toContain(
-      "Delete only rows matching demo_scope in the reset delete order before inserting fixture inputs.",
+      "Apply the Checkpoint 1 Aurora migration before running live seed/reset.",
+    );
+  });
+
+  it("exposes a live Aurora adapter and stable demo UUIDs", () => {
+    const adapter = createLiveDemoSeedAdapter();
+
+    expect(adapter.name).toBe("aurora-demo-seed-adapter");
+    expect(adapter.live).toBe(true);
+    expect(demoUuidFor("hh-atrium-2a")).toBe(demoUuidFor("hh-atrium-2a"));
+    expect(demoUuidFor("hh-atrium-2a")).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
   });
 
