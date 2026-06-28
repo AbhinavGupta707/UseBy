@@ -189,7 +189,7 @@ Workers are created from this checkpoint control document. The orchestrator must
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 1A Schema And Migrations | Pending | `local:7bef4f8f-231c-4009-88ea-d69e0aaec1fb` | Queued | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
-| 1C DB Runtime And System APIs | Pending | `local:f13fb8a9-f231-42ae-a48d-759a0aafe621` | Queued | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
-| 1B Seed And Reset | Pending | `local:b64c501b-3b8a-42a1-b2f6-f0b95fa41e7c` | Queued | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
-| 1D Live Proof UI | Pending | `local:ba625c5a-6627-4237-87fd-2e3e28eb3eb0` | Queued | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
+| 1A Schema And Migrations | `019f1092-92d6-7931-b170-12c6188900e8` | `/Users/abhinavgupta/.codex/worktrees/8b4c/UseBy` | Active | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
+| 1C DB Runtime And System APIs | `019f1092-e2f1-7c51-93ba-c93d091ab883` | `/Users/abhinavgupta/.codex/worktrees/3652/UseBy` | Active | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
+| 1B Seed And Reset | `019f1093-2770-7170-aaec-0b925d9bf8f2` | `/Users/abhinavgupta/.codex/worktrees/4fdb/UseBy` | Active | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
+| 1D Live Proof UI | `019f1093-68f6-7e32-b392-a7638e4203b7` | `/Users/abhinavgupta/.codex/worktrees/0770/UseBy` | Active | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
