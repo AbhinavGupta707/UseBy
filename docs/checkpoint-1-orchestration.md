@@ -189,7 +189,7 @@ Workers are created from this checkpoint control document. The orchestrator must
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 1A Schema And Migrations | Pending | Pending | Pending launch | Launch from current `main` HEAD |
-| 1C DB Runtime And System APIs | Pending | Pending | Pending launch | Launch from current `main` HEAD |
-| 1B Seed And Reset | Pending | Pending | Pending launch | Launch from current `main` HEAD |
-| 1D Live Proof UI | Pending | Pending | Pending launch | Launch from current `main` HEAD |
+| 1A Schema And Migrations | Pending | `local:7bef4f8f-231c-4009-88ea-d69e0aaec1fb` | Queued | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
+| 1C DB Runtime And System APIs | Pending | `local:f13fb8a9-f231-42ae-a48d-759a0aafe621` | Queued | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
+| 1B Seed And Reset | Pending | `local:b64c501b-3b8a-42a1-b2f6-f0b95fa41e7c` | Queued | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
+| 1D Live Proof UI | Pending | `local:ba625c5a-6627-4237-87fd-2e3e28eb3eb0` | Queued | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
