@@ -189,7 +189,37 @@ Workers are created from this checkpoint control document. The orchestrator must
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 1A Schema And Migrations | `019f1092-92d6-7931-b170-12c6188900e8` | `/Users/abhinavgupta/.codex/worktrees/8b4c/UseBy` | Active | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
-| 1C DB Runtime And System APIs | `019f1092-e2f1-7c51-93ba-c93d091ab883` | `/Users/abhinavgupta/.codex/worktrees/3652/UseBy` | Active | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
-| 1B Seed And Reset | `019f1093-2770-7170-aaec-0b925d9bf8f2` | `/Users/abhinavgupta/.codex/worktrees/4fdb/UseBy` | Active | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
-| 1D Live Proof UI | `019f1093-68f6-7e32-b392-a7638e4203b7` | `/Users/abhinavgupta/.codex/worktrees/0770/UseBy` | Active | Launched from `56d059ebd474d391f903154d48cb0f4f8e87ccda` |
+| 1A Schema And Migrations | `019f1092-92d6-7931-b170-12c6188900e8` | `/Users/abhinavgupta/.codex/worktrees/8b4c/UseBy` | Merged | Worker commit `89d40a5`; merge commit `237f56f` |
+| 1C DB Runtime And System APIs | `019f1092-e2f1-7c51-93ba-c93d091ab883` | `/Users/abhinavgupta/.codex/worktrees/3652/UseBy` | Merged | Worker commit `e47e2f6`; merge commit `6ceb029` |
+| 1B Seed And Reset | `019f1093-2770-7170-aaec-0b925d9bf8f2` | `/Users/abhinavgupta/.codex/worktrees/4fdb/UseBy` | Merged | Worker commit `09001aa`; merge commit `a594eb8` |
+| 1D Live Proof UI | `019f1093-68f6-7e32-b392-a7638e4203b7` | `/Users/abhinavgupta/.codex/worktrees/0770/UseBy` | Merged | Worker commit `ecb2a3f`; merge commit `878a45b` |
+
+## Integration Result
+
+Checkpoint 1 is integrated on `main` through commit `d990366`.
+
+Landed commits:
+
+- `237f56f` merged Lane 1A schema/migrations.
+- `6ceb029` merged Lane 1C DB runtime/system APIs.
+- `b114fbc` aligned runtime helpers with the landed schema column names.
+- `a594eb8` merged Lane 1B seed/reset.
+- `a199e16` wired demo seed/reset to the Aurora runtime when env is configured, while keeping no-env dry-run honest.
+- `878a45b` merged Lane 1D proof UI.
+- `d990366` aligned proof UI adapters with the actual live system API response shape.
+
+Final verification from `useby-app`:
+
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test` passed: 8 files, 20 tests.
+- `npm run build` passed.
+- `git diff --check` passed.
+
+Review notes:
+
+- Seed/reset writes deterministic input-world rows only; final matches, bookings, action cards, winners, trust changes, and job outputs remain computed-only.
+- `/api/system/state` and `/api/system/db-proof` return honest unavailable responses when Aurora env or tables are unavailable.
+- `/proof` consumes endpoint responses through the adapter and treats missing/no-env states as unavailable, not live success.
+- Public response types expose coarse status/counts/audit/job metadata; exact household coordinates are not returned by the system proof APIs.
+- Live Aurora migration/seed smoke still requires AWS credentials or deployed Vercel OIDC env at runtime.
