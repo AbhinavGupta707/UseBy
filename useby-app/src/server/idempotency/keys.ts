@@ -52,11 +52,11 @@ export async function claimIdempotencyKey(
     const result = await executeSql<{ inserted: boolean }>({
       sql: `
         insert into idempotency_keys (
-          idempotency_key,
+          key,
           scope,
           request_hash,
           status,
-          metadata,
+          expires_at,
           created_at,
           updated_at
         )
@@ -64,19 +64,18 @@ export async function claimIdempotencyKey(
           :key,
           :scope,
           nullif(:requestHash, ''),
-          'claimed',
-          :metadata::jsonb,
+          'started',
+          now() + interval '1 hour',
           now(),
           now()
         )
-        on conflict (idempotency_key) do nothing
+        on conflict (key) do nothing
         returning true as inserted
       `,
       parameters: [
         sqlParam("key", input.key),
         sqlParam("scope", input.scope),
         sqlParam("requestHash", input.requestHash ?? ""),
-        sqlParam("metadata", input.metadata ?? {}),
       ],
     });
 

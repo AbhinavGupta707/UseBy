@@ -54,23 +54,19 @@ export async function recordAuditEvent(
     const result = await executeSql<{ id: string }>({
       sql: `
         insert into audit_events (
-          event_type,
-          actor_type,
-          actor_id,
-          source,
           entity_type,
           entity_id,
+          action,
+          source,
           idempotency_key,
           metadata,
           created_at
         )
         values (
-          :eventType,
-          :actorType,
-          nullif(:actorId, '')::uuid,
-          :source,
-          nullif(:entityType, ''),
+          coalesce(nullif(:entityType, ''), 'system_event'),
           nullif(:entityId, '')::uuid,
+          :eventType,
+          :source,
           nullif(:idempotencyKey, ''),
           :metadata::jsonb,
           now()
@@ -79,13 +75,15 @@ export async function recordAuditEvent(
       `,
       parameters: [
         sqlParam("eventType", input.eventType),
-        sqlParam("actorType", input.actorType ?? "system"),
-        sqlParam("actorId", input.actorId ?? ""),
         sqlParam("source", input.source),
         sqlParam("entityType", input.entityType ?? ""),
         sqlParam("entityId", input.entityId ?? ""),
         sqlParam("idempotencyKey", input.idempotencyKey ?? ""),
-        sqlParam("metadata", input.metadata ?? {}),
+        sqlParam("metadata", {
+          ...(input.metadata ?? {}),
+          actorType: input.actorType ?? "system",
+          actorId: input.actorId ?? null,
+        }),
       ],
     });
 

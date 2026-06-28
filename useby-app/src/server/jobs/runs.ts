@@ -15,7 +15,7 @@ export type SystemJobType =
   | "pickup-reminders";
 
 export type SystemJobRunResult = {
-  status: "completed" | "skipped" | "unavailable" | "failed";
+  status: "succeeded" | "skipped" | "unavailable" | "failed";
   jobType: SystemJobType;
   idempotencyKey: string;
   windowStart: string;
@@ -122,17 +122,17 @@ export async function runSystemJobStub(
         insert into job_runs (
           job_type,
           status,
-          source,
           idempotency_key,
+          window_start,
           started_at,
-          completed_at,
-          metadata
+          finished_at,
+          summary
         )
         values (
           :jobType,
-          'completed',
-          :source,
+          'succeeded',
           :idempotencyKey,
+          :windowStart::timestamp with time zone,
           now(),
           now(),
           :metadata::jsonb
@@ -141,8 +141,8 @@ export async function runSystemJobStub(
       `,
       parameters: [
         sqlParam("jobType", jobType),
-        sqlParam("source", source),
         sqlParam("idempotencyKey", idempotencyKey),
+        sqlParam("windowStart", windowStart),
         sqlParam("metadata", {
           ...JOB_METADATA[jobType],
           source,
@@ -169,7 +169,7 @@ export async function runSystemJobStub(
     });
 
     return {
-      status: "completed",
+      status: "succeeded",
       jobType,
       idempotencyKey,
       windowStart,

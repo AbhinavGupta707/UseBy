@@ -148,8 +148,17 @@ async function getLatestAuditEvents(): Promise<
     sql: `
       select
         id::text as id,
-        event_type,
-        actor_type,
+        action as event_type,
+        coalesce(
+          metadata->>'actorType',
+          case
+            when actor_user_id is not null then 'user'
+            when actor_household_id is not null then 'household'
+            when actor_merchant_id is not null then 'merchant'
+            when job_run_id is not null then 'job'
+            else 'system'
+          end
+        ) as actor_type,
         source,
         entity_type,
         entity_id::text as entity_id,
@@ -209,11 +218,11 @@ async function getLatestJobRuns(): Promise<SystemStateResponse["latestJobRuns"]>
         id::text as id,
         job_type,
         status,
-        source,
+        summary->>'source' as source,
         idempotency_key,
         started_at::text as started_at,
-        completed_at::text as completed_at,
-        metadata::text as metadata
+        finished_at::text as completed_at,
+        summary::text as metadata
       from job_runs
       order by started_at desc
       limit 8
