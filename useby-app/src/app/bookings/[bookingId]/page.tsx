@@ -1,7 +1,13 @@
 import Link from "next/link";
-import { GroceryWorkspace } from "../../components/grocery/grocery-workspace";
+import { BookingWorkspace } from "../../../components/bookings/booking-workspace";
 
-export default function GroceryPage() {
+export default async function BookingDetailPage({
+  params,
+}: {
+  params: Promise<{ bookingId: string }>;
+}) {
+  const { bookingId } = await params;
+
   return (
     <main className="min-h-screen bg-[#f4f6f1] text-[#17231c]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
@@ -12,17 +18,11 @@ export default function GroceryPage() {
             </span>
             <span>
               <span className="block text-lg font-semibold">UseBy</span>
-              <span className="block text-sm text-[#65715f]">Riverside Quarter grocery</span>
+              <span className="block text-sm text-[#65715f]">Booking handoff</span>
             </span>
           </Link>
 
           <nav className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-            <Link
-              href="/"
-              className="rounded-md border border-[#c4ceba] px-3 py-2 text-[#315b44] transition hover:border-[#315b44] hover:bg-white"
-            >
-              Home
-            </Link>
             <Link
               href="/bookings"
               className="rounded-md border border-[#c4ceba] px-3 py-2 text-[#315b44] transition hover:border-[#315b44] hover:bg-white"
@@ -30,15 +30,15 @@ export default function GroceryPage() {
               Bookings
             </Link>
             <Link
-              href="/proof"
+              href="/grocery"
               className="rounded-md bg-[#315b44] px-3 py-2 text-white transition hover:bg-[#254635]"
             >
-              Proof
+              Grocery
             </Link>
           </nav>
         </header>
 
-        <GroceryWorkspace />
+        <BookingWorkspace bookingId={bookingId} mode="detail" />
       </div>
     </main>
   );

@@ -37,6 +37,8 @@ export type GroceryActionCard = {
 
 export type GroceryMatch = {
   id: string;
+  itemId: string | null;
+  needId: string | null;
   itemName: string;
   needTitle: string;
   distanceMeters: number | null;
@@ -44,6 +46,8 @@ export type GroceryMatch = {
   rationale: string;
   safetyStatus: SafetyStatus | string;
   status: string;
+  ownerCoarseLocation: string | null;
+  requesterCoarseLocation: string | null;
 };
 
 export type GroceryEndpointState = {
