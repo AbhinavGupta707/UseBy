@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getSemanticRankingReadiness,
   rankSemanticallyAfterDeterministicFilters,
   type SemanticMatchCandidate,
 } from "./semantic";
@@ -86,5 +87,18 @@ describe("semantic matching guardrails", () => {
       "strong-deterministic",
     ]);
     expect(result.candidates.find((item) => item.id === "semantic-nudge")?.finalScore).toBe(93);
+  });
+
+  it("accepts Fireworks embedding env aliases while remaining opt-in", () => {
+    const readiness = getSemanticRankingReadiness({
+      AI_SEMANTIC_RANKING_ENABLED: "true",
+      FIREWORKS_API_KEY: "test-key",
+      FIREWORKS_EMBEDDING_MODEL: "fireworks/qwen3-embedding-8b",
+    });
+
+    expect(readiness.status).toBe("ready");
+    expect(readiness.provider).toBe("fireworks");
+    expect(readiness.model).toBe("fireworks/qwen3-embedding-8b");
+    expect(readiness.noKey).toBe(false);
   });
 });
