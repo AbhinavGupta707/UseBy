@@ -1,7 +1,7 @@
 # Checkpoint 4 Orchestration Control
 
 Checkpoint 3 completed commit: `f5d9c50`.
-Worker launch base: current `main` after this control document is committed.
+Worker launch base: `cd62a6a` (`Plan checkpoint 4 lending orchestration`).
 
 ## Outcome
 
@@ -224,8 +224,7 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 4A Lending Schema And Runtime | Pending | Pending | Not launched | Owns CP4 migration/schema/API base |
-| 4B Lending Policy, Availability, And Terms | Pending | Pending | Not launched | Merge after 4A contracts |
-| 4C Wardrobe And Household Lending UI | Pending | Pending | Not launched | Merge after APIs/policy |
-| 4D CP4 Proof, Contracts, And Docs | Pending | Pending | Not launched | Merge after UI |
-
+| 4A Lending Schema And Runtime | `019f11c9-df8e-7861-96c7-cb223a9d6f19` | `/Users/abhinavgupta/.codex/worktrees/1597/UseBy` | Active | Pending ID `local:6ab7ab8f-c43f-44be-8522-a09f25921610`; owns CP4 migration/schema/API base |
+| 4B Lending Policy, Availability, And Terms | `019f11ca-1df6-7b01-be0e-a23ba18f6038` | `/Users/abhinavgupta/.codex/worktrees/bcc3/UseBy` | Active | Pending ID `local:2b23274d-35a9-4728-8c8d-12c3aef9e1f1`; merge after 4A contracts |
+| 4C Wardrobe And Household Lending UI | `019f11ca-5ec4-72c3-ac84-7b670ae950d4` | `/Users/abhinavgupta/.codex/worktrees/a757/UseBy` | Active | Pending ID `local:b381cbf8-4f8b-416b-b578-f0ce947bd245`; merge after APIs/policy |
+| 4D CP4 Proof, Contracts, And Docs | `019f11ca-9972-7152-b0ad-223d524223cd` | `/Users/abhinavgupta/.codex/worktrees/f5ca/UseBy` | Active | Pending ID `local:e83eeaaa-7b20-47d2-84c4-3a33cabd5a2c`; merge after UI |
