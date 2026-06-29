@@ -4,7 +4,7 @@ Checkpoint 4 completed commit: `d7777f5`.
 Checkpoint 6 plan commit: `8720a21`.
 Worker launch base: `8720a21` (`Plan checkpoint 6 demandpool orchestration`).
 Current registry commit: `2576aab`.
-Current integration commit: `51ba5ea` (`Align checkpoint 6D merchant helpers with runtime DTOs`).
+Current integration commit: `0e50186` (`Fix CP6 pickup transition enum casts`).
 
 ## Outcome
 
@@ -45,11 +45,23 @@ Local verification after all merges:
 - `npm run build` passed with `/pools`, `/merchant`, CP6 API routes, and proof routes registered.
 - `git diff --check` passed.
 
-Pending live gate before Checkpoint 7:
+Completed live gate before Checkpoint 7:
 
-- Push the CP6 integration/docs commit.
-- Apply/deploy the CP6 migration/runtime as required by production.
-- Run the CP6 live API/browser/Aurora smoke in `docs/checkpoint-6-live-smoke.md`.
+- CP6 integration and fixes pushed through commit `0e50186`.
+- Aurora migration `useby-app/drizzle/0004_demand_pool_orders_pickups.sql` applied through the RDS Data API.
+- Drizzle migration hash recorded: `37150b0ce3c48e5f3e4762c3fbb9a790e94d8d468cb434134a4ed7d234de2e93`.
+- Final production deployment: `dpl_3aygoB1xxwyLPGsvw4QgLmozMr74`, aliased to `https://useby-app.vercel.app`.
+- Production API smoke passed for `/api/system/db-proof`, `/api/system/state`, `/api/demand-pools`, `/api/merchant/demand-pools`, `/api/jobs/close-demand-pools`, `/api/demand-pools/orders`, and `/api/merchant/pickups`.
+- Live mutation smoke crossed a DemandPool threshold, submitted two merchant bids, awarded one winner, created `3` pool orders and `3` pickup tasks, and advanced one pickup to `collected`.
+- Browser smoke passed for `/pools`, `/merchant`, and `/proof`.
+- Final local verification passed: `npm run lint`, `npm run typecheck`, `npm run test` (41 files, 143 tests), `npm run build`, and `git diff --check`.
+
+Production smoke fixes landed after lane merge:
+
+- `a860f60` exposes sanitized DemandPool runtime errors.
+- `fe4ab30` fixes DemandPool commitment aggregate numeric casting.
+- `84f00ae` fixes CP6 pickup-task award insert metadata.
+- `0e50186` fixes CP6 pickup transition enum casts.
 
 ## Product Gates
 
