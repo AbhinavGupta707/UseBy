@@ -84,6 +84,25 @@ export const fileRoleValues = [
 export const jobRunStatusValues = ["started", "succeeded", "failed", "skipped"] as const;
 export const idempotencyStatusValues = ["started", "completed", "failed"] as const;
 export const seedBatchStatusValues = ["started", "applied", "failed", "rolled_back"] as const;
+export const receiptImportStatusValues = ["started", "parsed", "applied", "failed"] as const;
+export const expiryObservationSourceValues = ["receipt", "label", "manual", "gs1", "system"] as const;
+export const expiryConfidenceValues = ["low", "medium", "high", "confirmed"] as const;
+export const matchStatusValues = [
+  "active",
+  "proposed",
+  "accepted",
+  "rejected",
+  "expired",
+  "converted",
+  "invalidated",
+] as const;
+export const actionCardStatusValues = [
+  "active",
+  "dismissed",
+  "snoozed",
+  "completed",
+  "invalidated",
+] as const;
 
 export const itemCategoryEnum = pgEnum("item_category", itemCategoryValues);
 export const itemStateEnum = pgEnum("item_state", itemStateValues);
@@ -101,6 +120,11 @@ export const fileRoleEnum = pgEnum("file_role", fileRoleValues);
 export const jobRunStatusEnum = pgEnum("job_run_status", jobRunStatusValues);
 export const idempotencyStatusEnum = pgEnum("idempotency_status", idempotencyStatusValues);
 export const seedBatchStatusEnum = pgEnum("seed_batch_status", seedBatchStatusValues);
+export const receiptImportStatusEnum = pgEnum("receipt_import_status", receiptImportStatusValues);
+export const expiryObservationSourceEnum = pgEnum("expiry_observation_source", expiryObservationSourceValues);
+export const expiryConfidenceEnum = pgEnum("expiry_confidence", expiryConfidenceValues);
+export const matchStatusEnum = pgEnum("match_status", matchStatusValues);
+export const actionCardStatusEnum = pgEnum("action_card_status", actionCardStatusValues);
 
 type JsonObject = Record<string, unknown>;
 type GeographyPoint = string;
@@ -405,6 +429,186 @@ export const needs = pgTable(
   ],
 );
 
+export const receiptImports = pgTable(
+  "receipt_imports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    householdId: uuid("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    neighbourhoodId: uuid("neighbourhood_id")
+      .notNull()
+      .references(() => neighbourhoods.id, { onDelete: "restrict" }),
+    merchantName: text("merchant_name"),
+    purchaseDate: date("purchase_date"),
+    source: text("source").default("manual").notNull(),
+    status: receiptImportStatusEnum("status").default("started").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    rawText: text("raw_text"),
+    subtotalCents: integer("subtotal_cents"),
+    taxCents: integer("tax_cents"),
+    totalCents: integer("total_cents"),
+    currency: varchar("currency", { length: 3 }).default("GBP").notNull(),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    uniqueIndex("receipt_imports_idempotency_key_idx").on(table.idempotencyKey),
+    index("receipt_imports_household_created_idx").on(table.householdId, table.createdAt),
+    index("receipt_imports_neighbourhood_idx").on(table.neighbourhoodId),
+    check("receipt_imports_subtotal_non_negative", sql`${table.subtotalCents} is null or ${table.subtotalCents} >= 0`),
+    check("receipt_imports_tax_non_negative", sql`${table.taxCents} is null or ${table.taxCents} >= 0`),
+    check("receipt_imports_total_non_negative", sql`${table.totalCents} is null or ${table.totalCents} >= 0`),
+  ],
+);
+
+export const receiptLineItems = pgTable(
+  "receipt_line_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    receiptImportId: uuid("receipt_import_id")
+      .notNull()
+      .references(() => receiptImports.id, { onDelete: "cascade" }),
+    catalogItemId: uuid("catalog_item_id").references(() => itemCatalog.id, { onDelete: "set null" }),
+    itemInstanceId: uuid("item_instance_id").references(() => itemInstances.id, { onDelete: "set null" }),
+    lineIndex: integer("line_index").notNull(),
+    rawText: text("raw_text").notNull(),
+    normalizedTitle: text("normalized_title").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).default("1").notNull(),
+    unit: text("unit").default("each").notNull(),
+    priceCents: integer("price_cents"),
+    currency: varchar("currency", { length: 3 }).default("GBP").notNull(),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("receipt_line_items_import_line_idx").on(table.receiptImportId, table.lineIndex),
+    index("receipt_line_items_item_instance_idx").on(table.itemInstanceId),
+    index("receipt_line_items_catalog_item_idx").on(table.catalogItemId),
+    check("receipt_line_items_line_index_non_negative", sql`${table.lineIndex} >= 0`),
+    check("receipt_line_items_quantity_positive", sql`${table.quantity} > 0`),
+    check("receipt_line_items_price_non_negative", sql`${table.priceCents} is null or ${table.priceCents} >= 0`),
+  ],
+);
+
+export const expiryObservations = pgTable(
+  "expiry_observations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    itemInstanceId: uuid("item_instance_id")
+      .notNull()
+      .references(() => itemInstances.id, { onDelete: "cascade" }),
+    householdId: uuid("household_id").references(() => households.id, { onDelete: "set null" }),
+    observedByUserId: uuid("observed_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    receiptImportId: uuid("receipt_import_id").references(() => receiptImports.id, { onDelete: "set null" }),
+    source: expiryObservationSourceEnum("source").default("manual").notNull(),
+    confidence: expiryConfidenceEnum("confidence").default("medium").notNull(),
+    observedAt: timestamp("observed_at", { withTimezone: true }).defaultNow().notNull(),
+    useByDate: date("use_by_date"),
+    bestBeforeDate: date("best_before_date"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    rawText: text("raw_text"),
+    note: text("note"),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    index("expiry_observations_item_observed_idx").on(table.itemInstanceId, table.observedAt),
+    index("expiry_observations_household_idx").on(table.householdId),
+    index("expiry_observations_receipt_idx").on(table.receiptImportId),
+  ],
+);
+
+export const matches = pgTable(
+  "matches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    neighbourhoodId: uuid("neighbourhood_id")
+      .notNull()
+      .references(() => neighbourhoods.id, { onDelete: "restrict" }),
+    needId: uuid("need_id")
+      .notNull()
+      .references(() => needs.id, { onDelete: "cascade" }),
+    itemInstanceId: uuid("item_instance_id")
+      .notNull()
+      .references(() => itemInstances.id, { onDelete: "cascade" }),
+    requesterHouseholdId: uuid("requester_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    ownerHouseholdId: uuid("owner_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    status: matchStatusEnum("status").default("proposed").notNull(),
+    score: numeric("score", { precision: 8, scale: 3 }).default("0").notNull(),
+    distanceMeters: integer("distance_meters"),
+    rationale: jsonb("rationale").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    recomputeKey: text("recompute_key").notNull(),
+    source: text("source").default("recompute").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    rejectedAt: timestamp("rejected_at", { withTimezone: true }),
+    convertedAt: timestamp("converted_at", { withTimezone: true }),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    uniqueIndex("matches_recompute_key_idx").on(table.recomputeKey),
+    index("matches_neighbourhood_status_idx").on(table.neighbourhoodId, table.status),
+    index("matches_need_status_idx").on(table.needId, table.status),
+    index("matches_item_status_idx").on(table.itemInstanceId, table.status),
+    index("matches_requester_household_idx").on(table.requesterHouseholdId),
+    index("matches_owner_household_idx").on(table.ownerHouseholdId),
+    check("matches_score_non_negative", sql`${table.score} >= 0`),
+    check("matches_distance_non_negative", sql`${table.distanceMeters} is null or ${table.distanceMeters} >= 0`),
+  ],
+);
+
+export const actionCards = pgTable(
+  "action_cards",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    householdId: uuid("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    neighbourhoodId: uuid("neighbourhood_id")
+      .notNull()
+      .references(() => neighbourhoods.id, { onDelete: "restrict" }),
+    itemInstanceId: uuid("item_instance_id").references(() => itemInstances.id, { onDelete: "cascade" }),
+    needId: uuid("need_id").references(() => needs.id, { onDelete: "cascade" }),
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "cascade" }),
+    cardType: text("card_type").notNull(),
+    status: actionCardStatusEnum("status").default("active").notNull(),
+    priority: integer("priority").default(0).notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    rationale: jsonb("rationale").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    recomputeKey: text("recompute_key").notNull(),
+    source: text("source").default("recompute").notNull(),
+    snoozedUntil: timestamp("snoozed_until", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    uniqueIndex("action_cards_recompute_key_idx").on(table.recomputeKey),
+    index("action_cards_household_status_idx").on(table.householdId, table.status),
+    index("action_cards_neighbourhood_status_idx").on(table.neighbourhoodId, table.status),
+    index("action_cards_item_idx").on(table.itemInstanceId),
+    index("action_cards_match_idx").on(table.matchId),
+    check("action_cards_priority_non_negative", sql`${table.priority} >= 0`),
+  ],
+);
+
 export const demandPools = pgTable(
   "demand_pools",
   {
@@ -645,4 +849,12 @@ export const checkpoint1Tables = {
   jobRuns,
   idempotencyKeys,
   seedBatches,
+};
+
+export const checkpoint2GroceryTables = {
+  receiptImports,
+  receiptLineItems,
+  expiryObservations,
+  matches,
+  actionCards,
 };
