@@ -1,9 +1,9 @@
 # UseBy Manual Live Demo Flow
 
 Created: 2026-06-29
-Updated for Checkpoint 9 Lane 9D: 2026-06-29
+Updated for Checkpoint 9 integration: 2026-06-29
 
-This script is the manual demo path for the redesigned CP9 consumer product. It is intentionally honest about the current base: in this lane, the repository has the CP9 plan but does not yet have installed `/api/agent/**` routes or an `/agent-runs` page. After Lane 9A, 9B, and 9C merge, use the target flow below as the live demo script and use the current-state checks to catch any integration gaps.
+This script is the manual demo path for the redesigned CP9 consumer product. CP9 now includes the premium consumer shell, the receipt-draft/action-plan agent routes, and the `/agent-runs` proof surface. Provider success still depends on installed env keys, the CP9 migration, and live Aurora state; no-key and not-migrated states must stay visible and honest.
 
 ## Demo Rule
 
@@ -11,17 +11,18 @@ Seeded data may create input world state only. Final action cards, matches, book
 
 Do not narrate AI as the authority for safety, eligibility, privacy exposure, trust, payment, reservation capacity, or visibility. UseBy code remains the authority; Fireworks can draft, normalize, explain, summarize, or rerank already-eligible deterministic candidates.
 
-## Current Base Reality
+## Current Integrated Reality
 
-Known current state before CP9 lane integration:
+Known current state after CP9 lane integration:
 
 - Production app: `https://useby-app.vercel.app`.
 - Live system proof endpoints exist: `GET /api/system/state` and `GET /api/system/db-proof`.
-- Customer routes currently present in this worktree: `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/lending`, `/merchant`, `/proof`.
-- API routes currently present include grocery, matches, bookings, DemandPools, store drops, merchant routes, notifications, jobs, locations, and system proof.
-- Agent routes are not registered in this base (`/api/agent/**` is absent), and `/agent-runs` is absent. Until Lane 9A/9C lands them, demo narration must say agent workflows are planned or unavailable, not working.
-- S3 and Textract may be configured in production; geocoding, AI copy, semantic ranking, and LangSmith depend on env keys.
-- Pickup reminder notifications require the notifications table contract to match the runtime columns before claiming fully working notification rows.
+- Customer routes currently present: `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/lending`, `/merchant`, `/proof`, and `/agent-runs`.
+- API routes currently present include grocery, matches, bookings, DemandPools, store drops, merchant routes, notifications, jobs, locations, system proof, `POST /api/agent/receipt-draft`, `POST /api/agent/action-plan`, and `GET /api/agent/runs`.
+- The receipt agent drafts and explains; the user must review and confirm before any inventory mutation.
+- S3 and Textract may be configured in production; geocoding, AI copy, semantic ranking, Fireworks agent drafts, and LangSmith trace metadata depend on env keys and provider availability.
+- Agent run persistence requires the CP9 `0007_agent_runtime_contracts` migration. If it is not installed, `/api/agent/runs` must report that as an unavailable migration state, not an empty success.
+- Pickup reminder notifications require the deployed notifications table to match the runtime contract before claiming fully working notification rows.
 
 ## Pre-Demo Setup
 
@@ -83,12 +84,12 @@ Live action:
 3. Refresh or navigate back to Today/Inventory.
 4. Confirm inventory rows and action cards reflect current data.
 
-Expected without agent routes:
+Expected without provider keys or migration:
 
 - Manual/deterministic input still works or returns an honest unavailable state.
-- Do not claim Fireworks extracted the receipt if `/api/agent/receipt-normalize` is absent or provider status is no-key.
+- Do not claim Fireworks extracted the receipt if `/api/agent/receipt-draft` reports fallback/unavailable or provider status is no-key.
 
-Expected with CP9 agent routes:
+Expected with CP9 agent routes and provider availability:
 
 - The receipt/label agent creates a draft only.
 - The user reviews normalized items, quantities, storage hints, dates, and confidence.
@@ -207,7 +208,7 @@ Expected:
 
 Open `/merchant`, then `/proof`.
 
-Current base expectation:
+Integrated expectation:
 
 - `/merchant` shows live demand/pool/drop surfaces.
 - `/proof` shows Aurora/provider proof, no-key states, audit/job evidence, and AI guardrails.
@@ -215,8 +216,7 @@ Current base expectation:
 
 Expected with CP9 agent UX:
 
-- Merchant assistant drafts a bid or drop from live demand signals.
-- Human review/confirm is required before mutation.
+- Merchant assistant endpoints are deferred unless separately installed; do not claim they exist in CP9.
 - `/agent-runs` shows provider status, fallback state, redacted metadata, deterministic guardrails, and LangSmith trace id only when a trace id exists.
 
 Narration:
@@ -242,13 +242,13 @@ Read-only production checks:
 - `GET /api/merchant/demand-pools`
 - `GET /api/merchant/store-drops`
 
-Expected CP9 agent endpoints after Lane 9A/9C integration:
+Expected CP9 agent endpoints:
 
 - `POST /api/agent/receipt-draft`
 - `POST /api/agent/action-plan`
 - `GET /api/agent/runs`
 
-If these routes return `404`, stop at registration/discovery and report that the agent lane has not merged. Do not debug keys, permissions, or provider runtime before the routes exist.
+If these routes return `404`, stop at registration/discovery and report that the CP9 route is not deployed. Do not debug keys, permissions, or provider runtime before the routes exist.
 
 ## Browser Route Smoke
 
@@ -263,7 +263,7 @@ https://useby-app.vercel.app/agent-runs
 Expected:
 
 - The route first reports agent route discovery state.
-- Missing `/api/agent/runs` style routes are shown as unavailable, not as empty success.
+- Missing or not-migrated `/api/agent/runs` states are shown as unavailable, not as empty success.
 - Run rows, when present, show status, generated/fallback/unavailable provider state, redaction state, deterministic guardrails, and LangSmith trace id only if returned by metadata.
 - No exact household coordinates, direct contacts, secrets, or raw uploaded-file contents appear in this admin surface.
 

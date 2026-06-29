@@ -232,16 +232,25 @@ Run local/browser smoke before deploy where practical. After deploy, verify:
 - `GET /api/system/db-proof`
 - at least one agent route
 - `GET /api/jobs/pickup-reminders`
-- `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/proof`, and `/agent-runs` if present
+- `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/proof`, and `/agent-runs`
 
 ## Worker Registry
 
 | Lane | Thread | Worktree | Status |
 | --- | --- | --- | --- |
-| 9A Agent Runtime, Notification Fix, And Contracts | `019f1340-3aa8-73c0-a2af-764253861445` | `/Users/abhinavgupta/.codex/worktrees/ffb1/UseBy` | active |
-| 9B Premium Consumer UI Remodel | `019f1340-a506-71f2-9de8-9bda187c01b4` | `/Users/abhinavgupta/.codex/worktrees/cb04/UseBy` | active |
-| 9C Agent-To-Consumer Workflow UX | `019f1340-f3e1-70a1-a044-faca4ce39e0b` | `/Users/abhinavgupta/.codex/worktrees/1652/UseBy` | active |
-| 9D Live Demo QA, Docs, And Browser Smoke | `019f1341-4c46-7093-9530-28377c39df4a` | `/Users/abhinavgupta/.codex/worktrees/738a/UseBy` | active |
+| 9A Agent Runtime, Notification Fix, And Contracts | `019f1340-3aa8-73c0-a2af-764253861445` | `/Users/abhinavgupta/.codex/worktrees/ffb1/UseBy` | complete commit `9046433`; merged as `ddfcdb6`; focused tests, typecheck, and diff check passed |
+| 9B Premium Consumer UI Remodel | `019f1340-a506-71f2-9de8-9bda187c01b4` | `/Users/abhinavgupta/.codex/worktrees/cb04/UseBy` | complete commit `afbbf31`; merged as `513e7aa`; UI honesty integration patch `479ac0a`; focused route tests, typecheck, and diff check passed |
+| 9C Agent-To-Consumer Workflow UX | `019f1340-f3e1-70a1-a044-faca4ce39e0b` | `/Users/abhinavgupta/.codex/worktrees/1652/UseBy` | complete commit `e77b259`; merged as `8e7ad53`; premium UI agent wiring patch `8977c49`; focused agent tests, typecheck, and diff check passed |
+| 9D Live Demo QA, Docs, And Browser Smoke | `019f1341-4c46-7093-9530-28377c39df4a` | `/Users/abhinavgupta/.codex/worktrees/738a/UseBy` | complete commit `c39a9a2`; merged as `6861fb4`; focused notification/provider/agent-ui tests, typecheck, and diff check passed |
+
+## Integrated Status
+
+- Installed CP9 agent routes: `POST /api/agent/receipt-draft`, `POST /api/agent/action-plan`, and `GET /api/agent/runs`.
+- Installed CP9 admin/proof route: `/agent-runs`.
+- Installed premium customer shell: Today, Inventory, Matches, Pools, Drops, and Activity-style surfaces are represented through `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/lending`, and secondary `/merchant`, `/proof`, `/agent-runs` routes.
+- Agent persistence requires the CP9 `0007_agent_runtime_contracts` migration before production run rows can be recorded.
+- AI remains draft/explain/summarize only. Deterministic UseBy code remains authoritative for safety, eligibility, privacy, trust, payment, reservation capacity, and visibility.
+- Deferred from CP9: Stripe/payment capture, UiPath integration, Mapbox dependency, match/pool/drop assistant endpoints, run detail/resume endpoints, and any AI authority over product decisions.
 
 ## Handoff Contract
 

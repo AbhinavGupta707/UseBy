@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "migrate:aurora": "node scripts/migrate-aurora.mjs",
     "setup:agent-env": "node scripts/setup-agent-env.mjs"
   },
   "dependencies": {

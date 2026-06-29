@@ -166,6 +166,18 @@ export async function loadAgentRunsSnapshot(fetcher: Fetcher = fetch): Promise<A
     }
   }
 
+  const registeredUnavailable = endpoints.find((endpoint) => endpoint.httpStatus !== 404 && endpoint.httpStatus !== 501);
+
+  if (registeredUnavailable) {
+    return {
+      checkedAt,
+      status: registeredUnavailable.status === "error" ? "error" : "unavailable",
+      endpoints,
+      runs: [],
+      message: `Agent run metadata route is registered but unavailable: ${registeredUnavailable.message}`,
+    };
+  }
+
   return {
     checkedAt,
     status: "unavailable",

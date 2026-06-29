@@ -2,7 +2,7 @@
 
 Created: 2026-06-29
 
-This plan verifies CP9 after the agent runtime, consumer UI, workflow UX, and docs lanes merge. It is also a pre-merge gap checklist for this Lane 9D worktree.
+This plan verifies CP9 after the agent runtime, consumer UI, workflow UX, and docs lanes merge. It is the integration smoke plan for the premium UI and live agent routes now installed on `main`.
 
 ## Layer Order
 
@@ -15,16 +15,17 @@ When something is missing or unavailable, diagnose in this order:
 
 Do not debug Fireworks, LangSmith, notification permissions, or AWS runtime if the route/page/table is not present yet.
 
-## Current Lane 9D Base Gaps
+## Integrated CP9 Gates
 
-This worktree does not yet include sibling-lane CP9 runtime/UI changes:
+The integrated CP9 codebase now includes the runtime/UI routes below. Treat failures by layer order:
 
-- No `useby-app/src/app/api/agent/**` route files are registered.
-- No `/agent-runs` page is registered.
-- The primary customer route set still uses `/grocery` rather than a separate `/matches` or `/activity` page.
+- `POST /api/agent/receipt-draft` is the receipt/manual-input agent draft route.
+- `POST /api/agent/action-plan` is the advisory action-plan draft route.
+- `GET /api/agent/runs` and `/agent-runs` are admin/proof surfaces for redacted run metadata.
+- `/matches` and `/activity` remain folded into the premium Today/Inventory/Bookings surfaces for CP9; absence of separate pages is not a CP9 failure.
 - Notification contract tests cover the required runtime columns, but live success still depends on the deployed notifications table matching those columns.
 
-These are integration gates, not provider-key problems.
+The CP9 `0007_agent_runtime_contracts` migration must be installed before agent run persistence can succeed. A not-migrated response from `/api/agent/runs` is a migration/deploy gate, not a provider-key problem.
 
 ## Local Verification
 
@@ -79,20 +80,25 @@ Read-only endpoints and expected states:
 | `GET /api/merchant/demand-pools` | HTTP 200 or honest unavailable state; bid state comes from current rows. |
 | `GET /api/merchant/store-drops` | HTTP 200 or honest unavailable state; merchant drop rows are live. |
 
-Agent endpoints expected only after Lane 9A/9C:
+Installed CP9 agent endpoints:
 
 | Endpoint | Expected |
 | --- | --- |
-| `POST /api/agent/receipt-normalize` | Registered; without keys returns deterministic/fallback draft state, with keys returns Fireworks draft plus deterministic validation requirements. |
+| `POST /api/agent/receipt-draft` | Registered; without keys returns deterministic/fallback draft state, with keys returns Fireworks draft plus deterministic validation requirements. |
 | `POST /api/agent/action-plan` | Registered; returns draft/explanation only from current action cards. |
-| `POST /api/agent/match-explanations` | Registered; refuses unfiltered candidates and only explains/reranks already-eligible deterministic matches. |
-| `POST /api/agent/pool-assistant` | Registered if installed; draft-only merchant bid/drop help. |
-| `POST /api/agent/drop-assistant` | Registered if installed; draft-only merchant surplus help. |
-| `GET /api/agent/runs` | Registered; lists redacted run metadata, fallback state, provider, model, and trace id if available. |
-| `GET /api/agent/runs/[runId]` | Registered; no secrets, raw exact coordinates, direct contact details, or raw uploaded file contents. |
-| `POST /api/agent/runs/[runId]/resume` | Registered only for human-approved resume/confirm actions. |
+| `GET /api/agent/runs` | Registered; lists redacted run metadata, fallback state, provider, model, and trace id if available, or reports the CP9 migration as unavailable. |
 
-If an expected CP9 agent endpoint is `404`, record "route not registered" and stop that branch of diagnosis.
+Deferred CP9-adjacent endpoints:
+
+| Endpoint | State |
+| --- | --- |
+| `POST /api/agent/match-explanations` | Deferred; match copy remains deterministic/customer-safe in CP9. |
+| `POST /api/agent/pool-assistant` | Deferred; merchant bid/drop assistant is not part of the CP9 installed route contract. |
+| `POST /api/agent/drop-assistant` | Deferred; merchant surplus assistant is not part of the CP9 installed route contract. |
+| `GET /api/agent/runs/[runId]` | Deferred; CP9 lists redacted run summaries only. |
+| `POST /api/agent/runs/[runId]/resume` | Deferred; CP9 receipt review uses explicit user confirmation in the UI. |
+
+If an installed CP9 agent endpoint is `404`, record "route not registered/deployed" and stop that branch of diagnosis.
 
 ## Provider State Matrix
 
@@ -177,7 +183,7 @@ Smoke these routes in order:
 5. `/bookings`
 6. `/merchant`
 7. `/proof`
-8. `/agent-runs` only if registered
+8. `/agent-runs`
 
 For each route:
 
@@ -204,7 +210,7 @@ Passing smoke means each mutation is reflected by a later read from Aurora-backe
 
 ## Integration Risk Log
 
-- Agent routes and `/agent-runs` are CP9 sibling-lane deliverables. Treat absence as route-registration gap.
+- Agent routes and `/agent-runs` are CP9 integrated deliverables. Treat absence as route-registration/deploy gap.
 - Notifications are only fully working when deployed schema includes the runtime columns in `REQUIRED_NOTIFICATION_COLUMNS`.
 - LangSmith evidence is valid only when a real run has a trace id. Configured env alone is readiness, not trace proof.
 - UI fidelity must be judged from rendered screenshots, not static docs.

@@ -94,6 +94,25 @@ describe("agent UI adapters", () => {
     expect(snapshot.runs[0]?.redactionStatus).toBe("redacted");
   });
 
+  it("keeps registered-but-unavailable agent run routes distinct from missing routes", async () => {
+    const fetcher = async (url: RequestInfo | URL) => ({
+      ok: false,
+      status: String(url).endsWith("/api/agent/runs") ? 503 : 404,
+      json: async () => ({
+        status: "unavailable",
+        message: String(url).endsWith("/api/agent/runs")
+          ? "agent_runs table is not available; run the CP9 agent runtime migration."
+          : "not found",
+      }),
+    }) as Response;
+
+    const snapshot = await loadAgentRunsSnapshot(fetcher);
+
+    expect(snapshot.status).toBe("unavailable");
+    expect(snapshot.message).toContain("registered but unavailable");
+    expect(snapshot.message).toContain("agent_runs table is not available");
+  });
+
   it("documents local drafts as redacted and not provider generated", () => {
     const draft = localReceiptDraft(input, "/api/agent/receipt-draft", 503, "No provider");
 
