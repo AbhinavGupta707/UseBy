@@ -4,6 +4,7 @@ import {
   actionCardStatusValues,
   bidStatusValues,
   bookingStatusValues,
+  checkpoint4LendingTables,
   checkpoint3BookingTables,
   checkpoint1Tables,
   checkpoint2GroceryTables,
@@ -17,6 +18,9 @@ import {
   receiptImportStatusValues,
   safetyStatusValues,
   storageStateValues,
+  lendingAvailabilityStatusValues,
+  lendingConditionEventTypeValues,
+  lendingReservationStatusValues,
 } from "./schema";
 
 describe("checkpoint 1 schema contract", () => {
@@ -93,6 +97,9 @@ describe("checkpoint 1 schema contract", () => {
       "declined",
       "disputed",
     ]);
+    expect(lendingAvailabilityStatusValues).toEqual(["available", "blocked", "paused"]);
+    expect(lendingReservationStatusValues).toEqual(["requested", "active", "released", "cancelled"]);
+    expect(lendingConditionEventTypeValues).toContain("return_evidence");
   });
 
   it("exports the checkpoint 3 booking lifecycle tables for booking and trust lanes", () => {
@@ -105,6 +112,16 @@ describe("checkpoint 1 schema contract", () => {
         "reviews",
         "safetyAcknowledgements",
         "trustEvents",
+      ].sort(),
+    );
+  });
+
+  it("exports the checkpoint 4 lending evidence tables without replacing bookings", () => {
+    expect(Object.keys(checkpoint4LendingTables).sort()).toEqual(
+      [
+        "lendingAvailabilityWindows",
+        "lendingConditionEvents",
+        "lendingReservations",
       ].sort(),
     );
   });

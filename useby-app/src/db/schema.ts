@@ -144,6 +144,15 @@ export const reportStatusValues = [
   "dismissed",
 ] as const;
 export const blockStatusValues = ["active", "lifted"] as const;
+export const lendingAvailabilityStatusValues = ["available", "blocked", "paused"] as const;
+export const lendingReservationStatusValues = ["requested", "active", "released", "cancelled"] as const;
+export const lendingConditionEventTypeValues = [
+  "request_snapshot",
+  "pickup_evidence",
+  "return_evidence",
+  "completion_evidence",
+  "review_evidence",
+] as const;
 
 export const itemCategoryEnum = pgEnum("item_category", itemCategoryValues);
 export const itemStateEnum = pgEnum("item_state", itemStateValues);
@@ -172,6 +181,18 @@ export const trustEventTypeEnum = pgEnum("trust_event_type", trustEventTypeValue
 export const reviewRatingEnum = pgEnum("review_rating", reviewRatingValues);
 export const reportStatusEnum = pgEnum("report_status", reportStatusValues);
 export const blockStatusEnum = pgEnum("block_status", blockStatusValues);
+export const lendingAvailabilityStatusEnum = pgEnum(
+  "lending_availability_status",
+  lendingAvailabilityStatusValues,
+);
+export const lendingReservationStatusEnum = pgEnum(
+  "lending_reservation_status",
+  lendingReservationStatusValues,
+);
+export const lendingConditionEventTypeEnum = pgEnum(
+  "lending_condition_event_type",
+  lendingConditionEventTypeValues,
+);
 
 type JsonObject = Record<string, unknown>;
 type GeographyPoint = string;
@@ -746,6 +767,99 @@ export const bookings = pgTable(
   ],
 );
 
+export const lendingAvailabilityWindows = pgTable(
+  "lending_availability_windows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    itemInstanceId: uuid("item_instance_id")
+      .notNull()
+      .references(() => itemInstances.id, { onDelete: "cascade" }),
+    ownerHouseholdId: uuid("owner_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    status: lendingAvailabilityStatusEnum("status").default("available").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }),
+    windowEnd: timestamp("window_end", { withTimezone: true }),
+    note: text("note"),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    index("lending_availability_item_status_idx").on(table.itemInstanceId, table.status),
+    index("lending_availability_owner_idx").on(table.ownerHouseholdId),
+    check(
+      "lending_availability_window_order",
+      sql`${table.windowStart} is null or ${table.windowEnd} is null or ${table.windowEnd} > ${table.windowStart}`,
+    ),
+  ],
+);
+
+export const lendingReservations = pgTable(
+  "lending_reservations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    itemInstanceId: uuid("item_instance_id")
+      .notNull()
+      .references(() => itemInstances.id, { onDelete: "cascade" }),
+    requesterHouseholdId: uuid("requester_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    ownerHouseholdId: uuid("owner_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    windowEnd: timestamp("window_end", { withTimezone: true }).notNull(),
+    status: lendingReservationStatusEnum("status").default("requested").notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    releasedAt: timestamp("released_at", { withTimezone: true }),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    uniqueIndex("lending_reservations_booking_idx").on(table.bookingId),
+    index("lending_reservations_item_status_idx").on(table.itemInstanceId, table.status),
+    index("lending_reservations_requester_idx").on(table.requesterHouseholdId),
+    index("lending_reservations_owner_idx").on(table.ownerHouseholdId),
+    check("lending_reservations_window_order", sql`${table.windowEnd} > ${table.windowStart}`),
+    check("lending_reservations_households_distinct", sql`${table.requesterHouseholdId} <> ${table.ownerHouseholdId}`),
+  ],
+);
+
+export const lendingConditionEvents = pgTable(
+  "lending_condition_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    itemInstanceId: uuid("item_instance_id")
+      .notNull()
+      .references(() => itemInstances.id, { onDelete: "cascade" }),
+    actorHouseholdId: uuid("actor_household_id").references(() => households.id, { onDelete: "set null" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    eventType: lendingConditionEventTypeEnum("event_type").notNull(),
+    conditionLabel: text("condition_label"),
+    note: text("note"),
+    photoFileIds: uuid("photo_file_ids").array().default(sql`ARRAY[]::uuid[]`).notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).defaultNow().notNull(),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    index("lending_condition_events_booking_idx").on(table.bookingId, table.occurredAt),
+    index("lending_condition_events_item_idx").on(table.itemInstanceId, table.occurredAt),
+    index("lending_condition_events_actor_idx").on(table.actorHouseholdId),
+  ],
+);
+
 export const handoffs = pgTable(
   "handoffs",
   {
@@ -1143,4 +1257,10 @@ export const checkpoint3BookingTables = {
   reviews,
   reports,
   blocks,
+};
+
+export const checkpoint4LendingTables = {
+  lendingAvailabilityWindows,
+  lendingReservations,
+  lendingConditionEvents,
 };
