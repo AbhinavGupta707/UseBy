@@ -4,6 +4,7 @@ Checkpoint 7 completed commit: `f9f4c61`.
 Checkpoint 8 plan commit: `5f821f3` (`Plan checkpoint 8 external integrations orchestration`).
 Worker launch base: `5f821f3`.
 Current worker registry commit: `01485ac` (`Record checkpoint 8 worker registry`).
+Current local integration commit: `0ceb43b` (`Merge checkpoint 8 AI proof and docs`).
 
 ## Outcome
 
@@ -177,15 +178,25 @@ Avoid:
 
 | Lane | Thread | Worktree | Status |
 | --- | --- | --- | --- |
-| 8A S3 And Textract Ingestion | `019f127b-13df-7890-8e27-5f7ad52c2007` | `/Users/abhinavgupta/.codex/worktrees/19e5/UseBy` | active |
-| 8B Maps And Geocoding | `019f127b-5341-7832-8fab-361a4690ea7e` | `/Users/abhinavgupta/.codex/worktrees/f895/UseBy` | active |
-| 8C Notifications And Reminder Jobs | `019f127b-9516-7b41-9b1d-a24506aa4114` | `/Users/abhinavgupta/.codex/worktrees/d680/UseBy` | active |
-| 8D AI, Semantic Matching, Proof, And Docs | `019f127b-e189-7892-93b4-a5fef30cf8bc` | `/Users/abhinavgupta/.codex/worktrees/4eaa/UseBy` | active |
+| 8A S3 And Textract Ingestion | `019f127b-13df-7890-8e27-5f7ad52c2007` | `/Users/abhinavgupta/.codex/worktrees/19e5/UseBy` | complete worker `5b10635`, merged as `aab23a8` |
+| 8B Maps And Geocoding | `019f127b-5341-7832-8fab-361a4690ea7e` | `/Users/abhinavgupta/.codex/worktrees/f895/UseBy` | complete worker `fc98709`, merged as `6cbb92e` |
+| 8C Notifications And Reminder Jobs | `019f127b-9516-7b41-9b1d-a24506aa4114` | `/Users/abhinavgupta/.codex/worktrees/d680/UseBy` | complete worker `c724749`, merged as `91c5f3d` |
+| 8D AI, Semantic Matching, Proof, And Docs | `019f127b-e189-7892-93b4-a5fef30cf8bc` | `/Users/abhinavgupta/.codex/worktrees/4eaa/UseBy` | complete worker `23c50b0`, merged as `0ceb43b` |
 
 ## Integration Log
 
 - `5f821f3` created the CP8 external integrations orchestration plan.
 - CP8 workers launched from `5f821f3` in four isolated Codex worktrees. Merge order remains 8A, 8B, 8C, 8D, then master integration patch.
+- `aab23a8` merged Lane 8A S3/Textract ingestion and CP8 schema/migration. Post-merge focused storage, Textract, grocery intake, schema, system-state, and seed tests passed, followed by `npm run typecheck`.
+- `6cbb92e` merged Lane 8B maps/geocoding after resolving system-state integration drift with Lane 8A provider readiness. Post-merge focused geocoding, location privacy, store-drop, merchant API, and system-state tests passed, followed by `npm run typecheck`.
+- `91c5f3d` merged Lane 8C notifications and reminder jobs. Post-merge focused notification contract, email/no-key, pickup-reminder job, proof adapter, and system-state tests passed, followed by `npm run typecheck`.
+- `0ceb43b` merged Lane 8D AI/semantic proof/docs after resolving CP8 proof row and system-state test conflicts across all lanes. Focused AI provider, semantic ranking, system-state, proof adapter, notification, and pickup-reminder tests passed, followed by `npm run typecheck`.
+- Local integration verification completed at `0ceb43b` on 2026-06-29:
+  - `npm run lint`: passed.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 60 files and 199 tests.
+  - `npm run build`: passed, including CP8 routes for grocery intake, locations, notifications, jobs, system state, and proof.
+  - `git diff --check`: passed from the repository root.
 
 ## Verification
 
