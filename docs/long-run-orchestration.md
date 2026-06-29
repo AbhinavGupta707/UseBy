@@ -13,7 +13,7 @@ This document records the master-session instruction for the post-Checkpoint 1 b
 - Checkpoint 4 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `81b3c0f`.
 - Checkpoint 6 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `0e50186`.
 - Checkpoint 7 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at integration commit `125b7f8`. Checkpoint 5 remains skipped for this run.
-- Checkpoint 8 status: plan committed at `5f821f3`; workers 8A-8D launched and active.
+- Checkpoint 8 status: plan committed at `5f821f3`; worker registry committed at `01485ac`; workers 8A-8D launched and active.
 - Next active checkpoint: Checkpoint 8 external integrations and AI polish.
 
 ## Sequential Scope

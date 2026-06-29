@@ -3,7 +3,7 @@
 Checkpoint 7 completed commit: `f9f4c61`.
 Checkpoint 8 plan commit: `5f821f3` (`Plan checkpoint 8 external integrations orchestration`).
 Worker launch base: `5f821f3`.
-Current worker registry commit: pending while CP8 workers are active.
+Current worker registry commit: `01485ac` (`Record checkpoint 8 worker registry`).
 
 ## Outcome
 
