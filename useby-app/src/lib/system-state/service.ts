@@ -28,6 +28,7 @@ type CountContract = (typeof SYSTEM_COUNT_TABLES)[number] | {
   label: string;
   table: string;
   where?: string;
+  requiredColumns?: readonly string[];
 };
 
 const CHECKPOINT_3_COUNT_TABLES = [
@@ -63,6 +64,65 @@ const CHECKPOINT_3_COUNT_TABLES = [
   },
 ] satisfies CountContract[];
 
+const CHECKPOINT_4_COUNT_TABLES = [
+  {
+    key: "cp4ListedLendingItems",
+    label: "CP4 listed fashion/household items",
+    table: "item_instances",
+    where: "category in ('fashion', 'household') and state = 'listed'",
+    requiredColumns: ["category", "state"],
+  },
+  {
+    key: "cp4OpenLendingNeeds",
+    label: "CP4 open fashion/household needs",
+    table: "needs",
+    where: "category in ('fashion', 'household') and status = 'open'",
+    requiredColumns: ["category", "status"],
+  },
+  {
+    key: "cp4ActiveLendingBookings",
+    label: "CP4 active lending bookings",
+    table: "bookings",
+    where:
+      "status in ('requested', 'accepted', 'reserved', 'pickup_scheduled', 'picked_up', 'returned') and item_instance_id in (select id from item_instances where category in ('fashion', 'household'))",
+    requiredColumns: ["status", "item_instance_id"],
+  },
+  {
+    key: "cp4LendingHandoffs",
+    label: "CP4 lending handoffs",
+    table: "handoffs",
+    where:
+      "booking_id in (select b.id from bookings b join item_instances i on i.id = b.item_instance_id where i.category in ('fashion', 'household'))",
+    requiredColumns: ["booking_id"],
+  },
+  {
+    key: "cp4LendingTrustEvents",
+    label: "CP4 lending trust events",
+    table: "trust_events",
+    where:
+      "booking_id in (select b.id from bookings b join item_instances i on i.id = b.item_instance_id where i.category in ('fashion', 'household'))",
+    requiredColumns: ["booking_id"],
+  },
+  {
+    key: "cp4LendingReviews",
+    label: "CP4 lending reviews",
+    table: "reviews",
+    where:
+      "booking_id in (select b.id from bookings b join item_instances i on i.id = b.item_instance_id where i.category in ('fashion', 'household'))",
+    requiredColumns: ["booking_id"],
+  },
+  {
+    key: "rentalWindows",
+    label: "Rental windows",
+    table: "rental_windows",
+  },
+  {
+    key: "conditionEvents",
+    label: "Condition events",
+    table: "condition_events",
+  },
+] satisfies CountContract[];
+
 const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ...SYSTEM_COUNT_TABLES.map((contract) =>
     contract.key === "bookings"
@@ -74,6 +134,7 @@ const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
       : contract,
   ),
   ...CHECKPOINT_3_COUNT_TABLES,
+  ...CHECKPOINT_4_COUNT_TABLES,
 ];
 
 function safeJson(value: unknown): Record<string, unknown> | null {
@@ -128,14 +189,24 @@ async function getCounts(): Promise<SystemCount[]> {
         continue;
       }
 
-      if ("where" in contract && !availability.columns.has("status")) {
+      const requiredColumns =
+        "requiredColumns" in contract
+          ? contract.requiredColumns ?? []
+          : "where" in contract
+            ? (["status"] as const)
+            : [];
+      const missingColumns = requiredColumns.filter(
+        (column) => !availability.columns.has(column),
+      );
+
+      if (missingColumns.length > 0) {
         counts.push({
           key: contract.key,
           label: contract.label,
           table: contract.table,
           available: false,
           count: null,
-          reason: "status column is required for active count",
+          reason: `${missingColumns.join(", ")} column${missingColumns.length === 1 ? " is" : "s are"} required for filtered count`,
         });
         continue;
       }

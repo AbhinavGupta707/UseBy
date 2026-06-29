@@ -83,6 +83,36 @@ describe("system state service", () => {
       available: false,
       count: null,
     });
+    expect(state.counts.find((count) => count.key === "cp4ListedLendingItems")).toMatchObject({
+      table: "item_instances",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp4OpenLendingNeeds")).toMatchObject({
+      table: "needs",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp4ActiveLendingBookings")).toMatchObject({
+      table: "bookings",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp4LendingHandoffs")).toMatchObject({
+      table: "handoffs",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "rentalWindows")).toMatchObject({
+      table: "rental_windows",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "conditionEvents")).toMatchObject({
+      table: "condition_events",
+      available: false,
+      count: null,
+    });
     expect(JSON.stringify(state)).not.toContain("secret-value");
   });
 });

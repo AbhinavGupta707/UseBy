@@ -28,6 +28,14 @@ const CHECKPOINT_TABLES: RowCountProof[] = [
   { key: "reviews", label: "Reviews", count: null },
   { key: "reports", label: "Reports", count: null },
   { key: "blocks", label: "Blocks", count: null },
+  { key: "cp4ListedLendingItems", label: "CP4 Listed Items", count: null },
+  { key: "cp4OpenLendingNeeds", label: "CP4 Open Needs", count: null },
+  { key: "cp4ActiveLendingBookings", label: "CP4 Active Lending", count: null },
+  { key: "cp4LendingHandoffs", label: "CP4 Lending Handoffs", count: null },
+  { key: "cp4LendingTrustEvents", label: "CP4 Lending Trust", count: null },
+  { key: "cp4LendingReviews", label: "CP4 Lending Reviews", count: null },
+  { key: "rental_windows", label: "Rental Windows", count: null },
+  { key: "condition_events", label: "Condition Events", count: null },
   { key: "demand_pools", label: "Demand Pools", count: null },
   { key: "audit_events", label: "Audit Events", count: null },
   { key: "job_runs", label: "Job Runs", count: null },
@@ -89,6 +97,48 @@ export const CHECKPOINT_DEMO_CONTROLS: DemoControlProof[] = [
     method: "POST",
     endpoint: "/api/bookings/:bookingId/complete",
     detail: "Completes the handoff and writes trust, inventory, and audit evidence.",
+  },
+  {
+    key: "lending-listings",
+    label: "List lending items",
+    method: "GET",
+    endpoint: "/api/lending/listings",
+    detail: "Reads live fashion and household listings without exact coordinates or direct contact details.",
+  },
+  {
+    key: "lending-request",
+    label: "Request lending item",
+    method: "POST",
+    endpoint: "/api/lending/request",
+    detail: "Creates a wardrobe rental or household lending request when CP4 routes are installed.",
+  },
+  {
+    key: "lending-accept",
+    label: "Accept and reserve lending",
+    method: "POST",
+    endpoint: "/api/lending/:bookingId/accept",
+    detail: "Runs the CP4 reservation path; overlapping active reservations must conflict.",
+  },
+  {
+    key: "lending-return",
+    label: "Mark lending returned",
+    method: "POST",
+    endpoint: "/api/lending/:bookingId/returned",
+    detail: "Records return evidence for a borrowed wardrobe or household item.",
+  },
+  {
+    key: "lending-complete",
+    label: "Complete lending",
+    method: "POST",
+    endpoint: "/api/lending/:bookingId/complete",
+    detail: "Completes the lending lifecycle and writes audit, inventory, and trust evidence.",
+  },
+  {
+    key: "lending-review",
+    label: "Review lending",
+    method: "POST",
+    endpoint: "/api/lending/:bookingId/review",
+    detail: "Writes a review for a completed CP4 booking without claiming payment capture.",
   },
   {
     key: "safety-ack",
@@ -376,7 +426,7 @@ function normalizeRowCounts(
   collectCounts(counts, getFirst(dbProof, ["counts", "rowCounts", "tables", "tableCounts"]));
 
   return CHECKPOINT_TABLES.map((table) => {
-    const count = counts.get(table.key) ?? counts.get(slug(table.label));
+    const count = counts.get(table.key) ?? counts.get(slug(table.key)) ?? counts.get(slug(table.label));
 
     return {
       ...table,
@@ -417,7 +467,7 @@ function collectCounts(
       counts.set(slug(key), proof);
       for (const alias of ["table", "tableName", "name", "label"]) {
         const aliasKey = getString(row, [alias]);
-        if (aliasKey) {
+        if (aliasKey && !counts.has(slug(aliasKey))) {
           counts.set(slug(aliasKey), proof);
         }
       }
