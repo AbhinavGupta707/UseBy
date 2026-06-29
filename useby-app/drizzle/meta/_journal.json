@@ -22,6 +22,13 @@
       "when": 1782720000000,
       "tag": "0002_booking_handoff_trust",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782748800000,
+      "tag": "0003_lending_schema_runtime",
+      "breakpoints": true
     }
   ]
 }
