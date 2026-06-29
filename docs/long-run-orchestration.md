@@ -12,7 +12,7 @@ This document records the master-session instruction for the post-Checkpoint 1 b
 - Checkpoint 3 status: merged, pushed, deployed, local and live smoke passed.
 - Checkpoint 4 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `81b3c0f`.
 - Checkpoint 6 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `0e50186`.
-- Checkpoint 7 status: orchestration plan committed at `bf7d84b`; worker launch in progress. Checkpoint 5 remains skipped for this run.
+- Checkpoint 7 status: orchestration plan committed at `bf7d84b`; worker registry resolved for lanes 7A-7D. Checkpoint 5 remains skipped for this run.
 - Next active checkpoint: Checkpoint 7 merchant surplus drops and heatmap.
 
 ## Sequential Scope

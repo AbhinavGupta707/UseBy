@@ -3,7 +3,7 @@
 Checkpoint 6 completed commit: `f2d1147`.
 Checkpoint 7 plan commit: `bf7d84b`.
 Worker launch base: `bf7d84b` (`Plan checkpoint 7 surplus orchestration`).
-Current registry commit: pending worker launch.
+Current registry commit: pending worker registry commit.
 
 ## Outcome
 
@@ -179,10 +179,10 @@ Avoid:
 
 | Lane | Thread | Worktree | Status |
 | --- | --- | --- | --- |
-| 7A Surplus Drop Schema And Runtime | pending | pending | pending launch |
-| 7B Merchant Drop Policy, Reservation Engine, And Heatmap | pending | pending | pending launch |
-| 7C Consumer Surplus Drops UI | pending | pending | pending launch |
-| 7D Merchant Surplus Portal, Proof, Contracts, And Docs | pending | pending | pending launch |
+| 7A Surplus Drop Schema And Runtime | `019f1242-4336-77a1-8d56-8d9046055006` | `/Users/abhinavgupta/.codex/worktrees/9499/UseBy` | active |
+| 7B Merchant Drop Policy, Reservation Engine, And Heatmap | `019f1242-cb01-7531-b36b-095ed28e4a02` | `/Users/abhinavgupta/.codex/worktrees/3bce/UseBy` | active |
+| 7C Consumer Surplus Drops UI | `019f1243-2cfe-7fd3-9f96-08bc24908de2` | `/Users/abhinavgupta/.codex/worktrees/0fba/UseBy` | active |
+| 7D Merchant Surplus Portal, Proof, Contracts, And Docs | `019f1243-8685-7113-96d6-d0c50c8e256b` | `/Users/abhinavgupta/.codex/worktrees/aaf9/UseBy` | active |
 
 ## Verification
 
