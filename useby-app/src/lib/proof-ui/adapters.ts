@@ -54,6 +54,8 @@ const CHECKPOINT_TABLES: RowCountProof[] = [
   { key: "cp7HeatmapCells", label: "CP7 Heatmap Sources", count: null },
   { key: "cp7ExpireDropJobRuns", label: "CP7 Expire Jobs", count: null },
   { key: "cp7AuditEvents", label: "CP7 Audit Events", count: null },
+  { key: "notifications", label: "Notifications", count: null },
+  { key: "cp8PickupReminderJobRuns", label: "CP8 Reminder Jobs", count: null },
   { key: "audit_events", label: "Audit Events", count: null },
   { key: "job_runs", label: "Job Runs", count: null },
 ];
@@ -268,6 +270,20 @@ export const CHECKPOINT_DEMO_CONTROLS: DemoControlProof[] = [
     method: "GET",
     endpoint: "/api/merchant/heatmap",
     detail: "Returns coarse aggregate cells only, never exact household positions, unit labels, or direct contact fields.",
+  },
+  {
+    key: "notifications",
+    label: "List notifications",
+    method: "GET",
+    endpoint: "/api/notifications",
+    detail: "Lists scoped in-app notifications without direct contact fields.",
+  },
+  {
+    key: "pickup-reminders",
+    label: "Run reminders",
+    method: "GET",
+    endpoint: "/api/jobs/pickup-reminders",
+    detail: "Generates idempotent pickup and pool reminders from current live rows when notification storage exists.",
   },
 ];
 
@@ -499,6 +515,11 @@ function normalizeArchitecture(integrations: IntegrationProof[]): ArchitectureNo
     {
       label: "Surplus Drop Contracts",
       detail: "Drop, reservation, merchant status, expiry, heatmap, and audit evidence stays route-backed and unpaid.",
+      status: byKey.get("data-api")?.status ?? "unknown",
+    },
+    {
+      label: "Notification Jobs",
+      detail: "In-app notifications and pickup reminders are generated from current bookings, pools, and reservations.",
       status: byKey.get("data-api")?.status ?? "unknown",
     },
     {
