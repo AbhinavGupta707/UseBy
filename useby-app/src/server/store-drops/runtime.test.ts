@@ -76,8 +76,10 @@ describe("store drop runtime", () => {
       soldOut: false,
     });
     expect(dto.currentHouseholdReservation?.quantity).toBe("2.000");
+    expect(dto.pickup.publicAddress).toBeNull();
     expect(JSON.stringify(dto)).not.toContain("home_location");
     expect(JSON.stringify(dto)).not.toContain("unit_label");
+    expect(JSON.stringify(dto)).not.toContain("Courtyard Market Stall 3");
     expect(JSON.stringify(dto)).not.toContain("lat");
   });
 });

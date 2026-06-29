@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { loadRuntimeEnv } from "../db/env";
 import { publicErrorMessage } from "../db/introspection";
 import { executeSql, sqlParam, type SqlValue } from "../db/sql";
+import { distanceBandMeters } from "../locations/privacy";
 import type { MerchantActorContext } from "../merchant/context";
 import {
   CP7_HEATMAP_TABLE_CONTRACTS,
@@ -11,6 +12,7 @@ import {
 } from "../store-drops/contracts";
 import {
   MerchantRuntimeError,
+  publicMerchantLocation,
   type MerchantRuntimeStatus,
 } from "../merchant/runtime";
 
@@ -72,14 +74,6 @@ export function heatmapPrivacyKeys() {
   ];
 }
 
-function distanceBand(distance: number | null) {
-  if (distance === null || !Number.isFinite(distance)) {
-    return null;
-  }
-
-  return Math.ceil(distance / 250) * 250;
-}
-
 function heatmapCellDto(row: HeatmapRow) {
   return {
     cellId: publicCellKey(`${row.neighbourhood_id}:${row.cell_key}`),
@@ -92,7 +86,7 @@ function heatmapCellDto(row: HeatmapRow) {
     activeReservationCount: row.active_reservation_count,
     activeReservationQuantity: numberFrom(row.active_reservation_quantity),
     distinctHouseholds: row.distinct_households,
-    nearestMerchantDistanceBandMeters: distanceBand(
+    nearestMerchantDistanceBandMeters: distanceBandMeters(
       row.nearest_merchant_distance_meters,
     ),
   };
@@ -235,7 +229,7 @@ export async function getMerchantHeatmap(context: MerchantActorContext) {
       ok: true as const,
       status: "ok" as MerchantRuntimeStatus,
       merchant: context.merchant,
-      location: context.location,
+      location: publicMerchantLocation(context.location),
       grid: {
         type: "coarse_hash",
         approximateCellSizeMeters: 1000,

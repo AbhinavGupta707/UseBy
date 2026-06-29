@@ -472,7 +472,7 @@ export async function awardDemandPool(
             po.merchant_id,
             b.merchant_location_id,
             'pending',
-            ml.public_address,
+            coalesce(ml.name, 'Merchant pickup area'),
             b.pickup_window_start,
             b.pickup_window_end,
             jsonb_build_object(

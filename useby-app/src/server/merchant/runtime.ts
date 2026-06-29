@@ -19,6 +19,7 @@ import {
   type TransactionContext,
   withTransaction,
 } from "../db/sql";
+import { distanceBandMeters, sanitizePublicLocationText } from "../locations/privacy";
 import type { MerchantActorContext } from "./context";
 
 export type MerchantRuntimeStatus = "ok" | "unavailable" | "error";
@@ -104,6 +105,21 @@ function params(values: Record<string, SqlValue>) {
   return Object.entries(values).map(([name, value]) => sqlParam(name, value));
 }
 
+export function publicMerchantLocation(location: MerchantActorContext["location"]) {
+  return {
+    id: location.id,
+    neighbourhoodId: location.neighbourhoodId,
+    name: sanitizePublicLocationText(location.name),
+    publicAddress: null,
+    pickupNotes: location.pickupNotes,
+    privacy: {
+      rawAddress: false,
+      exactCoordinates: false,
+      directContact: false,
+    },
+  };
+}
+
 async function execTx<Row extends QueryRow = QueryRow>(
   context: TransactionContext,
   sql: string,
@@ -168,7 +184,7 @@ function poolDto(row: PoolRow) {
     category: typeof metadata.category === "string" ? metadata.category : null,
     maxPriceCentsPerHousehold: numberFrom(metadata.maxPricePencePerHousehold, 0),
     pickupRadiusMeters: numberFrom(metadata.pickupRadiusMeters, 0),
-    distanceMeters: row.distance_meters,
+    distanceBandMeters: distanceBandMeters(row.distance_meters),
     submittedBidCount: row.submitted_bid_count,
     merchantBid: row.merchant_bid_id
       ? {
@@ -230,8 +246,8 @@ function pickupDto(row: PickupRow) {
     unit: row.unit,
     priceCents: row.price_cents,
     currency: row.currency,
-    coarsePickupLabel: row.coarse_pickup_label,
-    coarsePickupHint: row.coarse_pickup_label,
+    coarsePickupLabel: row.coarse_pickup_label ? sanitizePublicLocationText(row.coarse_pickup_label) : null,
+    coarsePickupHint: row.coarse_pickup_label ? sanitizePublicLocationText(row.coarse_pickup_label) : null,
     pickupWindowStart: row.pickup_window_start,
     pickupWindowEnd: row.pickup_window_end,
     readyAt: row.ready_at,
@@ -323,7 +339,7 @@ export async function listMerchantDemandPools(context: MerchantActorContext) {
       ok: true as const,
       status: "ok" as MerchantRuntimeStatus,
       merchant: context.merchant,
-      location: context.location,
+      location: publicMerchantLocation(context.location),
       pools: result.rows.map(poolDto),
     };
   } catch (error) {
@@ -398,7 +414,7 @@ export async function getMerchantDemandPool(
       ok: true as const,
       status: "ok" as MerchantRuntimeStatus,
       merchant: context.merchant,
-      location: context.location,
+      location: publicMerchantLocation(context.location),
       pool: poolDto(pool),
     };
   } catch (error) {
@@ -729,7 +745,7 @@ export async function listMerchantPickups(context: MerchantActorContext) {
           po.unit,
           po.price_cents,
           po.currency,
-          coalesce(pt.coarse_pickup_label, ml.public_address) as coarse_pickup_label,
+          coalesce(pt.coarse_pickup_label, ml.name, 'Merchant pickup area') as coarse_pickup_label,
           coalesce(pt.pickup_window_start, po.pickup_window_start)::text as pickup_window_start,
           coalesce(pt.pickup_window_end, po.pickup_window_end)::text as pickup_window_end,
           coalesce(pt.ready_at, po.ready_at)::text as ready_at,
@@ -875,7 +891,7 @@ export async function transitionPickup(
             merchantId: context.merchant.id,
             merchantLocationId: row.merchant_location_id ?? context.location.id,
             status,
-            coarsePickupLabel: row.coarse_pickup_label ?? context.location.publicAddress,
+            coarsePickupLabel: row.coarse_pickup_label ?? context.location.name,
             pickupWindowStart: row.pickup_window_start,
             pickupWindowEnd: row.pickup_window_end,
             readyAt: transition === "ready" ? now : null,

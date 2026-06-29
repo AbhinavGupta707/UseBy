@@ -8,6 +8,7 @@ import {
   type TransactionContext,
   withTransaction,
 } from "../db/sql";
+import { sanitizePublicLocationText } from "../locations/privacy";
 import type { MerchantActorContext } from "./context";
 import {
   CP7_STORE_DROP_TABLE_CONTRACTS,
@@ -20,6 +21,7 @@ import {
 } from "../store-drops/contracts";
 import {
   MerchantRuntimeError,
+  publicMerchantLocation,
   type MerchantRuntimeStatus,
 } from "./runtime";
 
@@ -114,7 +116,7 @@ function dropDto(row: StoreDropRow, reservations: ReservationRow[] = []) {
     merchantId: row.merchant_id,
     merchantLocationId: row.merchant_location_id,
     merchantLocationName: row.merchant_location_name,
-    pickupAddress: row.merchant_public_address,
+    pickupAddress: null,
     neighbourhoodId: row.neighbourhood_id,
     title: row.title,
     description: row.description,
@@ -158,6 +160,7 @@ function dropDto(row: StoreDropRow, reservations: ReservationRow[] = []) {
     paymentNotice: STORE_DROP_PAYMENT_NOTICE,
     privacy: {
       householdLocations: "coarse labels only",
+      pickupArea: sanitizePublicLocationText(row.merchant_location_name ?? "Merchant pickup area"),
       directContact: false,
     },
   };
@@ -261,7 +264,7 @@ export async function listMerchantStoreDrops(context: MerchantActorContext) {
       ok: true as const,
       status: "ok" as MerchantRuntimeStatus,
       merchant: context.merchant,
-      location: context.location,
+      location: publicMerchantLocation(context.location),
       drops: drops.rows.map((drop) => dropDto(drop, reservationsByDrop.get(drop.id))),
     };
   } catch (error) {

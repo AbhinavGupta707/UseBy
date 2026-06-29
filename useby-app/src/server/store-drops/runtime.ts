@@ -11,6 +11,7 @@ import {
   withTransaction,
 } from "../db/sql";
 import type { DemoActorContext } from "../demo/context";
+import { coarseAreaLabel } from "../locations/privacy";
 import {
   STORE_DROP_PAYMENT_NOTICE,
   STORE_DROP_SAFETY_NOTICE,
@@ -255,8 +256,11 @@ export function storeDropDtoFromRow(row: DropRow): StoreDropDto {
       category: row.merchant_category,
     },
     pickup: {
-      areaLabel: row.location_name ?? "Merchant pickup area",
-      publicAddress: row.public_address,
+      areaLabel: coarseAreaLabel({
+        areaLabel: row.location_name,
+        fallback: "Merchant pickup area",
+      }),
+      publicAddress: null,
       windowStart: row.pickup_window_start,
       windowEnd: row.pickup_window_end,
       notes: row.pickup_notes,

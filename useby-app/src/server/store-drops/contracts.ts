@@ -383,6 +383,7 @@ export function assertStoreDropDtoIsPrivacySafe(dto: StoreDropDto): string[] {
     "lng",
     "longitude",
     "latitude",
+    "private street",
   ];
 
   return forbiddenNeedles.filter((needle) => serialized.includes(needle));

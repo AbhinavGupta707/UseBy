@@ -60,7 +60,7 @@ describe("merchant API helpers", () => {
     expect(bid.priceLabel).toBe("£12.50");
     expect(bid.poolId).toBe("pool-1");
     expect(pickup.availableActions).toContain("collected");
-    expect(JSON.stringify({ pool, bid, pickup }).toLowerCase()).not.toMatch(/latitude|longitude|email|phone/);
+    expect(JSON.stringify({ pool, bid, pickup }).toLowerCase()).not.toMatch(/latitude|longitude|address|unitlabel|email|phone/);
   });
 
   it("loads planned merchant routes and keeps missing endpoints unavailable", async () => {
@@ -133,7 +133,7 @@ describe("merchant API helpers", () => {
       reservationCount: 4,
       intensity: "high",
     });
-    expect(JSON.stringify({ drop, cell }).toLowerCase()).not.toMatch(/latitude|longitude|unitlabel|email|phone/);
+    expect(JSON.stringify({ drop, cell }).toLowerCase()).not.toMatch(/latitude|longitude|address|unitlabel|email|phone/);
   });
 
   it("posts bids and pickup transitions to the planned Lane 6B routes", async () => {

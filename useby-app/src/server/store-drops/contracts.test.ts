@@ -81,7 +81,7 @@ describe("store drop contracts", () => {
       },
       pickup: {
         areaLabel: "Courtyard Market Stall 3",
-        publicAddress: "Courtyard Market Stall 3",
+        publicAddress: null,
         windowStart: "2026-06-29T17:00:00.000Z",
         windowEnd: "2026-06-29T18:30:00.000Z",
         notes: "Daily 17:00-18:30",

@@ -2,6 +2,8 @@ import {
   loadRuntimeEnv,
   sanitizeRuntimeEnv,
 } from "../../server/db/env";
+import { checkLocationContracts } from "../../server/geocoding/contracts";
+import { geocodingProviderState } from "../../server/geocoding/provider";
 import {
   getTableAvailability,
   publicErrorMessage,
@@ -229,6 +231,37 @@ const CHECKPOINT_7_COUNT_TABLES = [
   },
 ] satisfies CountContract[];
 
+const CHECKPOINT_8_GEOCODING_COUNT_TABLES = [
+  {
+    key: "cp8HouseholdGeographies",
+    label: "CP8 household exact geographies",
+    table: "households",
+    where: "home_location is not null",
+    requiredColumns: ["home_location"],
+  },
+  {
+    key: "cp8MerchantGeographies",
+    label: "CP8 merchant exact geographies",
+    table: "merchant_locations",
+    where: "location is not null",
+    requiredColumns: ["location"],
+  },
+  {
+    key: "cp8DropGeographies",
+    label: "CP8 surplus drop pickup geographies",
+    table: "store_drops",
+    where: "pickup_location is not null",
+    requiredColumns: ["pickup_location"],
+  },
+  {
+    key: "cp8DemandPoolGeographies",
+    label: "CP8 demand pool target geographies",
+    table: "demand_pools",
+    where: "target_location is not null",
+    requiredColumns: ["target_location"],
+  },
+] satisfies CountContract[];
+
 const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ...SYSTEM_COUNT_TABLES.map((contract) =>
     contract.key === "bookings"
@@ -243,7 +276,52 @@ const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ...CHECKPOINT_4_COUNT_TABLES,
   ...CHECKPOINT_6_COUNT_TABLES,
   ...CHECKPOINT_7_COUNT_TABLES,
+  ...CHECKPOINT_8_GEOCODING_COUNT_TABLES,
 ];
+
+async function getGeocodingIntegration() {
+  const provider = geocodingProviderState();
+  try {
+    const contracts = await checkLocationContracts();
+    const schemaAvailable = contracts.available;
+    return {
+      configured: provider.configured,
+      provider: provider.provider,
+      mode: provider.mode,
+      available: schemaAvailable && (provider.configured || provider.mode === "fixture"),
+      reason: schemaAvailable
+        ? provider.reason
+        : contracts.checks
+            .filter((check) => !check.available)
+            .map((check) =>
+              check.exists
+                ? `${check.table} missing columns: ${check.missingColumns.join(", ")}`
+                : `${check.table} table is not available`,
+            )
+            .join("; "),
+      schemaAvailable,
+      privacy: {
+        exactCoordinatesPublic: false as const,
+        rawAddressesPublic: false as const,
+        directContactPublic: false as const,
+      },
+    };
+  } catch (error) {
+    return {
+      configured: provider.configured,
+      provider: provider.provider,
+      mode: provider.mode,
+      available: false,
+      reason: publicErrorMessage(error),
+      schemaAvailable: false,
+      privacy: {
+        exactCoordinatesPublic: false as const,
+        rawAddressesPublic: false as const,
+        directContactPublic: false as const,
+      },
+    };
+  }
+}
 
 function safeJson(value: unknown): Record<string, unknown> | null {
   if (!value) {
@@ -491,6 +569,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
 
   if (!env.databaseConfigured) {
     const reason = `Aurora env missing: ${env.missing.join(", ")}`;
+    const geocoding = await getGeocodingIntegration();
     return {
       status: "unavailable",
       generatedAt,
@@ -508,6 +587,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
           configured: env.storageConfigured,
           bucket: sanitizedEnv.bucket,
         },
+        geocoding,
       },
       counts: unavailableCounts(reason),
       latestAuditEvents: {
@@ -524,10 +604,11 @@ export async function getSystemState(): Promise<SystemStateResponse> {
   }
 
   try {
-    const [counts, latestAuditEvents, latestJobRuns] = await Promise.all([
+    const [counts, latestAuditEvents, latestJobRuns, geocoding] = await Promise.all([
       getCounts(),
       getLatestAuditEvents(),
       getLatestJobRuns(),
+      getGeocodingIntegration(),
     ]);
     const countAvailable = counts.some((count) => count.available);
     const status = computeStatus([
@@ -552,6 +633,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
           configured: env.storageConfigured,
           bucket: sanitizedEnv.bucket,
         },
+        geocoding,
       },
       counts,
       latestAuditEvents,
@@ -559,6 +641,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
     };
   } catch (error) {
     const reason = publicErrorMessage(error);
+    const geocoding = await getGeocodingIntegration();
     return {
       status: "unavailable",
       generatedAt,
@@ -576,6 +659,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
           configured: env.storageConfigured,
           bucket: sanitizedEnv.bucket,
         },
+        geocoding,
       },
       counts: unavailableCounts(reason),
       latestAuditEvents: {
