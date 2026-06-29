@@ -196,7 +196,7 @@ Workers are created from this checkpoint control document. The orchestrator must
 
 ## Integration Result
 
-Checkpoint 1 is integrated on `main` through commit `d990366`.
+Checkpoint 1 is integrated on `main` through commit `a12a236`, then live-smoked on production.
 
 Landed commits:
 
@@ -207,6 +207,8 @@ Landed commits:
 - `a199e16` wired demo seed/reset to the Aurora runtime when env is configured, while keeping no-env dry-run honest.
 - `878a45b` merged Lane 1D proof UI.
 - `d990366` aligned proof UI adapters with the actual live system API response shape.
+- `8bf0cdf` documented the Checkpoint 1 integration result.
+- `a12a236` wired Vercel OIDC AWS runtime credentials.
 
 Final verification from `useby-app`:
 
@@ -222,4 +224,6 @@ Review notes:
 - `/api/system/state` and `/api/system/db-proof` return honest unavailable responses when Aurora env or tables are unavailable.
 - `/proof` consumes endpoint responses through the adapter and treats missing/no-env states as unavailable, not live success.
 - Public response types expose coarse status/counts/audit/job metadata; exact household coordinates are not returned by the system proof APIs.
-- Live Aurora migration/seed smoke still requires AWS credentials or deployed Vercel OIDC env at runtime.
+- Live Aurora migration/seed smoke passed on 2026-06-29 at `https://useby-app.vercel.app`.
+- Vercel production env uses `AWS_ROLE_ARN=arn:aws:iam::222634407676:role/h0-useby-vercel-runtime-role` with the app-user secret ARN, not plaintext database credentials.
+- Vercel project framework is set to `Next.js`; SSO remains enabled for non-public deployment URLs, while the public production alias is reachable.

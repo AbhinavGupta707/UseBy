@@ -2,6 +2,29 @@
 
 This closes the remaining Checkpoint 1 caveat: proving the merged app can reach the real Aurora database and mutate live demo-scoped rows without using cached output.
 
+## Completed Live Result
+
+Completed on 2026-06-29 against production:
+
+- Public URL: `https://useby-app.vercel.app`
+- Vercel project: `useby-app` (`prj_QTVfZbuxGi6yISwdghbISaN10yz2`)
+- Production deployment: `dpl_c6jWhY9Uz2dkd8D69sQyASpzX5Fy`
+- AWS runtime role: `arn:aws:iam::222634407676:role/h0-useby-vercel-runtime-role`
+- Runtime policy: `arn:aws:iam::222634407676:policy/h0-useby-runtime-policy`
+- OIDC provider: `arn:aws:iam::222634407676:oidc-provider/oidc.vercel.com/abhinavs-projects-f1cef581`
+- S3 bucket: `h0-useby-assets-222634407676-eu-west-2`
+
+Live smoke passed:
+
+- `/api/system/db-proof` returned `status: available`, `currentDatabase: useby`, PostgreSQL `17.7`, and installed `postgis`, `vector`, `pgcrypto`, and `pg_trgm`.
+- `POST /api/demo/reset` returned `ok: true`, `status: applied`, and wrote deterministic demo input rows to Aurora.
+- `/api/system/state` returned live table counts including 1 neighbourhood, 8 households, 8 users, 3 merchants, 20 catalog items, 36 item instances, 5 needs, 3 demand pools, 7 commitments, 2 merchant bids, 1 seed batch, and 1 audit event.
+- `/proof` returned HTTP 200 from the public production alias.
+
+Vercel project settings were corrected from `Other` to `Next.js`; the original `Other` preset deployed a static fallback and caused Vercel-level 404s for API routes.
+
+SSO protection remains enabled for non-public deployment URLs via `all_except_custom_domains`; the public production alias is reachable. The temporary automation bypass token created during protected deployment testing was revoked.
+
 ## 1. Vercel Runtime Role
 
 Create or confirm the UseBy AWS OIDC provider and role.
@@ -12,6 +35,7 @@ Create or confirm the UseBy AWS OIDC provider and role.
 - Provider URL: `https://oidc.vercel.com/abhinavs-projects-f1cef581`
 - Audience: `https://vercel.com/abhinavs-projects-f1cef581`
 - Vercel env var after role creation: `AWS_ROLE_ARN`
+- Created role: `arn:aws:iam::222634407676:role/h0-useby-vercel-runtime-role`
 
 Trust policy should scope to the real Vercel project name and production environment:
 
@@ -52,7 +76,7 @@ Set these in the UseBy Vercel project for production:
 
 ```text
 AWS_REGION=eu-west-2
-AWS_ROLE_ARN=<role arn from step 1>
+AWS_ROLE_ARN=arn:aws:iam::222634407676:role/h0-useby-vercel-runtime-role
 AURORA_DATABASE=useby
 AURORA_CLUSTER_ARN=arn:aws:rds:eu-west-2:222634407676:cluster:h0-hackathon-aurora-pg
 AURORA_SECRET_ARN=arn:aws:secretsmanager:eu-west-2:222634407676:secret:h0/useby/rds/app-user-YkF92c
@@ -75,6 +99,8 @@ npx drizzle-kit migrate --config=drizzle.config.ts
 ```
 
 Use the app runtime secret for deployed routes, but use the master/migration secret for schema setup.
+
+For the completed live run, CloudShell applied `drizzle/0000_faithful_thundra.sql` through the RDS Data API and inserted the matching row into `drizzle.__drizzle_migrations` with hash `42e7aaeec54c1f410d36aae9b40f334e584cadbf59936857815d71e88c5be961`.
 
 ## 4. Deploy And Smoke Test
 
