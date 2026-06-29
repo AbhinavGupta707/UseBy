@@ -12,6 +12,21 @@ export const STORE_DROP_PAYMENT_NOTICE =
 export const STORE_DROP_SAFETY_NOTICE =
   "Merchant-packed surplus. Pickup is user/merchant confirmed; UseBy does not guarantee freshness, ingredients, or allergens.";
 
+export const RESERVABLE_STORE_DROP_STATUSES = ["published"] as const;
+export const ACTIVE_STORE_DROP_RESERVATION_STATUSES = ["active"] as const;
+export const BLOCKED_STORE_DROP_STATUSES = [
+  "draft",
+  "paused",
+  "closed",
+  "expired",
+  "unavailable",
+] as const;
+
+export type TableContract = {
+  table: string;
+  requiredColumns: readonly string[];
+};
+
 export const CP7_STORE_DROP_TABLE_CONTRACTS = [
   {
     table: "store_drops",
@@ -73,6 +88,7 @@ export const CP7_STORE_DROP_TABLE_CONTRACTS = [
       "name",
       "public_address",
       "pickup_notes",
+      "location",
       "is_active",
       "deleted_at",
     ],
@@ -105,7 +121,32 @@ export const CP7_STORE_DROP_TABLE_CONTRACTS = [
       "demo_scope_id",
     ],
   },
-] as const;
+] as const satisfies readonly TableContract[];
+
+export const CP7_HEATMAP_TABLE_CONTRACTS = [
+  ...CP7_STORE_DROP_TABLE_CONTRACTS,
+  {
+    table: "needs",
+    requiredColumns: [
+      "id",
+      "household_id",
+      "neighbourhood_id",
+      "category",
+      "quantity",
+      "status",
+      "location",
+      "metadata",
+      "deleted_at",
+    ],
+  },
+] as const satisfies readonly TableContract[];
+
+export type ContractCheck = {
+  table: string;
+  available: boolean;
+  exists: boolean;
+  missingColumns: string[];
+};
 
 export type StoreDropStatus = (typeof storeDropStatusValues)[number];
 export type StoreDropReservationStatus =
@@ -175,19 +216,17 @@ export type StoreDropAvailability = {
   soldOut: boolean;
 };
 
-export type StoreDropReserveInput = z.infer<typeof storeDropReserveSchema>;
-export type StoreDropCancelReservationInput = z.infer<
-  typeof storeDropCancelReservationSchema
->;
-
-const optionalIdempotencyKey = z.string().trim().min(8).max(200).optional();
+const optionalMetadata = z.record(z.string(), z.unknown()).default({});
+const optionalIdempotencyKey = z.string().trim().min(8).max(200).optional().nullable();
 const optionalNote = z.string().trim().max(1000).optional().nullable();
+const optionalTrimmedText = z.string().trim().max(1000).optional().nullable();
 
 export const storeDropReserveSchema = z
   .object({
     quantity: z.number().positive().max(999),
     idempotencyKey: optionalIdempotencyKey,
     note: optionalNote,
+    metadata: optionalMetadata,
   })
   .strip();
 
@@ -199,12 +238,50 @@ export const storeDropCancelReservationSchema = z
   })
   .strip();
 
-async function checkTableContracts(
-  contracts: readonly {
-    table: string;
-    requiredColumns: readonly string[];
-  }[],
-) {
+export const merchantStoreDropCreateSchema = z
+  .object({
+    title: z.string().trim().min(3).max(160),
+    description: optionalTrimmedText,
+    category: z.string().trim().min(1).max(80).default("grocery"),
+    totalQuantity: z.number().positive().max(99999),
+    unit: z.string().trim().min(1).max(32).default("bundle"),
+    priceCents: z.number().int().nonnegative().max(1_000_000).default(0),
+    currency: z.string().trim().length(3).default("GBP"),
+    pickupWindowStart: z.string().datetime({ offset: true }),
+    pickupWindowEnd: z.string().datetime({ offset: true }),
+    availableAt: z.string().datetime({ offset: true }).optional().nullable(),
+    expiresAt: z.string().datetime({ offset: true }).optional().nullable(),
+    safetyNotes: optionalTrimmedText,
+    merchantLocationId: z.string().uuid().optional().nullable(),
+    metadata: optionalMetadata,
+  })
+  .superRefine((value, context) => {
+    if (Date.parse(value.pickupWindowEnd) <= Date.parse(value.pickupWindowStart)) {
+      context.addIssue({
+        code: "custom",
+        path: ["pickupWindowEnd"],
+        message: "Pickup window end must be after start.",
+      });
+    }
+
+    if (value.expiresAt && Date.parse(value.expiresAt) > Date.parse(value.pickupWindowEnd)) {
+      context.addIssue({
+        code: "custom",
+        path: ["expiresAt"],
+        message: "Drop expiry cannot be after pickup window end.",
+      });
+    }
+  });
+
+export type StoreDropReserveInput = z.infer<typeof storeDropReserveSchema>;
+export type StoreDropCancelReservationInput = z.infer<
+  typeof storeDropCancelReservationSchema
+>;
+export type MerchantStoreDropCreateInput = z.infer<
+  typeof merchantStoreDropCreateSchema
+>;
+
+export async function checkTableContracts(contracts: readonly TableContract[]) {
   const checks = await Promise.all(
     contracts.map(async (contract) => {
       const availability = await getTableAvailability(contract.table);
@@ -231,10 +308,8 @@ export async function checkStoreDropContracts() {
   return checkTableContracts(CP7_STORE_DROP_TABLE_CONTRACTS);
 }
 
-export function unavailableStoreDropReason(
-  contracts: Awaited<ReturnType<typeof checkStoreDropContracts>>,
-): string {
-  return contracts.checks
+export function unavailableStoreDropReason(input: { checks: ContractCheck[] }): string {
+  return input.checks
     .filter((check) => !check.available)
     .map((check) =>
       check.exists
@@ -265,6 +340,35 @@ export function formatStoreDropPrice(amountCents: number, currency: string) {
     style: "currency",
     currency,
   }).format(amountCents / 100);
+}
+
+export function isReservableDropStatus(status: string | null | undefined) {
+  return status === "published";
+}
+
+export function blockedDropReason(input: {
+  status: string | null | undefined;
+  remainingQuantity: number;
+  pickupWindowEnd?: string | null;
+  expiresAt?: string | null;
+  now?: Date;
+}) {
+  const status = input.status ?? "unavailable";
+  if (!isReservableDropStatus(status)) {
+    return `Drop is ${status}, not open for reservations.`;
+  }
+
+  if (input.remainingQuantity <= 0) {
+    return "Drop is sold out.";
+  }
+
+  const nowMs = (input.now ?? new Date()).getTime();
+  const expiry = input.expiresAt ?? input.pickupWindowEnd;
+  if (expiry && Date.parse(expiry) <= nowMs) {
+    return "Drop pickup window has expired.";
+  }
+
+  return null;
 }
 
 export function assertStoreDropDtoIsPrivacySafe(dto: StoreDropDto): string[] {

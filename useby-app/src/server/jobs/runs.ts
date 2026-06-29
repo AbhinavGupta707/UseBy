@@ -12,6 +12,7 @@ export type SystemJobType =
   | "expiry-decay"
   | "recompute-matches"
   | "close-demand-pools"
+  | "expire-store-drops"
   | "pickup-reminders";
 
 export type SystemJobRunResult = {
@@ -40,6 +41,11 @@ const JOB_METADATA: Record<SystemJobType, Record<string, unknown>> = {
     checkpoint: 1,
     stub: true,
     plannedWork: "Close, expire, or transition demand pools from current rows.",
+  },
+  "expire-store-drops": {
+    checkpoint: 7,
+    stub: false,
+    plannedWork: "Expire merchant surplus drops and release stale reservations from current rows.",
   },
   "pickup-reminders": {
     checkpoint: 1,
