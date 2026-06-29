@@ -238,10 +238,10 @@ Run local/browser smoke before deploy where practical. After deploy, verify:
 
 | Lane | Thread | Worktree | Status |
 | --- | --- | --- | --- |
-| 9A Agent Runtime, Notification Fix, And Contracts | pending | pending | pending |
-| 9B Premium Consumer UI Remodel | pending | pending | pending |
-| 9C Agent-To-Consumer Workflow UX | pending | pending | pending |
-| 9D Live Demo QA, Docs, And Browser Smoke | pending | pending | pending |
+| 9A Agent Runtime, Notification Fix, And Contracts | pending (`local:2af9d73a-6402-4953-860e-9cc292fa2d4b`) | pending | queued |
+| 9B Premium Consumer UI Remodel | pending (`local:8661197d-afe2-49b9-9ef1-d4015a358c06`) | pending | queued |
+| 9C Agent-To-Consumer Workflow UX | pending (`local:467b55a4-274c-4df2-88f7-d2cd5e7db4a8`) | pending | queued |
+| 9D Live Demo QA, Docs, And Browser Smoke | pending (`local:8987b243-ee4b-4b0f-85ed-241d8580e73e`) | pending | queued |
 
 ## Handoff Contract
 
