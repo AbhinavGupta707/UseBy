@@ -87,6 +87,19 @@ export const pickupTaskStatusValues = [
   "collected",
   "cancelled",
 ] as const;
+export const storeDropStatusValues = [
+  "draft",
+  "published",
+  "paused",
+  "closed",
+  "expired",
+] as const;
+export const storeDropReservationStatusValues = [
+  "active",
+  "cancelled",
+  "expired",
+  "picked_up",
+] as const;
 export const fileRoleValues = [
   "receipt",
   "expiry_label",
@@ -181,6 +194,11 @@ export const inventoryEventTypeEnum = pgEnum("inventory_event_type", inventoryEv
 export const commitmentStatusEnum = pgEnum("commitment_status", commitmentStatusValues);
 export const poolOrderStatusEnum = pgEnum("pool_order_status", poolOrderStatusValues);
 export const pickupTaskStatusEnum = pgEnum("pickup_task_status", pickupTaskStatusValues);
+export const storeDropStatusEnum = pgEnum("store_drop_status", storeDropStatusValues);
+export const storeDropReservationStatusEnum = pgEnum(
+  "store_drop_reservation_status",
+  storeDropReservationStatusValues,
+);
 export const fileRoleEnum = pgEnum("file_role", fileRoleValues);
 export const jobRunStatusEnum = pgEnum("job_run_status", jobRunStatusValues);
 export const idempotencyStatusEnum = pgEnum("idempotency_status", idempotencyStatusValues);
@@ -1115,6 +1133,76 @@ export const merchantBids = pgTable(
   ],
 );
 
+export const storeDrops = pgTable(
+  "store_drops",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    merchantId: uuid("merchant_id")
+      .notNull()
+      .references(() => merchants.id, { onDelete: "cascade" }),
+    merchantLocationId: uuid("merchant_location_id").references(() => merchantLocations.id, { onDelete: "set null" }),
+    neighbourhoodId: uuid("neighbourhood_id")
+      .notNull()
+      .references(() => neighbourhoods.id, { onDelete: "restrict" }),
+    catalogItemId: uuid("catalog_item_id").references(() => itemCatalog.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    status: storeDropStatusEnum("status").default("draft").notNull(),
+    quantityTotal: numeric("quantity_total", { precision: 12, scale: 3 }).notNull(),
+    unit: text("unit").default("box").notNull(),
+    priceCents: integer("price_cents").notNull(),
+    currency: varchar("currency", { length: 3 }).default("GBP").notNull(),
+    pickupWindowStart: timestamp("pickup_window_start", { withTimezone: true }).notNull(),
+    pickupWindowEnd: timestamp("pickup_window_end", { withTimezone: true }).notNull(),
+    safetyNotes: text("safety_notes"),
+    pickupLocation: geographyPoint("pickup_location", { srid: 4326 }).notNull(),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    index("store_drops_neighbourhood_status_idx").on(table.neighbourhoodId, table.status),
+    index("store_drops_merchant_status_idx").on(table.merchantId, table.status),
+    index("store_drops_location_gix").using("gist", table.pickupLocation),
+    check("store_drops_quantity_total_positive", sql`${table.quantityTotal} > 0`),
+    check("store_drops_price_non_negative", sql`${table.priceCents} >= 0`),
+    check("store_drops_pickup_window_order", sql`${table.pickupWindowEnd} > ${table.pickupWindowStart}`),
+  ],
+);
+
+export const storeDropReservations = pgTable(
+  "store_drop_reservations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    storeDropId: uuid("store_drop_id")
+      .notNull()
+      .references(() => storeDrops.id, { onDelete: "cascade" }),
+    householdId: uuid("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    status: storeDropReservationStatusEnum("status").default("active").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
+    unit: text("unit").default("box").notNull(),
+    idempotencyKey: text("idempotency_key"),
+    reservedAt: timestamp("reserved_at", { withTimezone: true }).defaultNow().notNull(),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("store_drop_reservations_active_drop_household_idx")
+      .on(table.storeDropId, table.householdId)
+      .where(sql`${table.status} = 'active'`),
+    index("store_drop_reservations_drop_status_idx").on(table.storeDropId, table.status),
+    index("store_drop_reservations_household_status_idx").on(table.householdId, table.status),
+    index("store_drop_reservations_idempotency_idx").on(table.idempotencyKey),
+    check("store_drop_reservations_quantity_positive", sql`${table.quantity} > 0`),
+  ],
+);
+
 export const poolOrders = pgTable(
   "pool_orders",
   {
@@ -1369,4 +1457,9 @@ export const checkpoint4LendingTables = {
 export const checkpoint6DemandPoolOutputTables = {
   poolOrders,
   pickupTasks,
+};
+
+export const checkpoint7StoreDropTables = {
+  storeDrops,
+  storeDropReservations,
 };

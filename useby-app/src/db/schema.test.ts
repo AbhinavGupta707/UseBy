@@ -5,6 +5,7 @@ import {
   bidStatusValues,
   bookingStatusValues,
   checkpoint6DemandPoolOutputTables,
+  checkpoint7StoreDropTables,
   checkpoint4LendingTables,
   checkpoint3BookingTables,
   checkpoint1Tables,
@@ -24,6 +25,8 @@ import {
   lendingReservationStatusValues,
   pickupTaskStatusValues,
   poolOrderStatusValues,
+  storeDropReservationStatusValues,
+  storeDropStatusValues,
 } from "./schema";
 
 describe("checkpoint 1 schema contract", () => {
@@ -77,6 +80,8 @@ describe("checkpoint 1 schema contract", () => {
     expect(bidStatusValues).toContain("winning");
     expect(poolOrderStatusValues).toEqual(["pending", "ready", "collected", "fulfilled", "cancelled"]);
     expect(pickupTaskStatusValues).toEqual(["pending", "ready", "collected", "cancelled"]);
+    expect(storeDropStatusValues).toEqual(["draft", "published", "paused", "closed", "expired"]);
+    expect(storeDropReservationStatusValues).toEqual(["active", "cancelled", "expired", "picked_up"]);
     expect(receiptImportStatusValues).toEqual(["started", "parsed", "applied", "failed"]);
     expect(expiryObservationSourceValues).toContain("label");
     expect(expiryConfidenceValues).toEqual(["low", "medium", "high", "confirmed"]);
@@ -140,5 +145,16 @@ describe("checkpoint 1 schema contract", () => {
     );
     expect(Object.keys(checkpoint1Tables)).not.toContain("poolOrders");
     expect(Object.keys(checkpoint1Tables)).not.toContain("pickupTasks");
+  });
+
+  it("exports checkpoint 7 store drop runtime tables separately", () => {
+    expect(Object.keys(checkpoint7StoreDropTables).sort()).toEqual(
+      [
+        "storeDropReservations",
+        "storeDrops",
+      ].sort(),
+    );
+    expect(Object.keys(checkpoint1Tables)).not.toContain("storeDrops");
+    expect(Object.keys(checkpoint1Tables)).not.toContain("storeDropReservations");
   });
 });
