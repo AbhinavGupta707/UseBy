@@ -199,7 +199,7 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 2A Grocery Schema And Inventory Runtime | pending | pending | Pending launch | Owns all CP2 migrations/schema |
-| 2B Action Engine And Food Matching | pending | pending | Pending launch | No schema edits |
-| 2C Consumer Grocery UI | pending | pending | Pending launch | API consumer only |
-| 2D QA Contracts And Proof Integration | pending | pending | Pending launch | Proof/docs/tests |
+| 2A Grocery Schema And Inventory Runtime | pending | `local:3365e94c-074c-43c7-8775-6ec01a2c323e` | Queued | Owns all CP2 migrations/schema |
+| 2B Action Engine And Food Matching | pending | `local:be0ead1f-c5bd-498b-b8fe-50b7b7e38a00` | Queued | No schema edits |
+| 2C Consumer Grocery UI | pending | `local:52bf4f3c-dc04-46f8-b263-16962b531594` | Queued | API consumer only |
+| 2D QA Contracts And Proof Integration | pending | `local:623d4003-25e2-49fb-a07c-e84171060263` | Queued | Proof/docs/tests |
