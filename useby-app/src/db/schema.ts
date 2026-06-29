@@ -103,6 +103,47 @@ export const actionCardStatusValues = [
   "completed",
   "invalidated",
 ] as const;
+export const bookingStatusValues = [
+  "requested",
+  "accepted",
+  "reserved",
+  "pickup_scheduled",
+  "picked_up",
+  "returned",
+  "completed",
+  "reviewed",
+  "cancelled",
+  "declined",
+  "disputed",
+] as const;
+export const handoffStatusValues = [
+  "pending",
+  "scheduled",
+  "picked_up",
+  "returned",
+  "completed",
+  "cancelled",
+  "disputed",
+] as const;
+export const trustEventTypeValues = [
+  "booking_completed",
+  "booking_reviewed",
+  "booking_cancelled",
+  "report_submitted",
+  "block_created",
+] as const;
+export const reviewRatingValues = [
+  "positive",
+  "neutral",
+  "negative",
+] as const;
+export const reportStatusValues = [
+  "open",
+  "under_review",
+  "resolved",
+  "dismissed",
+] as const;
+export const blockStatusValues = ["active", "lifted"] as const;
 
 export const itemCategoryEnum = pgEnum("item_category", itemCategoryValues);
 export const itemStateEnum = pgEnum("item_state", itemStateValues);
@@ -125,6 +166,12 @@ export const expiryObservationSourceEnum = pgEnum("expiry_observation_source", e
 export const expiryConfidenceEnum = pgEnum("expiry_confidence", expiryConfidenceValues);
 export const matchStatusEnum = pgEnum("match_status", matchStatusValues);
 export const actionCardStatusEnum = pgEnum("action_card_status", actionCardStatusValues);
+export const bookingStatusEnum = pgEnum("booking_status", bookingStatusValues);
+export const handoffStatusEnum = pgEnum("handoff_status", handoffStatusValues);
+export const trustEventTypeEnum = pgEnum("trust_event_type", trustEventTypeValues);
+export const reviewRatingEnum = pgEnum("review_rating", reviewRatingValues);
+export const reportStatusEnum = pgEnum("report_status", reportStatusValues);
+export const blockStatusEnum = pgEnum("block_status", blockStatusValues);
 
 type JsonObject = Record<string, unknown>;
 type GeographyPoint = string;
@@ -609,6 +656,235 @@ export const actionCards = pgTable(
   ],
 );
 
+export const safetyAcknowledgements = pgTable(
+  "safety_acknowledgements",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    householdId: uuid("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    neighbourhoodId: uuid("neighbourhood_id")
+      .notNull()
+      .references(() => neighbourhoods.id, { onDelete: "restrict" }),
+    acknowledgementType: text("acknowledgement_type").default("food_handoff").notNull(),
+    version: text("version").default("cp3-food-safety-v1").notNull(),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("safety_ack_household_type_version_idx").on(
+      table.householdId,
+      table.acknowledgementType,
+      table.version,
+    ),
+    index("safety_ack_household_type_idx").on(table.householdId, table.acknowledgementType),
+    index("safety_ack_neighbourhood_idx").on(table.neighbourhoodId),
+  ],
+);
+
+export const bookings = pgTable(
+  "bookings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    itemInstanceId: uuid("item_instance_id")
+      .notNull()
+      .references(() => itemInstances.id, { onDelete: "restrict" }),
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    needId: uuid("need_id").references(() => needs.id, { onDelete: "set null" }),
+    requesterHouseholdId: uuid("requester_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "restrict" }),
+    ownerHouseholdId: uuid("owner_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "restrict" }),
+    neighbourhoodId: uuid("neighbourhood_id")
+      .notNull()
+      .references(() => neighbourhoods.id, { onDelete: "restrict" }),
+    requestedByUserId: uuid("requested_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    ownerActorUserId: uuid("owner_actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    status: bookingStatusEnum("status").default("requested").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).default("1").notNull(),
+    unit: text("unit").default("each").notNull(),
+    requestNote: text("request_note"),
+    declineReason: text("decline_reason"),
+    cancelReason: text("cancel_reason"),
+    disputeReason: text("dispute_reason"),
+    safetyAcknowledgementId: uuid("safety_acknowledgement_id").references(() => safetyAcknowledgements.id, {
+      onDelete: "set null",
+    }),
+    idempotencyKey: text("idempotency_key"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).defaultNow().notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    reservedAt: timestamp("reserved_at", { withTimezone: true }),
+    declinedAt: timestamp("declined_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    pickedUpAt: timestamp("picked_up_at", { withTimezone: true }),
+    returnedAt: timestamp("returned_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    index("bookings_item_status_idx").on(table.itemInstanceId, table.status),
+    index("bookings_match_idx").on(table.matchId),
+    index("bookings_requester_status_idx").on(table.requesterHouseholdId, table.status),
+    index("bookings_owner_status_idx").on(table.ownerHouseholdId, table.status),
+    index("bookings_neighbourhood_status_idx").on(table.neighbourhoodId, table.status),
+    index("bookings_idempotency_idx").on(table.idempotencyKey),
+    uniqueIndex("bookings_one_active_reservation_idx")
+      .on(table.itemInstanceId)
+      .where(sql`${table.status} in ('accepted', 'reserved', 'pickup_scheduled', 'picked_up', 'returned', 'disputed')`),
+    check("bookings_quantity_positive", sql`${table.quantity} > 0`),
+    check("bookings_households_distinct", sql`${table.requesterHouseholdId} <> ${table.ownerHouseholdId}`),
+  ],
+);
+
+export const handoffs = pgTable(
+  "handoffs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    status: handoffStatusEnum("status").default("pending").notNull(),
+    pickupWindowStart: timestamp("pickup_window_start", { withTimezone: true }),
+    pickupWindowEnd: timestamp("pickup_window_end", { withTimezone: true }),
+    coarsePickupHint: text("coarse_pickup_hint"),
+    scheduledByUserId: uuid("scheduled_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    pickedUpByUserId: uuid("picked_up_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    completedByUserId: uuid("completed_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    pickedUpAt: timestamp("picked_up_at", { withTimezone: true }),
+    returnedAt: timestamp("returned_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    completionNote: text("completion_note"),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("handoffs_booking_idx").on(table.bookingId),
+    index("handoffs_status_idx").on(table.status),
+    check(
+      "handoffs_pickup_window_order",
+      sql`${table.pickupWindowStart} is null or ${table.pickupWindowEnd} is null or ${table.pickupWindowEnd} > ${table.pickupWindowStart}`,
+    ),
+  ],
+);
+
+export const trustEvents = pgTable(
+  "trust_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    householdId: uuid("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    actorHouseholdId: uuid("actor_household_id").references(() => households.id, { onDelete: "set null" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    eventType: trustEventTypeEnum("event_type").notNull(),
+    delta: integer("delta").default(0).notNull(),
+    rationale: text("rationale").notNull(),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    index("trust_events_household_created_idx").on(table.householdId, table.createdAt),
+    index("trust_events_booking_idx").on(table.bookingId),
+    check("trust_events_delta_bounds", sql`${table.delta} between -100 and 100`),
+  ],
+);
+
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    reviewerHouseholdId: uuid("reviewer_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    revieweeHouseholdId: uuid("reviewee_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    reviewerUserId: uuid("reviewer_user_id").references(() => users.id, { onDelete: "set null" }),
+    rating: reviewRatingEnum("rating").notNull(),
+    note: text("note"),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    uniqueIndex("reviews_booking_reviewer_idx").on(table.bookingId, table.reviewerHouseholdId),
+    index("reviews_reviewee_created_idx").on(table.revieweeHouseholdId, table.createdAt),
+    check("reviews_households_distinct", sql`${table.reviewerHouseholdId} <> ${table.revieweeHouseholdId}`),
+  ],
+);
+
+export const reports = pgTable(
+  "reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reporterHouseholdId: uuid("reporter_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    reportedHouseholdId: uuid("reported_household_id").references(() => households.id, { onDelete: "set null" }),
+    reporterUserId: uuid("reporter_user_id").references(() => users.id, { onDelete: "set null" }),
+    bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    status: reportStatusEnum("status").default("open").notNull(),
+    reason: text("reason").notNull(),
+    details: text("details"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    index("reports_status_created_idx").on(table.status, table.createdAt),
+    index("reports_reporter_idx").on(table.reporterHouseholdId),
+    index("reports_reported_idx").on(table.reportedHouseholdId),
+    index("reports_booking_idx").on(table.bookingId),
+  ],
+);
+
+export const blocks = pgTable(
+  "blocks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    blockerHouseholdId: uuid("blocker_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    blockedHouseholdId: uuid("blocked_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    blockerUserId: uuid("blocker_user_id").references(() => users.id, { onDelete: "set null" }),
+    status: blockStatusEnum("status").default("active").notNull(),
+    reason: text("reason"),
+    liftedAt: timestamp("lifted_at", { withTimezone: true }),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("blocks_active_pair_idx")
+      .on(table.blockerHouseholdId, table.blockedHouseholdId)
+      .where(sql`${table.status} = 'active'`),
+    index("blocks_blocked_household_idx").on(table.blockedHouseholdId),
+    check("blocks_households_distinct", sql`${table.blockerHouseholdId} <> ${table.blockedHouseholdId}`),
+  ],
+);
+
 export const demandPools = pgTable(
   "demand_pools",
   {
@@ -857,4 +1133,14 @@ export const checkpoint2GroceryTables = {
   expiryObservations,
   matches,
   actionCards,
+};
+
+export const checkpoint3BookingTables = {
+  safetyAcknowledgements,
+  bookings,
+  handoffs,
+  trustEvents,
+  reviews,
+  reports,
+  blocks,
 };

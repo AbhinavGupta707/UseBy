@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   actionCardStatusValues,
   bidStatusValues,
+  bookingStatusValues,
+  checkpoint3BookingTables,
   checkpoint1Tables,
   checkpoint2GroceryTables,
   expiryConfidenceValues,
@@ -78,5 +80,32 @@ describe("checkpoint 1 schema contract", () => {
       "completed",
       "invalidated",
     ]);
+    expect(bookingStatusValues).toEqual([
+      "requested",
+      "accepted",
+      "reserved",
+      "pickup_scheduled",
+      "picked_up",
+      "returned",
+      "completed",
+      "reviewed",
+      "cancelled",
+      "declined",
+      "disputed",
+    ]);
+  });
+
+  it("exports the checkpoint 3 booking lifecycle tables for booking and trust lanes", () => {
+    expect(Object.keys(checkpoint3BookingTables).sort()).toEqual(
+      [
+        "blocks",
+        "bookings",
+        "handoffs",
+        "reports",
+        "reviews",
+        "safetyAcknowledgements",
+        "trustEvents",
+      ].sort(),
+    );
   });
 });

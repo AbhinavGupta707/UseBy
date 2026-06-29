@@ -15,6 +15,13 @@
       "when": 1782694741126,
       "tag": "0001_grocery_inventory_runtime",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782720000000,
+      "tag": "0002_booking_handoff_trust",
+      "breakpoints": true
     }
   ]
 }
