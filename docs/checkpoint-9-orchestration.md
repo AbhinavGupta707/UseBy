@@ -238,10 +238,10 @@ Run local/browser smoke before deploy where practical. After deploy, verify:
 
 | Lane | Thread | Worktree | Status |
 | --- | --- | --- | --- |
-| 9A Agent Runtime, Notification Fix, And Contracts | pending (`local:2af9d73a-6402-4953-860e-9cc292fa2d4b`) | pending | queued |
-| 9B Premium Consumer UI Remodel | pending (`local:8661197d-afe2-49b9-9ef1-d4015a358c06`) | pending | queued |
-| 9C Agent-To-Consumer Workflow UX | pending (`local:467b55a4-274c-4df2-88f7-d2cd5e7db4a8`) | pending | queued |
-| 9D Live Demo QA, Docs, And Browser Smoke | pending (`local:8987b243-ee4b-4b0f-85ed-241d8580e73e`) | pending | queued |
+| 9A Agent Runtime, Notification Fix, And Contracts | `019f1340-3aa8-73c0-a2af-764253861445` | `/Users/abhinavgupta/.codex/worktrees/ffb1/UseBy` | active |
+| 9B Premium Consumer UI Remodel | `019f1340-a506-71f2-9de8-9bda187c01b4` | `/Users/abhinavgupta/.codex/worktrees/cb04/UseBy` | active |
+| 9C Agent-To-Consumer Workflow UX | `019f1340-f3e1-70a1-a044-faca4ce39e0b` | `/Users/abhinavgupta/.codex/worktrees/1652/UseBy` | active |
+| 9D Live Demo QA, Docs, And Browser Smoke | `019f1341-4c46-7093-9530-28377c39df4a` | `/Users/abhinavgupta/.codex/worktrees/738a/UseBy` | active |
 
 ## Handoff Contract
 
