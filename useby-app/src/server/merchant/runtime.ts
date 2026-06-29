@@ -778,7 +778,7 @@ export async function transitionPickup(
         `
           update pool_orders
           set
-            status = :status,
+            status = :status::pool_order_status,
             ${timestampColumn} = coalesce(${timestampColumn}, now()),
             status_evidence = coalesce(status_evidence, '{}'::jsonb) || :metadata::jsonb,
             metadata = coalesce(metadata, '{}'::jsonb) || :metadata::jsonb,
@@ -829,7 +829,7 @@ export async function transitionPickup(
         `
           update pickup_tasks
           set
-            status = :status,
+            status = :status::pickup_task_status,
             ready_at = coalesce(ready_at, :readyAt::timestamp with time zone),
             collected_at = coalesce(collected_at, :collectedAt::timestamp with time zone),
             metadata = coalesce(metadata, '{}'::jsonb) || :metadata::jsonb,
@@ -859,7 +859,7 @@ export async function transitionPickup(
             values (
               :taskId::uuid, :orderId::uuid, :demandPoolId::uuid,
               :householdId::uuid, :merchantId::uuid, :merchantLocationId::uuid,
-              :status, :coarsePickupLabel,
+              :status::pickup_task_status, :coarsePickupLabel,
               :pickupWindowStart::timestamp with time zone,
               :pickupWindowEnd::timestamp with time zone,
               :readyAt::timestamp with time zone,
