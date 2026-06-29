@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { ZodSchema } from "zod";
 
+import { publicErrorMessage } from "@/server/db/introspection";
 import { resolveDemoActorContext } from "@/server/demo/context";
 import {
   isDemandPoolRuntimeError,
@@ -39,9 +40,13 @@ export function runtimeErrorResponse(error: DemandPoolRuntimeError) {
   );
 }
 
-export function unknownErrorResponse() {
+export function unknownErrorResponse(error: unknown) {
   return NextResponse.json(
-    { ok: false, status: "error", error: "DemandPool runtime failed." },
+    {
+      ok: false,
+      status: "error",
+      error: publicErrorMessage(error),
+    },
     { status: 500 },
   );
 }
@@ -89,5 +94,5 @@ export function demandPoolCatchResponse(error: unknown) {
     return runtimeErrorResponse(error);
   }
 
-  return unknownErrorResponse();
+  return unknownErrorResponse(error);
 }
