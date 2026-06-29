@@ -95,6 +95,60 @@ describe("AI copy provider guardrails", () => {
     expect(requestedUrl).toBe("https://api.fireworks.ai/inference/v1/chat/completions");
   });
 
+  it("sends deterministic facts with explicit privacy and authority guardrails", async () => {
+    let requestedBody: unknown = null;
+    const fetcher = async (_input: string | URL | Request, init?: RequestInit) => {
+      requestedBody = init?.body ? JSON.parse(String(init.body)) : null;
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: "Nearby, package-safe, and using coarse location details only.",
+              },
+            },
+          ],
+        }),
+      } as Response;
+    };
+
+    await generateAiCopy(request, {
+      env: {
+        AI_COPY_ENABLED: "true",
+        AI_COPY_PROVIDER: "fireworks",
+        FIREWORKS_API_KEY: "test-key",
+        FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2-instruct-0905",
+      },
+      fetcher,
+    });
+
+    expect(requestedBody).toMatchObject({
+      model: "accounts/fireworks/models/kimi-k2-instruct-0905",
+      messages: expect.arrayContaining([
+        expect.objectContaining({
+          role: "system",
+          content: expect.stringContaining("never make product decisions"),
+        }),
+        expect.objectContaining({
+          role: "user",
+          content: expect.stringContaining(request.deterministicFacts[0]),
+        }),
+      ]),
+    });
+    const userPrompt = (requestedBody as { messages: Array<{ role: string; content: string }> })
+      .messages.find((message) => message.role === "user")?.content;
+
+    expect(userPrompt).toContain(
+      "Do not decide eligibility, safety, trust, payment, reservation capacity, or visibility.",
+    );
+    expect(userPrompt).toContain(
+      "Do not add exact coordinates, direct contact details, payment state, or safety certification.",
+    );
+  });
+
   it("falls back if generated content attempts forbidden decisions", async () => {
     const fetcher = async () =>
       ({

@@ -1,81 +1,193 @@
 # UseBy Manual Live Demo Flow
 
 Created: 2026-06-29
+Updated for Checkpoint 9 Lane 9D: 2026-06-29
 
-This document describes how to manually test the current live product and what the intended post-redesign demo flow should become.
+This script is the manual demo path for the redesigned CP9 consumer product. It is intentionally honest about the current base: in this lane, the repository has the CP9 plan but does not yet have installed `/api/agent/**` routes or an `/agent-runs` page. After Lane 9A, 9B, and 9C merge, use the target flow below as the live demo script and use the current-state checks to catch any integration gaps.
 
-## Current Reality
+## Demo Rule
 
-The deployed app is live-data backed, but it is not yet a polished consumer journey.
+Seeded data may create input world state only. Final action cards, matches, bookings, DemandPool awards, store-drop reservations, pickup reminder notifications, trust changes, audit events, and agent evidence must be computed from current Aurora rows.
 
-What currently works live:
+Do not narrate AI as the authority for safety, eligibility, privacy exposure, trust, payment, reservation capacity, or visibility. UseBy code remains the authority; Fireworks can draft, normalize, explain, summarize, or rerank already-eligible deterministic candidates.
 
-- Production app loads at `https://useby-app.vercel.app`.
-- `/api/system/state` returns Aurora-backed counts and provider states.
-- `/api/system/db-proof` confirms PostgreSQL 17.7 plus PostGIS, pgvector, pgcrypto, and pg_trgm after Aurora resumes from auto-pause.
-- `/grocery` shows live inventory, action cards, and matches.
-- `/proof` shows backend/provider proof.
-- S3 and Textract are configured.
-- Geocoding, AI copy, and semantic ranking correctly show no-key/disabled states.
+## Current Base Reality
 
-What is not fully end-to-end yet:
+Known current state before CP9 lane integration:
 
-- AI is not active because provider keys are not configured.
-- Semantic ranking is not active because provider keys/models are not configured.
-- Geocoding is not active because `MAPBOX_ACCESS_TOKEN` is not configured.
-- Pickup reminder notifications need a schema/runtime fix before they can be called fully working.
-- The current UI exposes proof and route/status concepts that should be hidden from ordinary customers.
+- Production app: `https://useby-app.vercel.app`.
+- Live system proof endpoints exist: `GET /api/system/state` and `GET /api/system/db-proof`.
+- Customer routes currently present in this worktree: `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/lending`, `/merchant`, `/proof`.
+- API routes currently present include grocery, matches, bookings, DemandPools, store drops, merchant routes, notifications, jobs, locations, and system proof.
+- Agent routes are not registered in this base (`/api/agent/**` is absent), and `/agent-runs` is absent. Until Lane 9A/9C lands them, demo narration must say agent workflows are planned or unavailable, not working.
+- S3 and Textract may be configured in production; geocoding, AI copy, semantic ranking, and LangSmith depend on env keys.
+- Pickup reminder notifications require the notifications table contract to match the runtime columns before claiming fully working notification rows.
 
-## Current Manual Smoke
+## Pre-Demo Setup
 
-### 1. Wake And Verify Backend
+Use a resettable demo scope and make each mutation visible from live APIs.
 
-Open:
+1. Open `https://useby-app.vercel.app/api/system/db-proof`.
+2. If Aurora is resuming from auto-pause, the first response may be `503`; retry after a few seconds.
+3. Confirm final response is available and names PostgreSQL plus PostGIS/pgvector extensions.
+4. Open `https://useby-app.vercel.app/api/system/state`.
+5. Confirm row counts and integration states are live, not static page copy.
+6. Optional reset before a judged run: `POST /api/demo/reset`.
 
-```text
-https://useby-app.vercel.app/api/system/db-proof
-```
+Expected provider states without keys:
+
+- Fireworks/AI copy: `disabled` or `unavailable`, with deterministic fallback copy.
+- Semantic ranking: `disabled` or `unavailable`, and deterministic ordering remains in force.
+- LangSmith: `disabled` if tracing is not enabled, or `unavailable` if tracing is enabled without a key.
+- Geocoding: unavailable/no-key is acceptable; exact coordinates must stay hidden.
+- Notifications/email: in-app notification rows may be ready only if the notifications table contract is available; email can be dry-run or unavailable when no provider key exists.
+
+## Redesigned Consumer Demo Script
+
+### 1. Today
+
+Open `/`.
+
+Show the consumer shell first:
+
+- Desktop left navigation with Today, Inventory, Matches, Pools, Drops, Activity or the closest installed equivalents.
+- Search/location/user area in the top bar.
+- Warm visual hero, calm off-white background, deep green navigation, sage/gold/coral accents, editorial serif headings, and image-led cards.
+- No checkpoint wording or route diagnostics in the primary customer path.
+
+Narration:
+
+"UseBy turns live neighbourhood inventory into a small set of useful decisions for today. The simple cards are backed by Aurora rows and deterministic rules, not cached outcomes."
+
+Expected live behavior:
+
+- Today shows 3 to 5 priorities rather than a raw engine list.
+- Proof/admin links are secondary.
+- If CP9 UI lanes have not landed yet, mark this as a UI integration gap and use `/grocery` as the functional live fallback.
+
+### 2. Inventory
+
+Open `/grocery`.
+
+Show:
+
+- Inventory/category tabs for groceries, wardrobe, and household, or the current installed route equivalents.
+- Product cards with imagery, quantity, expiry/use-by urgency, and one clear primary action.
+- Search/filter/sort controls when installed.
+- Add groceries, scan label, or receipt text entry.
+
+Live action:
+
+1. Paste a small receipt or add a manual grocery item.
+2. Submit through the installed grocery intake/import route.
+3. Refresh or navigate back to Today/Inventory.
+4. Confirm inventory rows and action cards reflect current data.
+
+Expected without agent routes:
+
+- Manual/deterministic input still works or returns an honest unavailable state.
+- Do not claim Fireworks extracted the receipt if `/api/agent/receipt-normalize` is absent or provider status is no-key.
+
+Expected with CP9 agent routes:
+
+- The receipt/label agent creates a draft only.
+- The user reviews normalized items, quantities, storage hints, dates, and confidence.
+- The user explicitly confirms before any inventory mutation.
+- Aurora rows update only through deterministic validation.
+
+### 3. Matches
+
+Open the installed match surface. In the current base this is `/grocery`; after the CP9 UI remodel it should be `/matches` or a Matches section in the redesigned shell.
+
+Show:
+
+- Visual list/map-strip blend when installed.
+- Coarse distance and pickup window.
+- Reason chips, not long internal proof paragraphs.
+- No exact coordinates, raw address, direct phone/email, or direct contact details.
+
+Live action:
+
+1. Pick an active eligible match.
+2. Open or expand the match.
+3. Read the customer-safe "why this match" copy.
+4. Acknowledge safety rules.
+5. Request a booking only if the backend match is active and eligible.
 
 Expected:
 
-- First request may return a 503 if Aurora is resuming from auto-pause.
-- Retry after a few seconds.
-- Final expected result is `status: "available"`, database `useby`, PostgreSQL `17.7`, and installed PostGIS/vector extensions.
+- The booking request writes through `/api/bookings/request`.
+- Ineligible or unavailable matches stay blocked with a clear reason.
+- Any semantic/reranker copy is secondary after deterministic filters; it cannot create eligibility.
 
-Open:
+### 4. Activity And Booking Timeline
 
-```text
-https://useby-app.vercel.app/api/system/state
-```
+Open `/bookings`.
 
-Expected:
+Show:
 
-- `status: "available"`.
-- Counts for inventory, action cards, matches, bookings, DemandPools, merchant bids, audit events, and job runs.
-- CP8 providers show S3/Textract configured, geocoding unavailable/no-key, AI disabled/no-key, semantic ranking disabled/no-key.
+- Booking status, pickup window, coarse pickup hint, and next step.
+- No direct contact details or exact household location.
+- Timeline events created from current booking/handoff rows.
 
-### 2. Grocery Inventory
+Optional mutation if demo-safe:
 
-Open:
-
-```text
-https://useby-app.vercel.app/grocery
-```
+1. Accept/reserve the booking from the owner/demo context.
+2. Schedule pickup.
+3. Mark picked up or complete only when the demo narrative needs it.
 
 Expected:
 
-- Current grocery shelf loads from live rows.
-- Action cards are computed from current rows.
-- Matches show coarse location and distance, not exact household coordinates.
-- Import and label-edit controls render.
+- Status transitions are reflected in Aurora-backed API responses.
+- Trust/review/report behavior stays deterministic and scoped.
 
-Current caveat:
+### 5. Pools
 
-- The page is proof/workbench style. It is expected to be dense and text-heavy right now.
+Open `/pools`.
 
-### 3. Manual Grocery Input
+Show:
 
-On `/grocery`:
+- Featured pool card with merchant image, target/progress, savings, and one CTA.
+- Supporting pool cards with joined count, threshold, close time, and pickup/delivery mode.
+- Payment-deferred wording. CP9 still has no Stripe/card/deposit capture.
+
+Live action:
+
+1. Commit to a pool through `/api/demand-pools/:poolId/commit`.
+2. Confirm the response records unpaid demo intent.
+3. If threshold and bids exist, run or show `/api/jobs/close-demand-pools`.
+4. Show pool order/pickup task updates if created from current rows.
+
+Expected:
+
+- Commitments are unpaid demo intent only.
+- Awards and pickup tasks are computed from current rows, not seeded final output.
+
+### 6. Drops
+
+Open `/drops`.
+
+Show:
+
+- Visual merchant surplus cards with quantity, pickup window, price display/demo intent, and reservation status.
+- No card capture or deposit copy.
+
+Live action:
+
+1. Reserve an available drop through `/api/store-drops/:dropId/reserve`.
+2. Confirm capacity changes from live rows.
+3. Optionally cancel through `/api/store-drops/:dropId/cancel-reservation`.
+
+Expected:
+
+- Reservation capacity is deterministic.
+- Sold-out/closed drops cannot be reserved.
+
+### 7. Receipt Agent Review
+
+Open `/grocery`.
+
+Live action:
 
 1. Enter receipt lines or a manual item.
 2. Choose quantity, unit, storage, and optional label date.
@@ -84,55 +196,63 @@ On `/grocery`:
 
 Expected:
 
-- If Lane 9A agent routes are installed, provider status should distinguish generated, fallback, and unavailable states.
-- If agent routes are not installed, the UI should say provider unavailable and show only a local review scaffold.
+- `/api/agent/receipt-draft` distinguishes generated, fallback, and unavailable provider states.
+- If Fireworks is unavailable, the UI should say provider unavailable/fallback and show reviewable local scaffolding.
 - New inventory rows should be created only after `Confirm reviewed import` or direct import calls the live grocery API.
 - Action cards should change based on current rows after refresh.
 - If OCR/Textract is used without a file upload path, the UI should honestly show fallback/manual behavior.
 - LangSmith should not be claimed unless run metadata includes a trace id.
 
-### 4. Label Edit
+### 8. Merchant Assistant And Proof
 
-On `/grocery`:
+Open `/merchant`, then `/proof`.
 
-1. Select an item.
-2. Change label date, storage, or safety status.
-3. Save.
+Current base expectation:
 
-Expected:
+- `/merchant` shows live demand/pool/drop surfaces.
+- `/proof` shows Aurora/provider proof, no-key states, audit/job evidence, and AI guardrails.
+- `/agent-runs` shows redacted CP9 agent run metadata when the agent runtime migration is installed.
 
-- Inventory row updates.
-- Eligibility-sensitive match/action behavior changes after recomputation/refresh.
+Expected with CP9 agent UX:
 
-### 5. Match And Booking Request
+- Merchant assistant drafts a bid or drop from live demand signals.
+- Human review/confirm is required before mutation.
+- `/agent-runs` shows provider status, fallback state, redacted metadata, deterministic guardrails, and LangSmith trace id only when a trace id exists.
 
-On `/grocery`, find the neighbour match card:
+Narration:
 
-1. Read the distance and rationale.
-2. Tick the safety acknowledgement.
-3. Request booking if the button is enabled.
+"The product UI stays simple. The proof surface is where judges can see Aurora, PostGIS, provider states, guardrails, audit events, job runs, and agent trace metadata."
 
-Expected:
+## Exact Smoke Endpoints
 
-- Booking should only be available when the backend match is active and eligible.
-- Exact household coordinates and direct contact fields should never be shown.
-- If the current sample match says unavailable, that is a safety/eligibility gate working rather than a broken button.
+Read-only production checks:
 
-### 6. Proof
+- `GET /api/system/db-proof`
+- `GET /api/system/state`
+- `GET /api/grocery/inventory`
+- `GET /api/grocery/action-cards`
+- `GET /api/grocery/matches`
+- `GET /api/bookings`
+- `GET /api/demand-pools`
+- `GET /api/store-drops`
+- `GET /api/store-drops/reservations`
+- `GET /api/jobs/pickup-reminders`
+- `GET /api/notifications`
+- `GET /api/merchant/heatmap`
+- `GET /api/merchant/demand-pools`
+- `GET /api/merchant/store-drops`
 
-Open:
+Expected CP9 agent endpoints after Lane 9A/9C integration:
 
-```text
-https://useby-app.vercel.app/proof
-```
+- `POST /api/agent/receipt-draft`
+- `POST /api/agent/action-plan`
+- `GET /api/agent/runs`
 
-Expected:
+If these routes return `404`, stop at registration/discovery and report that the agent lane has not merged. Do not debug keys, permissions, or provider runtime before the routes exist.
 
-- Proof cards show live integration state.
-- AI guardrails show copy/explanation only and deterministic-first.
-- Provider no-key states are explicit.
+## Browser Route Smoke
 
-### 7. Agent Runs
+### Agent Runs
 
 Open:
 
@@ -147,76 +267,53 @@ Expected:
 - Run rows, when present, show status, generated/fallback/unavailable provider state, redaction state, deterministic guardrails, and LangSmith trace id only if returned by metadata.
 - No exact household coordinates, direct contacts, secrets, or raw uploaded-file contents appear in this admin surface.
 
-## Target Post-Redesign Demo
+Desktop widths: 1024, 1280, 1440, 1920.
 
-The redesigned demo should be much simpler for the viewer.
+Mobile widths: 320, 375, 414, 768.
 
-### Consumer Flow
+Routes:
+
+- `/`
+- `/grocery`
+- `/pools`
+- `/drops`
+- `/bookings`
+- `/merchant`
+- `/proof`
+- `/agent-runs` only if registered
+
+Target post-redesign story:
 
 1. Open `Today`.
-2. See a warm consumer dashboard with 3 to 5 high-priority cards:
-   - Use tonight
-   - Share sealed item
-   - Join local pool
-   - Nearby surplus drop
-3. Click `Add groceries`.
-4. Upload receipt/label or paste receipt text.
-5. Receipt agent extracts a draft using Textract plus Fireworks when configured, or shows an honest local fallback when unavailable.
+2. See a warm consumer dashboard with 3 to 5 high-priority cards.
+3. Open `Inventory`.
+4. Paste receipt text or add a manual item.
+5. Receipt agent extracts a draft using Fireworks when configured, or shows an honest fallback when unavailable.
 6. User reviews the draft and confirms.
 7. Aurora inventory updates.
 8. Action cards recompute.
-9. `Today` updates with new recommendations.
+9. `Today` updates with current-row recommendations.
 10. Open `Matches`.
 11. See visual match cards with reason chips.
 12. Acknowledge safety rules and request booking.
 13. Open `Activity`.
 14. See the booking timeline and next pickup step.
 
-### Merchant Flow
+Check:
 
-1. Open `Merchant`.
-2. See demand heatmap and pool/drop opportunities.
-3. Merchant assistant drafts a bid or surplus drop.
-4. Merchant reviews and confirms.
-5. Pool/drop updates in Aurora.
-6. Optional UiPath job triggers for external operational follow-up.
+- No horizontal scroll on mobile.
+- Navigation is usable and does not cover content.
+- Buttons are at least 44px high/tappable.
+- Text does not overlap cards, images, buttons, or adjacent sections.
+- Consumer routes do not expose checkpoint/proof copy as the main story.
+- Proof/admin pages may be dense, but customer pages should remain calm and visual.
 
-### Proof Flow
+## Demo Close
 
-1. Open `Proof` or `Agent runs`.
-2. Show that the consumer UI was backed by:
-   - Aurora rows
-   - PostGIS distance logic
-   - deterministic safety and eligibility filters
-   - Fireworks model call only when provider metadata says generated
-   - LangGraph workflow state
-   - LangSmith trace id only when a run returns trace metadata
-   - optional UiPath job id
-3. Explain in narration, not in the primary product UI.
+End on `/proof` or `/agent-runs` only after showing the consumer flow. The closing proof should verify, not replace, the product story:
 
-## Agentic Capability Expectations
-
-Without keys:
-
-- The app must stay live and deterministic.
-- AI states must say disabled/unavailable.
-- No fake agent success should be shown.
-
-With keys:
-
-- Fireworks handles model inference for extraction, copy, tool-use reasoning, and secondary semantic ranking.
-- LangGraph coordinates multi-step workflows and human approval.
-- LangSmith records traces, feedback, and evals.
-- UiPath can trigger or receive external automation events where useful.
-
-The deterministic UseBy backend remains the authority for:
-
-- safety eligibility
-- privacy exposure
-- booking capacity
-- reservation capacity
-- trust changes
-- payment state
-- household visibility
-
-AI can help explain, draft, normalize, summarize, and rerank already-eligible candidates. It cannot approve or override product rules.
+- Aurora rows changed.
+- Action cards/matches/bookings/pools/drops were recomputed from current rows.
+- Provider states are honest.
+- AI guardrails are deterministic-first and copy/draft-only.
+- LangSmith trace ids appear only when actual traced agent runs exist.
