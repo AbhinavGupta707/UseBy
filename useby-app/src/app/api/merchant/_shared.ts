@@ -19,6 +19,12 @@ export type PickupRouteContext = {
   }>;
 };
 
+export type StoreDropRouteContext = {
+  params: Promise<{
+    dropId: string;
+  }>;
+};
+
 export async function merchantContextFromRequest(request: Request) {
   const url = new URL(request.url);
   return resolveMerchantActorContext({
