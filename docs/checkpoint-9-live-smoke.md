@@ -215,3 +215,41 @@ Passing smoke means each mutation is reflected by a later read from Aurora-backe
 - LangSmith evidence is valid only when a real run has a trace id. Configured env alone is readiness, not trace proof.
 - UI fidelity must be judged from rendered screenshots, not static docs.
 - Browser smoke may be skipped in isolated lane worktrees; record the exact manual path above when browser tooling is unavailable.
+
+## Completed Production Smoke
+
+Completed on 2026-06-29 after CP9 integration commit `8091d08`.
+
+Deployment:
+
+- Production deployment id: `dpl_2gkXv8BFzE6XeHrAvYrNvLviED5K`.
+- Public alias: `https://useby-app.vercel.app`.
+
+Local verification:
+
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test` passed with `65` files and `223` tests.
+- `npm run build` passed.
+- `git diff --check` passed.
+
+Provider and API smoke:
+
+- Fireworks key and base URL were configured, but the earlier default model `accounts/fireworks/models/kimi-k2-instruct-0905` was not available in this Fireworks account. Production env and tracked defaults were switched to `accounts/fireworks/models/kimi-k2p5`.
+- `POST /api/agent/receipt-draft` returned HTTP `201`, `providerStatus: generated`, `providerName: fireworks`, model `accounts/fireworks/models/kimi-k2p5`, and `3` reviewable draft items.
+- `POST /api/agent/action-plan` returned HTTP `201`, `providerStatus: generated`, `providerName: fireworks`, model `accounts/fireworks/models/kimi-k2p5`, and `3` advisory cards.
+- LangSmith readiness returned `configured`; trace ids remain absent because CP9 does not yet run a LangGraph traced workflow and agent persistence is not migrated.
+- `GET /api/agent/runs` returned HTTP `503` with an honest migration-unavailable message for the missing `agent_runs` table.
+- `GET /api/system/db-proof` and `GET /api/system/state` returned HTTP `200` available states.
+- `GET /api/jobs/pickup-reminders` returned HTTP `200` with a skipped state.
+
+Browser smoke:
+
+- Rendered `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/proof`, and `/agent-runs` at desktop `1440x1000` and mobile `390x844`.
+- Customer pages had no horizontal overflow, no console errors, and no checkpoint/route-state diagnostics.
+- `/agent-runs` had expected console fetch errors from `GET /api/agent/runs` returning HTTP `503` and a deferred-route probe returning HTTP `404`.
+- Screenshots were captured in `/private/tmp/useby-cp9-production-smoke`.
+
+Still required:
+
+- Apply Aurora migration `0007_agent_runtime_contracts` before claiming persisted agent run ledger, LangSmith trace-id rows, or durable agent-run proof in production.

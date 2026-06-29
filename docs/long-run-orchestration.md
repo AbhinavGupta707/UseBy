@@ -14,7 +14,8 @@ This document records the master-session instruction for the post-Checkpoint 1 b
 - Checkpoint 6 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `0e50186`.
 - Checkpoint 7 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at integration commit `125b7f8`. Checkpoint 5 remains skipped for this run.
 - Checkpoint 8 status: merged, pushed, deployed, Aurora migration applied, API/browser live smoke passed at final integration commit `b0f4228`.
-- Next active checkpoint: none. Pause after Checkpoint 8 verification; do not launch Checkpoint 9 without explicit instruction.
+- Checkpoint 9 status: merged, pushed, deployed, premium UI/browser smoke passed, and Fireworks agent draft/action-plan generation passed at integration commit `8091d08`. Agent-run persistence remains gated on applying the CP9 `0007_agent_runtime_contracts` Aurora migration.
+- Next active checkpoint: none. Pause after Checkpoint 9 verification; do not launch Checkpoint 10 without explicit instruction.
 
 ## Sequential Scope
 
@@ -27,6 +28,7 @@ Run checkpoints sequentially, never all at once:
 5. Checkpoint 6 - DemandPool and merchant portal, using unpaid/demo commitments until payments are reintroduced.
 6. Checkpoint 7 - Merchant surplus drops and heatmap.
 7. Checkpoint 8 - External integrations and AI polish.
+8. Checkpoint 9 - Premium consumer UI remodel and live Fireworks/LangSmith-ready agent workflows.
 
 The orchestrator must only launch the next checkpoint after the current checkpoint is merged, reviewed, tested, documented, and pushed from the updated `main` baseline.
 

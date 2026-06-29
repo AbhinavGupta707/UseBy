@@ -248,9 +248,53 @@ Run local/browser smoke before deploy where practical. After deploy, verify:
 - Installed CP9 agent routes: `POST /api/agent/receipt-draft`, `POST /api/agent/action-plan`, and `GET /api/agent/runs`.
 - Installed CP9 admin/proof route: `/agent-runs`.
 - Installed premium customer shell: Today, Inventory, Matches, Pools, Drops, and Activity-style surfaces are represented through `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/lending`, and secondary `/merchant`, `/proof`, `/agent-runs` routes.
-- Agent persistence requires the CP9 `0007_agent_runtime_contracts` migration before production run rows can be recorded.
+- Agent persistence requires the CP9 `0007_agent_runtime_contracts` migration before production run rows can be recorded. Production currently reports this honestly from `GET /api/agent/runs`.
 - AI remains draft/explain/summarize only. Deterministic UseBy code remains authoritative for safety, eligibility, privacy, trust, payment, reservation capacity, and visibility.
 - Deferred from CP9: Stripe/payment capture, UiPath integration, Mapbox dependency, match/pool/drop assistant endpoints, run detail/resume endpoints, and any AI authority over product decisions.
+
+## Final Integration And Production Smoke
+
+Final integration commits:
+
+- `a4333c6` - final CP9 agent/UI integration.
+- `32ce318` - switched Fireworks defaults and Vercel production model env to the account-available structured-output model `accounts/fireworks/models/kimi-k2p5`.
+- `8091d08` - added conservative Fireworks structured-output cleanup for JSON-like booleans/fenced JSON, still followed by forbidden-decision scans and Zod schema validation.
+
+Final production deployment:
+
+- Deployment id: `dpl_2gkXv8BFzE6XeHrAvYrNvLviED5K`.
+- Deployment URL: `https://useby-16b4wo4gc-abhinavs-projects-f1cef581.vercel.app`.
+- Public alias: `https://useby-app.vercel.app`.
+
+Verification run from `useby-app`:
+
+- `npm run lint` - passed.
+- `npm run typecheck` - passed.
+- `npm run test` - passed, `65` files and `223` tests.
+- `npm run build` - passed and included `/api/agent/receipt-draft`, `/api/agent/action-plan`, `/api/agent/runs`, and `/agent-runs`.
+- `git diff --check` - passed.
+
+Production API smoke on 2026-06-29:
+
+- `GET /api/system/db-proof` - HTTP `200`, status `available`.
+- `GET /api/system/state` - HTTP `200`, status `available`, live counts present, provider sections include Aurora, S3, Textract, and geocoding.
+- `POST /api/agent/receipt-draft` - HTTP `201`, provider `fireworks`, status `generated`, model `accounts/fireworks/models/kimi-k2p5`, returned `3` reviewable items. Persistence reported unavailable because `agent_runs` is not migrated.
+- `POST /api/agent/action-plan` - HTTP `201`, provider `fireworks`, status `generated`, model `accounts/fireworks/models/kimi-k2p5`, returned `3` advisory cards. Persistence reported unavailable because `agent_runs` is not migrated.
+- `GET /api/agent/runs` - HTTP `503`, honest unavailable state: `agent_runs table is not available; run the CP9 agent runtime migration.`
+- `GET /api/jobs/pickup-reminders` - HTTP `200`, status `skipped`.
+- `/agent-runs` - HTTP `200`; rendered admin/proof page shows the migration-unavailable state rather than inventing trace evidence.
+
+Production browser smoke:
+
+- Desktop `1440x1000` and mobile `390x844` rendered `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/proof`, and `/agent-runs`.
+- Customer routes returned HTTP `200`, had no horizontal overflow, and did not show checkpoint/route-state diagnostics.
+- `/grocery` exposed `Draft with agent`.
+- `/agent-runs` intentionally showed console fetch errors from the unavailable `agent_runs` table and deferred route probing; customer routes had no console errors.
+- Screenshot set: `/private/tmp/useby-cp9-production-smoke`.
+
+Remaining deploy gate:
+
+- Apply `useby-app/drizzle/0007_agent_runtime_contracts.sql` to production Aurora to enable persisted redacted agent run metadata and later LangSmith trace-id proof rows. The local AWS CLI session was expired during orchestration, and Vercel sensitive env values are not pullable as plaintext, so the migration could not be safely applied from this session.
 
 ## Handoff Contract
 

@@ -20,8 +20,10 @@ Known current state after CP9 lane integration:
 - Customer routes currently present: `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/lending`, `/merchant`, `/proof`, and `/agent-runs`.
 - API routes currently present include grocery, matches, bookings, DemandPools, store drops, merchant routes, notifications, jobs, locations, system proof, `POST /api/agent/receipt-draft`, `POST /api/agent/action-plan`, and `GET /api/agent/runs`.
 - The receipt agent drafts and explains; the user must review and confirm before any inventory mutation.
-- S3 and Textract may be configured in production; geocoding, AI copy, semantic ranking, Fireworks agent drafts, and LangSmith trace metadata depend on env keys and provider availability.
-- Agent run persistence requires the CP9 `0007_agent_runtime_contracts` migration. If it is not installed, `/api/agent/runs` must report that as an unavailable migration state, not an empty success.
+- S3 and Textract may be configured in production; geocoding and semantic ranking still depend on env/provider availability.
+- Fireworks production agent draft routes are configured and smoked with model `accounts/fireworks/models/kimi-k2p5`; they generated review-only receipt and action-plan drafts on 2026-06-29.
+- LangSmith env is configured, but trace ids should not be claimed until a real traced workflow records one.
+- Agent run persistence requires the CP9 `0007_agent_runtime_contracts` migration. If it is not installed, `/api/agent/runs` reports that as an unavailable migration state, not an empty success.
 - Pickup reminder notifications require the deployed notifications table to match the runtime contract before claiming fully working notification rows.
 
 ## Pre-Demo Setup
