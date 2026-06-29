@@ -48,6 +48,12 @@ const CHECKPOINT_TABLES: RowCountProof[] = [
   { key: "cp6PickupTasks", label: "CP6 Pickup Tasks", count: null },
   { key: "cp6ClosePoolJobRuns", label: "CP6 Close-Pool Jobs", count: null },
   { key: "cp6AuditEvents", label: "CP6 Audit Events", count: null },
+  { key: "cp7PublishedDrops", label: "CP7 Published Drops", count: null },
+  { key: "cp7ActiveDropReservations", label: "CP7 Active Reservations", count: null },
+  { key: "cp7ClosedOrSoldOutDrops", label: "CP7 Closed/Sold Out", count: null },
+  { key: "cp7HeatmapCells", label: "CP7 Heatmap Cells", count: null },
+  { key: "cp7ExpireDropJobRuns", label: "CP7 Expire Jobs", count: null },
+  { key: "cp7AuditEvents", label: "CP7 Audit Events", count: null },
   { key: "audit_events", label: "Audit Events", count: null },
   { key: "job_runs", label: "Job Runs", count: null },
 ];
@@ -219,7 +225,49 @@ export const CHECKPOINT_DEMO_CONTROLS: DemoControlProof[] = [
     label: "No-payment status",
     method: "GET",
     endpoint: "/api/system/state",
-    detail: "Shows CP6 evidence while commitments remain unpaid demo intent.",
+    detail: "Shows CP6 and CP7 evidence while commitments and surplus reservations remain unpaid demo intent.",
+  },
+  {
+    key: "drop-publish",
+    label: "Publish surplus drop",
+    method: "POST",
+    endpoint: "/api/merchant/store-drops/:dropId/publish",
+    detail: "Publishes a merchant surplus drop only after status, capacity, and pickup-window checks pass.",
+  },
+  {
+    key: "drop-reserve",
+    label: "Reserve surplus drop",
+    method: "POST",
+    endpoint: "/api/store-drops/:dropId/reserve",
+    detail: "Creates or updates one active household reservation with transactional remaining-capacity checks.",
+  },
+  {
+    key: "drop-cancel",
+    label: "Cancel drop reservation",
+    method: "POST",
+    endpoint: "/api/store-drops/:dropId/cancel-reservation",
+    detail: "Cancels the active reservation and releases capacity from current reservation rows.",
+  },
+  {
+    key: "drop-close",
+    label: "Close surplus drop",
+    method: "POST",
+    endpoint: "/api/merchant/store-drops/:dropId/close",
+    detail: "Moves a merchant drop to terminal status and blocks new reservations.",
+  },
+  {
+    key: "drop-expire",
+    label: "Expire old drops",
+    method: "GET",
+    endpoint: "/api/jobs/expire-store-drops",
+    detail: "Runs the expiry job and writes job plus audit evidence when CP7 routes are installed.",
+  },
+  {
+    key: "heatmap-privacy",
+    label: "Heatmap privacy",
+    method: "GET",
+    endpoint: "/api/merchant/heatmap",
+    detail: "Returns coarse aggregate cells only, never exact household positions, unit labels, or direct contact fields.",
   },
 ];
 
@@ -446,6 +494,11 @@ function normalizeArchitecture(integrations: IntegrationProof[]): ArchitectureNo
     {
       label: "DemandPool Contracts",
       detail: "Pool, bid, award, order, pickup, job, and audit evidence stays route-backed and payment-deferred.",
+      status: byKey.get("data-api")?.status ?? "unknown",
+    },
+    {
+      label: "Surplus Drop Contracts",
+      detail: "Drop, reservation, merchant status, expiry, heatmap, and audit evidence stays route-backed and unpaid.",
       status: byKey.get("data-api")?.status ?? "unknown",
     },
     {

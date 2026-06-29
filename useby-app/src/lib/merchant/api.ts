@@ -7,6 +7,11 @@ import type {
   MerchantPickup,
   MerchantPickupActionInput,
   MerchantSnapshot,
+  MerchantStoreDrop,
+  MerchantStoreDropActionInput,
+  MerchantStoreDropInput,
+  MerchantStoreDropReservation,
+  MerchantHeatmapCell,
 } from "./types";
 
 type Fetcher = typeof fetch;
@@ -14,6 +19,8 @@ type Fetcher = typeof fetch;
 const POOLS_ENDPOINT = "/api/merchant/demand-pools";
 const BIDS_ENDPOINT = "/api/merchant/bids";
 const PICKUPS_ENDPOINT = "/api/merchant/pickups";
+const STORE_DROPS_ENDPOINT = "/api/merchant/store-drops";
+const HEATMAP_ENDPOINT = "/api/merchant/heatmap";
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -258,6 +265,100 @@ export function normalizeMerchantPickup(value: unknown, index = 0): MerchantPick
   };
 }
 
+export function normalizeMerchantStoreDrop(value: unknown, index = 0): MerchantStoreDrop {
+  const record = asRecord(value);
+  const availability = firstObject(record, ["availability", "capacity", "summary"]);
+  const location = firstObject(record, ["location", "area", "neighbourhood"]);
+  const quantityTotal = numberValue(
+    findFirst(record, ["quantityTotal", "quantity_total", "totalQuantity", "total_quantity", "capacity"]) ??
+      findFirst(availability, ["quantityTotal", "total", "capacity"]),
+  );
+  const quantityReserved = numberValue(
+    findFirst(record, ["quantityReserved", "quantity_reserved", "reservedQuantity", "reserved_quantity"]) ??
+      findFirst(availability, ["quantityReserved", "reserved"]),
+  );
+  const explicitRemaining = numberValue(
+    findFirst(record, ["remainingQuantity", "remaining_quantity", "availableQuantity", "available_quantity"]) ??
+      findFirst(availability, ["remainingQuantity", "remaining", "available"]),
+  );
+  const reservations = childArray(record, [
+    "activeReservations",
+    "active_reservations",
+    "reservations",
+    "storeDropReservations",
+    "store_drop_reservations",
+  ]).map(normalizeMerchantStoreDropReservation);
+  const activeReservations = reservations.filter((reservation) =>
+    ["active", "reserved", "confirmed", "pending_pickup"].includes(reservation.status),
+  );
+  const derivedReserved = activeReservations.reduce((sum, reservation) => sum + (reservation.quantity ?? 0), 0);
+  const remainingQuantity = explicitRemaining ?? (
+    quantityTotal === null ? null : Math.max(0, quantityTotal - (quantityReserved ?? derivedReserved))
+  );
+
+  return {
+    id: stringValue(findFirst(record, ["id", "dropId", "drop_id", "storeDropId", "store_drop_id"]), `drop-${index}`),
+    title: stringValue(findFirst(record, ["title", "name"]), "Surplus drop"),
+    status: stringValue(findFirst(record, ["status", "dropStatus", "drop_status"]), "draft"),
+    quantityTotal,
+    quantityReserved: quantityReserved ?? (reservations.length > 0 ? derivedReserved : null),
+    remainingQuantity,
+    unit: stringValue(findFirst(record, ["unit"]), "each"),
+    priceLabel: priceLabel(
+      numberValue(findFirst(record, ["priceCents", "price_cents", "pricePence", "price_pence"])),
+      stringValue(findFirst(record, ["currency"]), "GBP"),
+    ),
+    pickupWindowStart: dateTimeValue(findFirst(record, ["pickupWindowStart", "pickup_window_start"])),
+    pickupWindowEnd: dateTimeValue(findFirst(record, ["pickupWindowEnd", "pickup_window_end"])),
+    coarseArea: stringValue(
+      findFirst(record, ["coarseArea", "coarse_area", "areaLabel", "area_label", "neighbourhoodName"]) ??
+        findFirst(location, ["label", "name", "coarseArea"]),
+      "",
+    ) || null,
+    safetyNotes: stringValue(findFirst(record, ["safetyNotes", "safety_notes", "notes"]), "") || null,
+    activeReservations,
+  };
+}
+
+export function normalizeMerchantStoreDropReservation(value: unknown, index = 0): MerchantStoreDropReservation {
+  const record = asRecord(value);
+  const household = firstObject(record, ["household", "customer", "reservationHousehold"]);
+
+  return {
+    id: stringValue(findFirst(record, ["id", "reservationId", "reservation_id"]), `reservation-${index}`),
+    dropId: stringValue(findFirst(record, ["dropId", "drop_id", "storeDropId", "store_drop_id"]), "") || null,
+    status: stringValue(findFirst(record, ["status", "reservationStatus", "reservation_status"]), "active"),
+    quantity: numberValue(findFirst(record, ["quantity", "reservedQuantity", "reserved_quantity"])),
+    householdLabel: stringValue(
+      findFirst(record, ["householdLabel", "household_label", "customerLabel", "customer_label"]) ??
+        findFirst(household, ["publicLabel", "public_label", "label", "displayName", "name"]),
+      "Household",
+    ),
+    coarseArea: stringValue(
+      findFirst(record, ["coarseArea", "coarse_area", "areaLabel", "area_label"]) ??
+        findFirst(household, ["coarseLocationLabel", "coarse_location_label", "coarseArea", "area"]),
+      "",
+    ) || null,
+    reservedAt: dateTimeValue(findFirst(record, ["reservedAt", "reserved_at", "createdAt", "created_at"])),
+    pickupWindowStart: dateTimeValue(findFirst(record, ["pickupWindowStart", "pickup_window_start"])),
+    pickupWindowEnd: dateTimeValue(findFirst(record, ["pickupWindowEnd", "pickup_window_end"])),
+  };
+}
+
+export function normalizeMerchantHeatmapCell(value: unknown, index = 0): MerchantHeatmapCell {
+  const record = asRecord(value);
+
+  return {
+    id: stringValue(findFirst(record, ["id", "cellId", "cell_id", "geohash", "gridId", "grid_id"]), `cell-${index}`),
+    label: stringValue(findFirst(record, ["label", "areaLabel", "area_label", "neighbourhoodName"]), "Neighbourhood cell"),
+    demandCount: numberValue(findFirst(record, ["demandCount", "demand_count", "needs", "needCount", "need_count"])),
+    dropCount: numberValue(findFirst(record, ["dropCount", "drop_count", "publishedDrops", "published_drops"])),
+    reservationCount: numberValue(findFirst(record, ["reservationCount", "reservation_count", "activeReservations", "active_reservations"])),
+    intensity: stringValue(findFirst(record, ["intensity", "demandIntensity", "demand_intensity", "level"]), "low"),
+    updatedAt: dateTimeValue(findFirst(record, ["updatedAt", "updated_at", "generatedAt", "generated_at"])),
+  };
+}
+
 function normalizePickupActions(value: unknown, status: string): string[] {
   const explicit = asArray(value)
     .map((action) => stringValue(typeof action === "string" ? action : findFirst(asRecord(action), ["action", "type"])))
@@ -330,14 +431,14 @@ async function postJson(
     });
     const body = await readJsonResponse(response);
     const status = responseStatus(response, body);
-    const entity = firstObject(body, ["bid", "pickup", "order", "result"]);
+    const entity = firstObject(body, ["bid", "pickup", "order", "drop", "storeDrop", "store_drop", "result"]);
 
     return {
       status: status === "available" ? "ok" : status === "unavailable" ? "unavailable" : "error",
       endpoint,
       httpStatus: response.status,
       message: responseMessage(response, body),
-      entityId: stringValue(findFirst(body, ["id", "bidId", "orderId", "pickupId"]) ?? findFirst(entity, ["id", "orderId", "order_id", "pickupTaskId", "pickup_task_id"]), "") || null,
+      entityId: stringValue(findFirst(body, ["id", "bidId", "orderId", "pickupId", "dropId"]) ?? findFirst(entity, ["id", "orderId", "order_id", "pickupTaskId", "pickup_task_id", "dropId", "drop_id"]), "") || null,
     };
   } catch (error) {
     return {
@@ -351,10 +452,12 @@ async function postJson(
 }
 
 export async function loadMerchantSnapshot(fetcher: Fetcher): Promise<MerchantSnapshot> {
-  const [poolsResponse, bidsResponse, pickupsResponse] = await Promise.all([
+  const [poolsResponse, bidsResponse, pickupsResponse, dropsResponse, heatmapResponse] = await Promise.all([
     fetchEndpoint(fetcher, POOLS_ENDPOINT),
     fetchEndpoint(fetcher, BIDS_ENDPOINT),
     fetchEndpoint(fetcher, PICKUPS_ENDPOINT),
+    fetchEndpoint(fetcher, STORE_DROPS_ENDPOINT),
+    fetchEndpoint(fetcher, HEATMAP_ENDPOINT),
   ]);
   const pools = childArray(poolsResponse.body, ["pools", "demandPools", "demand_pools", "items", "results"])
     .map(normalizeMerchantPool);
@@ -362,7 +465,17 @@ export async function loadMerchantSnapshot(fetcher: Fetcher): Promise<MerchantSn
     .map(normalizeMerchantBid);
   const pickups = childArray(pickupsResponse.body, ["pickups", "orders", "pickupTasks", "pickup_tasks", "items", "results"])
     .map(normalizeMerchantPickup);
-  const endpoints = [poolsResponse.endpoint, bidsResponse.endpoint, pickupsResponse.endpoint];
+  const storeDrops = childArray(dropsResponse.body, ["drops", "storeDrops", "store_drops", "items", "results"])
+    .map(normalizeMerchantStoreDrop);
+  const heatmapCells = childArray(heatmapResponse.body, ["cells", "heatmapCells", "heatmap_cells", "items", "results"])
+    .map(normalizeMerchantHeatmapCell);
+  const endpoints = [
+    poolsResponse.endpoint,
+    bidsResponse.endpoint,
+    pickupsResponse.endpoint,
+    dropsResponse.endpoint,
+    heatmapResponse.endpoint,
+  ];
 
   return {
     status: summarizeStatus(endpoints),
@@ -370,17 +483,23 @@ export async function loadMerchantSnapshot(fetcher: Fetcher): Promise<MerchantSn
     pools,
     bids,
     pickups,
+    storeDrops,
+    heatmapCells,
     summary: {
       activePools: pools.filter((pool) => ["gathering", "threshold_met", "bidding"].includes(pool.status)).length,
       committedHouseholds: pools.reduce((sum, pool) => sum + (pool.committedHouseholds ?? 0), 0),
       committedQuantity: pools.reduce((sum, pool) => sum + (pool.committedQuantity ?? 0), 0),
       submittedBids: bids.filter((bid) => bid.status === "submitted").length,
       awardedPickups: pickups.length,
+      publishedDrops: storeDrops.filter((drop) => drop.status === "published").length,
+      activeDropReservations: storeDrops.reduce((sum, drop) => sum + drop.activeReservations.length, 0),
+      remainingDropQuantity: storeDrops.reduce((sum, drop) => sum + (drop.remainingQuantity ?? 0), 0),
+      heatmapCells: heatmapCells.length,
     },
     endpoints,
     message: endpoints.every((endpoint) => endpoint.status === "available")
       ? "Merchant routes are live."
-      : "Merchant DemandPool routes are not installed or are unavailable in this environment.",
+      : "Merchant DemandPool and surplus-drop routes are not installed or are unavailable in this environment.",
   };
 }
 
@@ -408,6 +527,40 @@ export async function transitionMerchantPickup(
 
   return postJson(fetcher, endpoint, {
     source: "merchant_portal",
+  });
+}
+
+export async function submitMerchantStoreDrop(
+  fetcher: Fetcher,
+  input: MerchantStoreDropInput,
+): Promise<MerchantMutationResult> {
+  const endpoint = input.dropId
+    ? `${STORE_DROPS_ENDPOINT}/${encodeURIComponent(input.dropId)}`
+    : STORE_DROPS_ENDPOINT;
+
+  return postJson(fetcher, endpoint, {
+    dropId: input.dropId,
+    title: input.title,
+    quantityTotal: input.quantityTotal,
+    unit: input.unit,
+    priceCents: input.priceCents,
+    pickupWindowStart: input.pickupWindowStart || null,
+    pickupWindowEnd: input.pickupWindowEnd || null,
+    safetyNotes: input.safetyNotes,
+    paymentMode: "unpaid_demo_intent",
+    source: "merchant_portal",
+  });
+}
+
+export async function transitionMerchantStoreDrop(
+  fetcher: Fetcher,
+  input: MerchantStoreDropActionInput,
+): Promise<MerchantMutationResult> {
+  const endpoint = `${STORE_DROPS_ENDPOINT}/${encodeURIComponent(input.dropId)}/${input.action}`;
+
+  return postJson(fetcher, endpoint, {
+    source: "merchant_portal",
+    paymentMode: "unpaid_demo_intent",
   });
 }
 

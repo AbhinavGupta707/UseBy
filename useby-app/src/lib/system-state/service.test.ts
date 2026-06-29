@@ -158,6 +158,36 @@ describe("system state service", () => {
       available: false,
       count: null,
     });
+    expect(state.counts.find((count) => count.key === "cp7PublishedDrops")).toMatchObject({
+      table: "store_drops",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp7ActiveDropReservations")).toMatchObject({
+      table: "store_drop_reservations",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp7ClosedOrSoldOutDrops")).toMatchObject({
+      table: "store_drops",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp7HeatmapCells")).toMatchObject({
+      table: "merchant_heatmap_cells",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp7ExpireDropJobRuns")).toMatchObject({
+      table: "job_runs",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp7AuditEvents")).toMatchObject({
+      table: "audit_events",
+      available: false,
+      count: null,
+    });
     expect(JSON.stringify(state)).not.toContain("secret-value");
   });
 });
