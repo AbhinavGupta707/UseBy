@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -30,53 +30,21 @@ async function ask(question, fallback = "") {
 }
 
 async function askSecret(question) {
-  if (!process.stdin.isTTY || !process.stdin.setRawMode) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
     const answer = await rl.question(`${question}: `);
     return answer.trim();
   }
 
-  rl.pause();
+  process.stdout.write(`${question}: `);
+  spawnSync("stty", ["-echo"], { stdio: ["inherit", "ignore", "ignore"] });
 
-  return new Promise((resolve, reject) => {
-    const input = process.stdin;
-    let value = "";
-
-    function cleanup() {
-      input.setRawMode(false);
-      input.pause();
-      input.off("data", onData);
-      process.stdout.write("\n");
-      rl.resume();
-    }
-
-    function onData(chunk) {
-      const char = chunk.toString("utf8");
-
-      if (char === "\u0003") {
-        cleanup();
-        reject(new Error("Cancelled."));
-        return;
-      }
-
-      if (char === "\r" || char === "\n") {
-        cleanup();
-        resolve(value.trim());
-        return;
-      }
-
-      if (char === "\u007f" || char === "\b") {
-        value = value.slice(0, -1);
-        return;
-      }
-
-      value += char;
-    }
-
-    process.stdout.write(`${question}: `);
-    input.resume();
-    input.setRawMode(true);
-    input.on("data", onData);
-  });
+  try {
+    const answer = await rl.question("");
+    return answer.trim();
+  } finally {
+    spawnSync("stty", ["echo"], { stdio: ["inherit", "ignore", "ignore"] });
+    process.stdout.write("\n");
+  }
 }
 
 function renderEnv(values) {
