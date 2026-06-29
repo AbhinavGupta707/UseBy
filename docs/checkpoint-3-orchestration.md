@@ -226,6 +226,6 @@ The orchestrator must update this table after worker creation.
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
 | 3A Booking Schema And Transactions | `019f110f-8a5c-7061-a078-01c3fb21cf24` | `/Users/abhinavgupta/.codex/worktrees/d288/UseBy` | Active | Owns all CP3 migrations/schema |
-| 3B Trust, Safety, And Moderation Runtime | `019f110f-de83-7421-ba5a-87a399fb4d99` | `/Users/abhinavgupta/.codex/worktrees/3394/UseBy` | Active | No schema edits |
-| 3C Booking And Handoff UI | `019f1110-282e-78f1-96a8-b93cbd1fce7c` | `/Users/abhinavgupta/.codex/worktrees/488e/UseBy` | Active | API consumer only |
-| 3D Concurrency QA, Proof, And Docs | `019f1110-7205-7803-bd9a-7f06b1fce258` | `/Users/abhinavgupta/.codex/worktrees/0cf2/UseBy` | Active | Proof/docs/tests |
+| 3B Trust, Safety, And Moderation Runtime | `019f110f-de83-7421-ba5a-87a399fb4d99` | `/Users/abhinavgupta/.codex/worktrees/3394/UseBy` | Complete, pending merge | Commit `48fc87f`; merge after 3A |
+| 3C Booking And Handoff UI | `019f1110-282e-78f1-96a8-b93cbd1fce7c` | `/Users/abhinavgupta/.codex/worktrees/488e/UseBy` | Complete, pending merge | Commit `4262c40`; merge after 3B |
+| 3D Concurrency QA, Proof, And Docs | `019f1110-7205-7803-bd9a-7f06b1fce258` | `/Users/abhinavgupta/.codex/worktrees/0cf2/UseBy` | Complete, pending merge | Commit `e27becd`; merge after 3C |
