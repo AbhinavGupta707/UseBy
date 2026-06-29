@@ -38,6 +38,9 @@ describe("proof UI adapters", () => {
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/bookings/request");
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/lending/listings");
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/lending/:bookingId/complete");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/demand-pools/:poolId/commit");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/merchant/pickups/:orderId/ready");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/system/state");
   });
 
   it("normalizes live counts, extensions, audit events, and jobs", () => {
@@ -86,6 +89,16 @@ describe("proof UI adapters", () => {
             available: true,
           },
           { key: "demandPools", table: "demand_pools", count: 3 },
+          { key: "demandPoolCommitments", table: "demand_pool_commitments", count: 5 },
+          { key: "merchantBids", table: "merchant_bids", count: 4 },
+          { key: "cp6ActiveDemandPools", table: "demand_pools", count: 2, available: true },
+          { key: "cp6LiveCommitments", table: "demand_pool_commitments", count: 6, available: true },
+          { key: "cp6MerchantBids", table: "merchant_bids", count: 4, available: true },
+          { key: "cp6AwardedPools", table: "demand_pools", count: 1, available: true },
+          { key: "cp6PoolOrders", table: "pool_orders", count: 6, available: true },
+          { key: "cp6PickupTasks", table: "pickup_tasks", count: 6, available: true },
+          { key: "cp6ClosePoolJobRuns", table: "job_runs", count: 1, available: true },
+          { key: "cp6AuditEvents", table: "audit_events", count: 7, available: true },
           { key: "auditEvents", table: "audit_events", count: 12 },
           { key: "jobRuns", table: "job_runs", count: 2 },
         ],
@@ -148,6 +161,15 @@ describe("proof UI adapters", () => {
     expect(snapshot.rowCounts.find((row) => row.key === "cp4LendingAvailabilityWindows")?.count).toBe(2);
     expect(snapshot.rowCounts.find((row) => row.key === "cp4LendingReservations")?.count).toBe(3);
     expect(snapshot.rowCounts.find((row) => row.key === "cp4LendingConditionEvents")?.count).toBe(4);
+    expect(snapshot.rowCounts.find((row) => row.key === "demandPoolCommitments")?.count).toBe(5);
+    expect(snapshot.rowCounts.find((row) => row.key === "merchantBids")?.count).toBe(4);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp6ActiveDemandPools")?.count).toBe(2);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp6LiveCommitments")?.count).toBe(6);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp6AwardedPools")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp6PoolOrders")?.count).toBe(6);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp6PickupTasks")?.count).toBe(6);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp6ClosePoolJobRuns")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp6AuditEvents")?.count).toBe(7);
     expect(snapshot.extensions.find((extension) => extension.name === "postgis")?.status).toBe("ok");
     expect(snapshot.extensions.find((extension) => extension.name === "vector")?.status).toBe("unavailable");
     expect(snapshot.auditEvents[0]?.title).toBe("demo.seeded");
@@ -330,6 +352,56 @@ describe("proof UI adapters", () => {
       "cp4LendingReservations",
       "cp4LendingConditionEvents",
     ]) {
+      expect(snapshot.rowCounts.find((row) => row.key === key)).toMatchObject({
+        count: null,
+        available: false,
+      });
+    }
+  });
+
+  it("keeps CP6 missing output tables and filtered counts visible as unavailable proof rows", () => {
+    const snapshot = normalizeProofSnapshot(
+      endpoint("/api/system/state", "ok", {
+        status: "partial",
+        counts: [
+          {
+            key: "cp6ActiveDemandPools",
+            table: "demand_pools",
+            available: false,
+            count: null,
+            reason: "status column is required for filtered count",
+          },
+          {
+            key: "cp6PoolOrders",
+            table: "pool_orders",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "cp6PickupTasks",
+            table: "pickup_tasks",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "cp6AuditEvents",
+            table: "audit_events",
+            available: false,
+            count: null,
+            reason: "entity_type, action columns are required for filtered count",
+          },
+        ],
+      }),
+      endpoint("/api/system/db-proof", "ok", {
+        status: "available",
+        database: { available: true, currentDatabase: "useby", versionSummary: "PostgreSQL 17.7" },
+        extensions: { available: true, items: [] },
+      }),
+    );
+
+    for (const key of ["cp6ActiveDemandPools", "cp6PoolOrders", "cp6PickupTasks", "cp6AuditEvents"]) {
       expect(snapshot.rowCounts.find((row) => row.key === key)).toMatchObject({
         count: null,
         available: false,
