@@ -4,7 +4,7 @@ Checkpoint 6 completed commit: `f2d1147`.
 Checkpoint 7 plan commit: `bf7d84b`.
 Worker launch base: `bf7d84b` (`Plan checkpoint 7 surplus orchestration`).
 Current worker registry commit: `e2efaab` (`Record checkpoint 7 worker registry`).
-Current local integration commit: `bf69a42` (`Fix checkpoint 7 integration gaps`).
+Current integration commit: `125b7f8` (`Record checkpoint 7 migration journal entry`).
 
 ## Outcome
 
@@ -192,6 +192,8 @@ Avoid:
 - `079e0c0` merged Lane 7C consumer drops UI, followed by `aa43a10` to align the UI helper with the nested runtime DTO shape. Focused drops UI tests, `npm run typecheck`, and `git diff --check` passed.
 - `d11b32a` merged Lane 7D merchant proof/docs.
 - `bf69a42` patched master integration gaps: added `POST /api/merchant/store-drops/:dropId` edit support, converted browser `datetime-local` payloads to offset-aware ISO strings, aligned merchant heatmap DTO normalization, and corrected proof/system-state heatmap evidence to use live source rows rather than a non-existent persisted heatmap table.
+- `5f0d8c1` recorded CP7 local integration verification.
+- `125b7f8` added the CP7 Drizzle migration journal entry for `0005_store_drops_runtime` and was pushed to `main`.
 
 ## Verification
 
@@ -219,6 +221,38 @@ Local verification completed on 2026-06-29 at commit `bf69a42`:
 - `npm run test`: passed, 49 files and 172 tests.
 - `npm run build`: passed, including registered `/api/merchant/store-drops/[dropId]`.
 - `git diff --check`: passed.
+
+Production deployment and live smoke completed on 2026-06-29:
+
+- Pushed `main` through integration commit `125b7f8`.
+- Production deployment succeeded as Vercel deployment `dpl_CsGqRQm56FYUiX8n8kswkLd5Yr8w`.
+- Public production alias: `https://useby-app.vercel.app`.
+- CP7 Aurora migration `useby-app/drizzle/0005_store_drops_runtime.sql` applied through the RDS Data API with SHA-256 `e6b3d2a3ab7cf56975538eb785b23bf6bd7c82ace5f431a359550841f1a0cb50`.
+- Migration verification found `store_drops` and `store_drop_reservations` in live Aurora.
+- `GET /api/system/db-proof`: HTTP 200, `available`, database `useby`, PostgreSQL `17.7`, extensions present for PostGIS, pgvector, pgcrypto, and pg_trgm.
+- `GET /api/system/state`: HTTP 200, `available`, with CP7 counts: published drops `0`, active drop reservations `0`, closed or sold-out drops `1`, heatmap source needs `5`, expire-drop job runs `1`, CP7 audit events `8`.
+- `GET /api/store-drops`: HTTP 200, `ready`, returned the closed live smoke drop and no-payment copy.
+- `GET /api/store-drops/reservations`: HTTP 200, `ready`, returned the smoke reservation history.
+- `GET /api/merchant/store-drops`: HTTP 200, `ok`, returned the closed smoke drop with remaining quantity released to `3`.
+- `GET /api/merchant/heatmap`: HTTP 200, `ok`, returned two coarse cells with no exact household coordinates, unit labels, direct contact fields, or raw need locations.
+- `GET /api/jobs/expire-store-drops`: HTTP 200, `succeeded`, job run `354a593f-026b-4d11-94b7-53eb49ef7160`, `recorded: true`, `auditRecorded: true`.
+
+Live mutation smoke:
+
+- Created drop `48e820d1-3f19-48e2-8cf5-25b9505a4252` titled `CP7 live smoke bundle 1782720884495`.
+- Published the drop and verified it listed with remaining quantity `3`.
+- Reserved quantity `2`, creating reservation `6b2d294e-150e-49a6-8345-eb2409d001c1`; replaying the same idempotency key returned the same reservation without double-counting capacity.
+- Over-capacity reservation attempt returned HTTP 409.
+- Cancelled the reservation and verified capacity was released.
+- Paused and closed the drop; reserve-after-close returned HTTP 409.
+- Heatmap remained coarse and privacy-preserving after mutations.
+
+Browser smoke:
+
+- `/drops` rendered production surplus drop/reservation UI, no-payment wording, and no console errors.
+- `/merchant` rendered surplus drop counters, merchant controls copy, heatmap/demand summary, no-payment wording, and no console errors.
+- `/proof` rendered CP7 proof/audit/job/heatmap evidence copy, no-payment wording, and no console errors.
+- Browser text scan did not surface exact household coordinates, unit labels, direct contact fields, or raw household-level need locations.
 
 Live/prod smoke, after CP7 migration and deployment:
 

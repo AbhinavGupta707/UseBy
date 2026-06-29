@@ -85,3 +85,40 @@ Verify directly or through `/api/system/state`:
 - CP7 mutations create `audit_events` rows.
 
 Expected result: no response or UI surface claims Stripe, deposits, card capture, payment authorization, held funds, ledger entries, or paid commitments. Any price is display/demo intent only.
+
+## Completed Evidence - 2026-06-29
+
+Checkpoint 7 was production-smoked against live Aurora after the CP7 migration and Vercel deployment.
+
+- Integration commit pushed to `main`: `125b7f8`.
+- Production deployment: `dpl_CsGqRQm56FYUiX8n8kswkLd5Yr8w`.
+- Public production alias: `https://useby-app.vercel.app`.
+- CP7 migration: `useby-app/drizzle/0005_store_drops_runtime.sql`.
+- CP7 migration SHA-256: `e6b3d2a3ab7cf56975538eb785b23bf6bd7c82ace5f431a359550841f1a0cb50`.
+- Live migration verification found `store_drops` and `store_drop_reservations`.
+
+Live endpoint results:
+
+- `/api/system/db-proof`: HTTP 200, `available`, PostgreSQL `17.7`, with PostGIS, pgvector, pgcrypto, and pg_trgm present.
+- `/api/system/state`: HTTP 200, `available`; CP7 counts were published drops `0`, active drop reservations `0`, closed or sold-out drops `1`, heatmap source needs `5`, expire-drop job runs `1`, CP7 audit events `8`.
+- `/api/store-drops`: HTTP 200, `ready`, returned the live smoke drop and no-payment copy.
+- `/api/store-drops/reservations`: HTTP 200, `ready`, returned the smoke reservation history.
+- `/api/merchant/store-drops`: HTTP 200, `ok`, returned the smoke drop as closed with remaining quantity released.
+- `/api/merchant/heatmap`: HTTP 200, `ok`, returned two coarse cells with no exact household coordinates, unit labels, direct contact fields, or raw need locations.
+- `/api/jobs/expire-store-drops`: HTTP 200, `succeeded`, job run `354a593f-026b-4d11-94b7-53eb49ef7160`, with `recorded: true` and `auditRecorded: true`.
+
+Live mutation smoke:
+
+- Created and published drop `48e820d1-3f19-48e2-8cf5-25b9505a4252`.
+- Created active reservation `6b2d294e-150e-49a6-8345-eb2409d001c1` for quantity `2`.
+- Replayed the same idempotency key and verified the same reservation was returned without double-counting.
+- Verified an over-capacity reservation returned HTTP 409.
+- Cancelled the reservation and verified capacity was released.
+- Paused and closed the drop, then verified reserve-after-close returned HTTP 409.
+- Ran the expiry job and verified job/audit evidence was recorded.
+
+Browser smoke:
+
+- `/drops`, `/merchant`, and `/proof` loaded from the production alias with no console errors.
+- The pages rendered CP7 surplus/reservation, merchant controls, heatmap/proof, and no-payment wording.
+- Browser text scan did not surface exact household coordinates, unit labels, direct contact fields, or raw household-level need locations.
