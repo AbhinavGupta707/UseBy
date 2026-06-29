@@ -15,6 +15,7 @@ import {
   createDryRunDemoSeedAdapter,
   createLiveDemoSeedAdapter,
   demoUuidFor,
+  resolveDemoStoreDropPickupWindow,
   runDemoSeedOperation,
   type DemoSeedAdapter,
 } from "./demo-seed-adapter";
@@ -187,5 +188,15 @@ describe("demo seed/reset plan", () => {
     expect(result.status).toBe("applied");
     expect(result.summary.itemInstances).toBe(36);
     expect(result.plan.insertOrder).toContain("audit_events");
+  });
+
+  it("rolls seeded store drop windows forward for live demo runs", () => {
+    const [start, end] = resolveDemoStoreDropPickupWindow(
+      "2026-06-29T17:00:00.000Z/2026-06-29T18:30:00.000Z",
+      "2026-06-29T22:15:00.000Z",
+    );
+
+    expect(Date.parse(start)).toBeGreaterThan(Date.parse("2026-06-29T22:15:00.000Z"));
+    expect(Date.parse(end) - Date.parse(start)).toBe(90 * 60 * 1000);
   });
 });

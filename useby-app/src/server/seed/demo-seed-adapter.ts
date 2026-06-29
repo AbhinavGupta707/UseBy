@@ -130,6 +130,36 @@ function rowMetadata(
   };
 }
 
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+export function resolveDemoStoreDropPickupWindow(
+  pickupWindow: string,
+  requestedAt: string,
+  order = 0,
+): [string, string] {
+  const [rawStart, rawEnd] = pickupWindow.split("/");
+  const originalStart = Date.parse(rawStart ?? "");
+  const originalEnd = Date.parse(rawEnd ?? "");
+  const requestedTime = Date.parse(requestedAt);
+
+  if (
+    Number.isNaN(originalStart) ||
+    Number.isNaN(originalEnd) ||
+    Number.isNaN(requestedTime) ||
+    originalEnd <= originalStart
+  ) {
+    return [rawStart ?? "", rawEnd ?? ""];
+  }
+
+  const duration = Math.max(FIFTEEN_MINUTES_MS * 2, originalEnd - originalStart);
+  const roundedRequest = Math.ceil(requestedTime / FIFTEEN_MINUTES_MS) * FIFTEEN_MINUTES_MS;
+  const rollingStart = new Date(roundedRequest + ONE_HOUR_MS + order * 45 * 60 * 1000);
+  const rollingEnd = new Date(rollingStart.getTime() + duration);
+
+  return [rollingStart.toISOString(), rollingEnd.toISOString()];
+}
+
 function tableIds(world: DemoWorldFixture): IdMap {
   return new Map<string, string>([
     [world.neighbourhood.demoId, demoUuidFor(world.neighbourhood.demoId)],
@@ -690,11 +720,16 @@ async function insertStoreDrops(
   context: TransactionContext,
   world: DemoWorldFixture,
   ids: IdMap,
+  seedContext: DemoSeedExecutionContext,
 ) {
   const neighbourhoodId = mustGet(ids, world.neighbourhood.demoId);
 
-  for (const drop of world.storeDrops) {
-    const [pickupWindowStart, pickupWindowEnd] = drop.pickupWindow.split("/");
+  for (const [index, drop] of world.storeDrops.entries()) {
+    const [pickupWindowStart, pickupWindowEnd] = resolveDemoStoreDropPickupWindow(
+      drop.pickupWindow,
+      seedContext.requestedAt,
+      index,
+    );
     const merchantLocationId = mustGet(ids, `location:${drop.merchantId}`);
 
     await execTx(
@@ -820,7 +855,7 @@ async function insertDemoWorld(
   await insertNeeds(context, world, ids);
   await insertDemandPools(context, world, ids, seedContext);
   await insertCommitmentsAndBids(context, world, ids, seedContext);
-  await insertStoreDrops(context, world, ids);
+  await insertStoreDrops(context, world, ids, seedContext);
   await insertSeedProofRows(context, world, ids, seedContext);
 }
 

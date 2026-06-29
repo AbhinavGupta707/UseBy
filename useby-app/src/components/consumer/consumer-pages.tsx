@@ -37,6 +37,7 @@ import {
   canReserveDrop,
   formatDropPrice,
   formatDropStatus,
+  isDropExpired,
   loadStoreDropSnapshot,
   pickupWindowLabel,
   submitStoreDropReservation,
@@ -676,6 +677,7 @@ function DropCard({ drop, onRefresh }: { drop: StoreDrop; onRefresh: () => Promi
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<StoreDropMutationResult | null>(null);
   const reservable = canReserveDrop(drop);
+  const reservationNotice = dropReservationNotice(drop, reservable);
   const title = consumerTitle(drop.title);
 
   async function reserve(event: FormEvent<HTMLFormElement>) {
@@ -705,13 +707,37 @@ function DropCard({ drop, onRefresh }: { drop: StoreDrop; onRefresh: () => Promi
       <form className="useby-reserve-form" onSubmit={reserve}>
         <input aria-label={`Quantity for ${title}`} min="1" onChange={(event) => setQuantity(event.target.value)} type="number" value={quantity} />
         <button className="useby-button" disabled={!reservable || pending} type="submit">
-          {pending ? "Reserving" : "Reserve"}<ArrowIcon />
+          {pending ? "Reserving" : drop.currentReservation ? "Reserved" : "Reserve"}<ArrowIcon />
         </button>
-        {!reservable ? <small>This drop is not reservable in the current live state.</small> : null}
+        {reservationNotice ? <small>{reservationNotice}</small> : null}
         {result && result.status !== "ok" ? <small>{result.message}</small> : null}
       </form>
     </article>
   );
+}
+
+function dropReservationNotice(drop: StoreDrop, reservable: boolean) {
+  if (reservable) {
+    return null;
+  }
+
+  if (drop.currentReservation) {
+    return "Reserved for pickup. View it in Activity.";
+  }
+
+  if (drop.remainingQuantity === 0) {
+    return "Sold out for this pickup window.";
+  }
+
+  if (isDropExpired(drop)) {
+    return "Pickup window has ended.";
+  }
+
+  if (!["available", "active", "published", "scheduled"].includes(drop.status.toLowerCase())) {
+    return `Currently ${formatDropStatus(drop.status).toLowerCase()}.`;
+  }
+
+  return "This drop is not reservable right now.";
 }
 
 function BookingActivityCard({ booking }: { booking: Booking }) {
