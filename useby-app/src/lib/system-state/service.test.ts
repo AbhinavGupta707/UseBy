@@ -118,6 +118,46 @@ describe("system state service", () => {
       available: false,
       count: null,
     });
+    expect(state.counts.find((count) => count.key === "cp6ActiveDemandPools")).toMatchObject({
+      table: "demand_pools",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp6LiveCommitments")).toMatchObject({
+      table: "demand_pool_commitments",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp6MerchantBids")).toMatchObject({
+      table: "merchant_bids",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp6AwardedPools")).toMatchObject({
+      table: "demand_pools",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp6PoolOrders")).toMatchObject({
+      table: "pool_orders",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp6PickupTasks")).toMatchObject({
+      table: "pickup_tasks",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp6ClosePoolJobRuns")).toMatchObject({
+      table: "job_runs",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp6AuditEvents")).toMatchObject({
+      table: "audit_events",
+      available: false,
+      count: null,
+    });
     expect(JSON.stringify(state)).not.toContain("secret-value");
   });
 });

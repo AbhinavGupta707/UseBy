@@ -128,6 +128,60 @@ const CHECKPOINT_4_COUNT_TABLES = [
   },
 ] satisfies CountContract[];
 
+const CHECKPOINT_6_COUNT_TABLES = [
+  {
+    key: "cp6ActiveDemandPools",
+    label: "CP6 active demand pools",
+    table: "demand_pools",
+    where: "status in ('gathering', 'threshold_met', 'bidding')",
+    requiredColumns: ["status"],
+  },
+  {
+    key: "cp6LiveCommitments",
+    label: "CP6 live commitments",
+    table: "demand_pool_commitments",
+    where: "status = 'active'",
+    requiredColumns: ["status"],
+  },
+  {
+    key: "cp6MerchantBids",
+    label: "CP6 merchant bids",
+    table: "merchant_bids",
+  },
+  {
+    key: "cp6AwardedPools",
+    label: "CP6 awarded pools",
+    table: "demand_pools",
+    where: "status in ('awarded', 'ready_for_pickup', 'fulfilled') or awarded_bid_id is not null",
+    requiredColumns: ["status", "awarded_bid_id"],
+  },
+  {
+    key: "cp6PoolOrders",
+    label: "CP6 pool orders",
+    table: "pool_orders",
+  },
+  {
+    key: "cp6PickupTasks",
+    label: "CP6 pickup tasks",
+    table: "pickup_tasks",
+  },
+  {
+    key: "cp6ClosePoolJobRuns",
+    label: "CP6 close-pool job runs",
+    table: "job_runs",
+    where: "job_type = 'close-demand-pools'",
+    requiredColumns: ["job_type"],
+  },
+  {
+    key: "cp6AuditEvents",
+    label: "CP6 audit events",
+    table: "audit_events",
+    where:
+      "entity_type in ('demand_pool', 'demand_pool_commitment', 'merchant_bid', 'pool_order', 'pickup_task') or action like 'demand_pool.%' or action like 'merchant_bid.%' or action like 'pool_order.%' or action like 'pickup.%'",
+    requiredColumns: ["entity_type", "action"],
+  },
+] satisfies CountContract[];
+
 const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ...SYSTEM_COUNT_TABLES.map((contract) =>
     contract.key === "bookings"
@@ -140,6 +194,7 @@ const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ),
   ...CHECKPOINT_3_COUNT_TABLES,
   ...CHECKPOINT_4_COUNT_TABLES,
+  ...CHECKPOINT_6_COUNT_TABLES,
 ];
 
 function safeJson(value: unknown): Record<string, unknown> | null {
