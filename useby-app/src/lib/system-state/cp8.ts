@@ -1,5 +1,6 @@
 import { getAiCopyReadiness } from "../../server/ai/provider";
 import { getLangSmithReadiness } from "../../server/ai/langsmith";
+import { getStructuredAiReadiness } from "../../server/ai/structured";
 import { aiGuardrailSummary } from "../../server/ai/guardrails";
 import {
   getTableAvailability,
@@ -99,6 +100,7 @@ export async function getCp8SystemState(
 ): Promise<Cp8SystemState> {
   const env = options.env ?? process.env;
   const ai = getAiCopyReadiness(env);
+  const agentAi = getStructuredAiReadiness(env);
   const langsmith = getLangSmithReadiness(env);
   const semantic = getSemanticRankingReadiness(env);
   const storageConfigured = hasAny(env, ["AWS_S3_BUCKET"]);
@@ -240,6 +242,19 @@ export async function getCp8SystemState(
         configured: semantic.enabled,
         noKey: semantic.noKey,
         detail: semantic.detail,
+      },
+      {
+        key: "agent-drafts",
+        label: "Agent draft workflows",
+        status:
+          agentAi.status === "ready"
+            ? "ready"
+            : agentAi.status === "disabled"
+              ? "disabled"
+              : "unavailable",
+        configured: agentAi.configured,
+        noKey: agentAi.noKey,
+        detail: agentAi.detail,
       },
       {
         key: "langsmith",

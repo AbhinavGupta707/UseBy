@@ -470,19 +470,17 @@ export async function writeNotificationCandidate(candidate: NotificationCandidat
   const result = await executeSql<{ id: string }>({
     sql: `
       insert into notifications (
-        audience,
-        household_id,
-        merchant_id,
+        recipient_household_id,
+        recipient_merchant_id,
         neighbourhood_id,
-        source_type,
-        source_id,
-        event_type,
+        channel,
+        topic,
         title,
         body,
-        action_href,
         status,
-        channel_status,
-        reminder_at,
+        entity_type,
+        entity_id,
+        source,
         metadata,
         idempotency_key,
         demo_scope_id,
@@ -490,19 +488,17 @@ export async function writeNotificationCandidate(candidate: NotificationCandidat
         created_at
       )
       select
-        :audience,
         nullif(:householdId, '')::uuid,
         nullif(:merchantId, '')::uuid,
         nullif(:neighbourhoodId, '')::uuid,
-        :sourceType,
-        :sourceId::uuid,
+        'in_app',
         :eventType,
         :title,
         :body,
-        :actionHref,
         'unread',
-        :channelStatus,
-        nullif(:reminderAt, '')::timestamp with time zone,
+        :sourceType,
+        :sourceId::uuid,
+        'pickup-reminders',
         :metadata::jsonb,
         :idempotencyKey,
         'riverside-quarter',
@@ -514,7 +510,6 @@ export async function writeNotificationCandidate(candidate: NotificationCandidat
       returning id::text as id
     `,
     parameters: params({
-      audience: candidate.audience,
       householdId: candidate.householdId ?? "",
       merchantId: candidate.merchantId ?? "",
       neighbourhoodId: candidate.neighbourhoodId ?? "",
@@ -523,11 +518,12 @@ export async function writeNotificationCandidate(candidate: NotificationCandidat
       eventType: candidate.eventType,
       title: candidate.title,
       body: candidate.body,
-      actionHref: candidate.actionHref,
-      channelStatus: emailStatus.status,
-      reminderAt: candidate.reminderAt ?? "",
       metadata: {
         ...candidate.metadata,
+        audience: candidate.audience,
+        actionHref: candidate.actionHref,
+        reminderAt: candidate.reminderAt ?? null,
+        notificationContract: "cp8-current-table",
         email: {
           provider: emailStatus.provider,
           status: emailStatus.status,
@@ -602,6 +598,19 @@ export async function generateNotificationsFromLiveRows(now = new Date()) {
 }
 
 function dtoFromRow(row: QueryRow): NotificationDto {
+  const metadata = metadataObject(row.metadata);
+  const actionHref = typeof metadata.actionHref === "string" ? metadata.actionHref : null;
+  const email =
+    metadata.email && typeof metadata.email === "object" && !Array.isArray(metadata.email)
+      ? (metadata.email as Record<string, unknown>)
+      : {};
+  const channelStatus =
+    typeof email.status === "string"
+      ? email.status
+      : typeof metadata.channelStatus === "string"
+        ? metadata.channelStatus
+        : null;
+
   return {
     id: String(row.id),
     audience: String(row.audience) as NotificationDto["audience"],
@@ -612,12 +621,12 @@ function dtoFromRow(row: QueryRow): NotificationDto {
     eventType: String(row.event_type),
     title: String(row.title),
     body: String(row.body),
-    actionHref: row.action_href ? String(row.action_href) : null,
+    actionHref,
     status: String(row.status),
-    channelStatus: row.channel_status ? String(row.channel_status) : null,
+    channelStatus,
     createdAt: row.created_at ? String(row.created_at) : null,
     readAt: row.read_at ? String(row.read_at) : null,
-    metadata: metadataObject(row.metadata),
+    metadata,
   };
 }
 
@@ -641,13 +650,13 @@ export function merchantScopeFromContext(context: MerchantActorContext): Notific
 function scopeWhere(scope: NotificationScope) {
   if (scope.kind === "household") {
     return {
-      sql: "audience = 'household' and household_id = :scopeId::uuid",
+      sql: "recipient_household_id = :scopeId::uuid",
       scopeId: scope.householdId,
     };
   }
 
   return {
-    sql: "audience = 'merchant' and merchant_id = :scopeId::uuid",
+    sql: "recipient_merchant_id = :scopeId::uuid",
     scopeId: scope.merchantId,
   };
 }
@@ -687,17 +696,18 @@ export async function listNotifications(scope: NotificationScope) {
     sql: `
       select
         id::text as id,
-        audience,
-        household_id::text as household_id,
-        merchant_id::text as merchant_id,
-        source_type,
-        source_id::text as source_id,
-        event_type,
+        case
+          when recipient_merchant_id is not null then 'merchant'
+          else 'household'
+        end as audience,
+        recipient_household_id::text as household_id,
+        recipient_merchant_id::text as merchant_id,
+        entity_type as source_type,
+        entity_id::text as source_id,
+        topic as event_type,
         title,
         body,
-        action_href,
         status,
-        channel_status,
         created_at::text as created_at,
         read_at::text as read_at,
         metadata
@@ -764,17 +774,18 @@ export async function markNotificationRead(
         and coalesce(demo_scope_id, :demoScope) = :demoScope
       returning
         id::text as id,
-        audience,
-        household_id::text as household_id,
-        merchant_id::text as merchant_id,
-        source_type,
-        source_id::text as source_id,
-        event_type,
+        case
+          when recipient_merchant_id is not null then 'merchant'
+          else 'household'
+        end as audience,
+        recipient_household_id::text as household_id,
+        recipient_merchant_id::text as merchant_id,
+        entity_type as source_type,
+        entity_id::text as source_id,
+        topic as event_type,
         title,
         body,
-        action_href,
         status,
-        channel_status,
         created_at::text as created_at,
         read_at::text as read_at,
         metadata
