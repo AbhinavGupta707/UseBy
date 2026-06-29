@@ -36,6 +36,13 @@
       "when": 1782770400000,
       "tag": "0004_demand_pool_orders_pickups",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782781200000,
+      "tag": "0005_store_drops_runtime",
+      "breakpoints": true
     }
   ]
 }
