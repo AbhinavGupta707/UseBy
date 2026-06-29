@@ -4,6 +4,7 @@ Checkpoint 6 completed commit: `f2d1147`.
 Checkpoint 7 plan commit: `bf7d84b`.
 Worker launch base: `bf7d84b` (`Plan checkpoint 7 surplus orchestration`).
 Current worker registry commit: `e2efaab` (`Record checkpoint 7 worker registry`).
+Current local integration commit: `bf69a42` (`Fix checkpoint 7 integration gaps`).
 
 ## Outcome
 
@@ -13,9 +14,9 @@ Checkpoint 7 delivers merchant surplus drops and a neighbourhood heatmap as live
 - Consumers can browse available drops, reserve quantities, cancel active reservations, and see pickup windows and safety notes.
 - Reservation availability is computed from current rows, with transactional capacity checks so a drop cannot be over-reserved.
 - Merchants can see an anonymised, coarse heatmap of current demand and drop/reservation interest by neighbourhood cell.
-- `/proof` and `/api/system/state` expose CP7 drop, reservation, heatmap, job, and audit evidence when routes/tables exist.
+- `/proof` and `/api/system/state` expose CP7 drop, reservation, heatmap-source, job, and audit evidence when routes/tables exist.
 
-Seed data may provide initial merchant drop input rows only. Reservations, sold-out states, heatmap cells, expiry/release job output, and audit proof must be generated from current rows and user/job actions.
+Seed data may provide initial merchant drop input rows only. Reservations, sold-out states, heatmap route output, expiry/release job output, and audit proof must be generated from current rows and user/job actions.
 
 ## Product Gates
 
@@ -155,7 +156,7 @@ May edit:
 Must deliver:
 
 - `/merchant` dashboard section for surplus drops with create/edit/publish/pause/close controls, active reservations, remaining capacity, pickup windows, and heatmap summary.
-- System state/proof counts for CP7 routes/tables: published drops, active reservations, sold-out/closed drops, heatmap cells, expiry job runs, and CP7 audit events.
+- System state/proof counts for CP7 routes/tables: published drops, active reservations, sold-out/closed drops, heatmap source rows, expiry job runs, and CP7 audit events.
 - Proof cards or controls for publish drop, reserve drop, cancel reservation, close/expire drop, and heatmap privacy evidence.
 - Contract tests for reservation capacity, idempotency, cancellation release, merchant status transitions, heatmap privacy, and no-final-output seed guarantees.
 - `docs/checkpoint-7-live-smoke.md` with local, migration, production, API, browser, and Aurora smoke expectations.
@@ -179,10 +180,18 @@ Avoid:
 
 | Lane | Thread | Worktree | Status |
 | --- | --- | --- | --- |
-| 7A Surplus Drop Schema And Runtime | `019f1242-4336-77a1-8d56-8d9046055006` | `/Users/abhinavgupta/.codex/worktrees/9499/UseBy` | active |
-| 7B Merchant Drop Policy, Reservation Engine, And Heatmap | `019f1242-cb01-7531-b36b-095ed28e4a02` | `/Users/abhinavgupta/.codex/worktrees/3bce/UseBy` | active |
-| 7C Consumer Surplus Drops UI | `019f1243-2cfe-7fd3-9f96-08bc24908de2` | `/Users/abhinavgupta/.codex/worktrees/0fba/UseBy` | active |
-| 7D Merchant Surplus Portal, Proof, Contracts, And Docs | `019f1243-8685-7113-96d6-d0c50c8e256b` | `/Users/abhinavgupta/.codex/worktrees/aaf9/UseBy` | active |
+| 7A Surplus Drop Schema And Runtime | `019f1242-4336-77a1-8d56-8d9046055006` | `/Users/abhinavgupta/.codex/worktrees/9499/UseBy` | complete worker `4e5cf32`, merged as `e8c611f` |
+| 7B Merchant Drop Policy, Reservation Engine, And Heatmap | `019f1242-cb01-7531-b36b-095ed28e4a02` | `/Users/abhinavgupta/.codex/worktrees/3bce/UseBy` | complete worker `4c203ad`, merged as `0ee9f73` |
+| 7C Consumer Surplus Drops UI | `019f1243-2cfe-7fd3-9f96-08bc24908de2` | `/Users/abhinavgupta/.codex/worktrees/0fba/UseBy` | complete worker `15364f9`, merged as `079e0c0`, aligned with `aa43a10` |
+| 7D Merchant Surplus Portal, Proof, Contracts, And Docs | `019f1243-8685-7113-96d6-d0c50c8e256b` | `/Users/abhinavgupta/.codex/worktrees/aaf9/UseBy` | complete worker `df343fa`, merged as `d11b32a` |
+
+## Integration Log
+
+- `e8c611f` merged Lane 7A schema and consumer surplus drop runtime. Post-merge targeted store-drop/schema/seed tests, `npm run typecheck`, and `git diff --check` passed.
+- `0ee9f73` merged Lane 7B merchant drop engine after resolving contract drift against the Lane 7A schema. Post-merge targeted store-drop, heatmap, expiry-job, schema, and seed tests, `npm run typecheck`, and `git diff --check` passed.
+- `079e0c0` merged Lane 7C consumer drops UI, followed by `aa43a10` to align the UI helper with the nested runtime DTO shape. Focused drops UI tests, `npm run typecheck`, and `git diff --check` passed.
+- `d11b32a` merged Lane 7D merchant proof/docs.
+- `bf69a42` patched master integration gaps: added `POST /api/merchant/store-drops/:dropId` edit support, converted browser `datetime-local` payloads to offset-aware ISO strings, aligned merchant heatmap DTO normalization, and corrected proof/system-state heatmap evidence to use live source rows rather than a non-existent persisted heatmap table.
 
 ## Verification
 
@@ -202,6 +211,14 @@ Then run from repo root:
 ```bash
 git diff --check
 ```
+
+Local verification completed on 2026-06-29 at commit `bf69a42`:
+
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm run test`: passed, 49 files and 172 tests.
+- `npm run build`: passed, including registered `/api/merchant/store-drops/[dropId]`.
+- `git diff --check`: passed.
 
 Live/prod smoke, after CP7 migration and deployment:
 
