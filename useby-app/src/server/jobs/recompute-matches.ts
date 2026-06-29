@@ -105,7 +105,7 @@ async function upsertJobRun(input: {
         :summary::jsonb,
         nullif(:errorMessage, '')
       )
-      on conflict (idempotency_key) do update set
+      on conflict (idempotency_key) where idempotency_key is not null do update set
         status = excluded.status,
         neighbourhood_id = excluded.neighbourhood_id,
         finished_at = excluded.finished_at,
