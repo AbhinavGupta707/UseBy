@@ -1,7 +1,9 @@
 # Checkpoint 6 Orchestration Control
 
 Checkpoint 4 completed commit: `d7777f5`.
-Worker launch base: `d7777f5` (`Document checkpoint 4 production smoke`).
+Checkpoint 6 plan commit: `8720a21`.
+Worker launch base: `8720a21` (`Plan checkpoint 6 demandpool orchestration`).
+Current registry commit: `2576aab`.
 
 ## Outcome
 
