@@ -23,6 +23,12 @@ export default function ProofPage() {
             >
               Home
             </Link>
+            <Link
+              href="/agent-runs"
+              className="rounded-md border border-[#c4ceba] px-3 py-2 text-[#315b44] transition hover:border-[#315b44] hover:bg-white"
+            >
+              Agent runs
+            </Link>
             <a
               href="#demo-controls"
               className="rounded-md bg-[#315b44] px-3 py-2 text-white transition hover:bg-[#254635]"

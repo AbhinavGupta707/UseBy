@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
+import { AgentDecisionPanel } from "../agent/agent-decision-panel";
+import { ReceiptAgentReview } from "../agent/receipt-agent-review";
 import {
   endpointSummary,
   loadGrocerySnapshot,
@@ -150,17 +152,27 @@ export function GroceryWorkspace({ mode = "page" }: { mode?: WorkspaceMode }) {
 
   async function handleImportSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await confirmManualGrocery(manualInput, true);
+  }
+
+  async function confirmManualGrocery(
+    input: ManualGroceryInput,
+    resetOnSuccess = false,
+  ): Promise<GroceryMutationResult> {
     setIsSubmittingImport(true);
     setMutationResult(null);
 
-    const result = await submitManualGrocery(window.fetch.bind(window), manualInput);
+    const result = await submitManualGrocery(window.fetch.bind(window), input);
     setMutationResult(result);
     if (result.status === "ok") {
-      setManualInput(defaultManualInput);
+      if (resetOnSuccess) {
+        setManualInput(defaultManualInput);
+      }
       await refresh();
     }
 
     setIsSubmittingImport(false);
+    return result;
   }
 
   async function handleExpirySubmit(event: FormEvent<HTMLFormElement>) {
@@ -264,6 +276,7 @@ export function GroceryWorkspace({ mode = "page" }: { mode?: WorkspaceMode }) {
                 onChange={setManualInput}
                 onSubmit={handleImportSubmit}
               />
+              <ReceiptAgentReview input={manualInput} onConfirm={(input) => confirmManualGrocery(input)} />
               <ExpiryEditPanel
                 edit={expiryEdit}
                 inventory={snapshot.inventory}
@@ -562,7 +575,18 @@ function ActionCardsPanel({ cards }: { cards: GroceryActionCard[] }) {
           detail="Use-first, scan-label, and share-sealed cards will appear after the action-card route computes them from live rows."
         />
       ) : (
-        <div className="divide-y divide-[#edf1e8]">
+        <div>
+          <div className="px-4 py-4 sm:px-5">
+            <AgentDecisionPanel
+              compact
+              facts={[
+                "Action cards come from current inventory and label state.",
+                "AI copy may explain or summarize only when configured; product rules still compute the action.",
+              ]}
+              aiRole="UseBy can ask AI for plain-language drafting, but deterministic action-card code chooses the card and safety state."
+            />
+          </div>
+          <div className="divide-y divide-[#edf1e8]">
           {cards.map((card) => (
             <article key={card.id} className="px-4 py-4 sm:px-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -584,6 +608,7 @@ function ActionCardsPanel({ cards }: { cards: GroceryActionCard[] }) {
               </p>
             </article>
           ))}
+          </div>
         </div>
       )}
     </Panel>
