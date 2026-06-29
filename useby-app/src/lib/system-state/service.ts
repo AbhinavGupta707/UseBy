@@ -13,6 +13,8 @@ import {
   quoteIdentifier,
 } from "../../server/db/schema-contract";
 import { executeSql } from "../../server/db/sql";
+import { getPrivateStorageStatus } from "../../server/storage/private-files";
+import { getTextractStatus } from "../../server/textract/grocery-parser";
 import type {
   AvailabilityStatus,
   DbProofResponse,
@@ -229,6 +231,41 @@ const CHECKPOINT_7_COUNT_TABLES = [
   },
 ] satisfies CountContract[];
 
+const CHECKPOINT_8_COUNT_TABLES = [
+  {
+    key: "cp8FileIntakes",
+    label: "CP8 grocery file intakes",
+    table: "file_intakes",
+  },
+  {
+    key: "cp8PrivateUploadedFiles",
+    label: "CP8 private receipt/label files",
+    table: "files",
+    where: "role in ('receipt', 'expiry_label')",
+    requiredColumns: ["role"],
+  },
+  {
+    key: "cp8FixtureParses",
+    label: "CP8 fixture/dry-run parses",
+    table: "file_intakes",
+    where: "parse_status in ('fixture', 'dry_run')",
+    requiredColumns: ["parse_status"],
+  },
+  {
+    key: "cp8Notifications",
+    label: "CP8 notification primitive rows",
+    table: "notifications",
+  },
+  {
+    key: "cp8StorageTextractAuditEvents",
+    label: "CP8 storage/Textract audit events",
+    table: "audit_events",
+    where:
+      "action like 'grocery.file_%' or entity_type = 'file_intake'",
+    requiredColumns: ["action", "entity_type"],
+  },
+] satisfies CountContract[];
+
 const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ...SYSTEM_COUNT_TABLES.map((contract) =>
     contract.key === "bookings"
@@ -243,7 +280,30 @@ const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ...CHECKPOINT_4_COUNT_TABLES,
   ...CHECKPOINT_6_COUNT_TABLES,
   ...CHECKPOINT_7_COUNT_TABLES,
+  ...CHECKPOINT_8_COUNT_TABLES,
 ];
+
+function integrationState() {
+  const storage = getPrivateStorageStatus();
+  const textract = getTextractStatus();
+
+  return {
+    s3: {
+      configured: storage.available,
+      bucket: storage.bucket,
+      privateAccess: "server_mediated" as const,
+      mode: storage.mode,
+      reason: storage.available ? null : storage.reason,
+    },
+    textract: {
+      configured: textract.configured,
+      provider: textract.provider,
+      mode: textract.mode,
+      requiresPrivateS3Object: textract.requiresPrivateS3Object,
+      reason: textract.reason,
+    },
+  };
+}
 
 function safeJson(value: unknown): Record<string, unknown> | null {
   if (!value) {
@@ -488,6 +548,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
   const env = loadRuntimeEnv();
   const sanitizedEnv = sanitizeRuntimeEnv(env);
   const generatedAt = new Date().toISOString();
+  const integrations = integrationState();
 
   if (!env.databaseConfigured) {
     const reason = `Aurora env missing: ${env.missing.join(", ")}`;
@@ -504,10 +565,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
           database: sanitizedEnv.database,
           error: reason,
         },
-        s3: {
-          configured: env.storageConfigured,
-          bucket: sanitizedEnv.bucket,
-        },
+        ...integrations,
       },
       counts: unavailableCounts(reason),
       latestAuditEvents: {
@@ -548,10 +606,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
           region: sanitizedEnv.region,
           database: sanitizedEnv.database,
         },
-        s3: {
-          configured: env.storageConfigured,
-          bucket: sanitizedEnv.bucket,
-        },
+        ...integrations,
       },
       counts,
       latestAuditEvents,
@@ -572,10 +627,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
           database: sanitizedEnv.database,
           error: reason,
         },
-        s3: {
-          configured: env.storageConfigured,
-          bucket: sanitizedEnv.bucket,
-        },
+        ...integrations,
       },
       counts: unavailableCounts(reason),
       latestAuditEvents: {

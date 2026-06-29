@@ -188,6 +188,36 @@ describe("system state service", () => {
       available: false,
       count: null,
     });
+    expect(state.counts.find((count) => count.key === "cp8FileIntakes")).toMatchObject({
+      table: "file_intakes",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8PrivateUploadedFiles")).toMatchObject({
+      table: "files",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8FixtureParses")).toMatchObject({
+      table: "file_intakes",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8Notifications")).toMatchObject({
+      table: "notifications",
+      available: false,
+      count: null,
+    });
+    expect(state.integrations.s3).toMatchObject({
+      configured: false,
+      mode: "unavailable",
+      privateAccess: "server_mediated",
+    });
+    expect(state.integrations.textract).toMatchObject({
+      configured: false,
+      mode: "unavailable",
+      requiresPrivateS3Object: true,
+    });
     expect(JSON.stringify(state)).not.toContain("secret-value");
   });
 });

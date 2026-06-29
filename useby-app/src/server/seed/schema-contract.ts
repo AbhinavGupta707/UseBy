@@ -11,6 +11,8 @@ export const DEMO_SCOPE_FILTER = {
 export const DEMO_RESET_DELETE_ORDER = [
   "pickup_tasks",
   "pool_orders",
+  "notifications",
+  "file_intakes",
   "store_drop_reservations",
   "lending_condition_events",
   "lending_reservations",
@@ -75,6 +77,8 @@ export const FINAL_OUTPUT_TABLES_NOT_SEEDED = [
   "trust_events",
   "reviews",
   "job_runs",
+  "file_intakes",
+  "notifications",
 ] as const;
 
 export const DEMO_SCHEMA_ASSUMPTIONS = [

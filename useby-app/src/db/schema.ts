@@ -179,6 +179,23 @@ export const lendingConditionEventTypeValues = [
   "completion_evidence",
   "review_evidence",
 ] as const;
+export const fileIntakeKindValues = ["receipt", "expiry_label"] as const;
+export const fileIntakeStatusValues = [
+  "upload_unavailable",
+  "uploaded",
+  "parse_unavailable",
+  "parsed",
+  "applied",
+  "failed",
+] as const;
+export const providerRunModeValues = ["live", "fixture", "dry_run", "unavailable"] as const;
+export const notificationStatusValues = [
+  "unread",
+  "read",
+  "archived",
+  "queued",
+  "failed",
+] as const;
 
 export const itemCategoryEnum = pgEnum("item_category", itemCategoryValues);
 export const itemStateEnum = pgEnum("item_state", itemStateValues);
@@ -226,6 +243,10 @@ export const lendingConditionEventTypeEnum = pgEnum(
   "lending_condition_event_type",
   lendingConditionEventTypeValues,
 );
+export const fileIntakeKindEnum = pgEnum("file_intake_kind", fileIntakeKindValues);
+export const fileIntakeStatusEnum = pgEnum("file_intake_status", fileIntakeStatusValues);
+export const providerRunModeEnum = pgEnum("provider_run_mode", providerRunModeValues);
+export const notificationStatusEnum = pgEnum("notification_status", notificationStatusValues);
 
 type JsonObject = Record<string, unknown>;
 type GeographyPoint = string;
@@ -1315,6 +1336,80 @@ export const files = pgTable(
   ],
 );
 
+export const fileIntakes = pgTable(
+  "file_intakes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
+    ownerHouseholdId: uuid("owner_household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    neighbourhoodId: uuid("neighbourhood_id")
+      .notNull()
+      .references(() => neighbourhoods.id, { onDelete: "restrict" }),
+    kind: fileIntakeKindEnum("kind").notNull(),
+    status: fileIntakeStatusEnum("status").default("uploaded").notNull(),
+    storageProvider: text("storage_provider").default("s3").notNull(),
+    storageStatus: providerRunModeEnum("storage_status").default("unavailable").notNull(),
+    parseProvider: text("parse_provider").default("textract").notNull(),
+    parseStatus: providerRunModeEnum("parse_status").default("unavailable").notNull(),
+    providerRequestId: text("provider_request_id"),
+    receiptImportId: uuid("receipt_import_id").references(() => receiptImports.id, { onDelete: "set null" }),
+    targetItemInstanceId: uuid("target_item_instance_id").references(() => itemInstances.id, { onDelete: "set null" }),
+    rawText: text("raw_text"),
+    rawParse: jsonb("raw_parse").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    parsedPayload: jsonb("parsed_payload").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    errorMessage: text("error_message"),
+    idempotencyKey: text("idempotency_key"),
+    metadata: metadata(),
+    ...demoScope,
+    parsedAt: timestamp("parsed_at", { withTimezone: true }),
+    appliedAt: timestamp("applied_at", { withTimezone: true }),
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    index("file_intakes_file_idx").on(table.fileId),
+    index("file_intakes_household_created_idx").on(table.ownerHouseholdId, table.createdAt),
+    index("file_intakes_neighbourhood_idx").on(table.neighbourhoodId),
+    index("file_intakes_status_idx").on(table.status),
+    uniqueIndex("file_intakes_idempotency_key_idx").on(table.idempotencyKey).where(sql`${table.idempotencyKey} is not null`),
+  ],
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    recipientUserId: uuid("recipient_user_id").references(() => users.id, { onDelete: "set null" }),
+    recipientHouseholdId: uuid("recipient_household_id").references(() => households.id, { onDelete: "cascade" }),
+    recipientMerchantId: uuid("recipient_merchant_id").references(() => merchants.id, { onDelete: "cascade" }),
+    neighbourhoodId: uuid("neighbourhood_id").references(() => neighbourhoods.id, { onDelete: "set null" }),
+    channel: text("channel").default("in_app").notNull(),
+    topic: text("topic").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    status: notificationStatusEnum("status").default("unread").notNull(),
+    entityType: text("entity_type"),
+    entityId: uuid("entity_id"),
+    source: text("source").default("system").notNull(),
+    idempotencyKey: text("idempotency_key"),
+    metadata: metadata(),
+    ...demoScope,
+    readAt: timestamp("read_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("notifications_user_status_idx").on(table.recipientUserId, table.status),
+    index("notifications_household_status_idx").on(table.recipientHouseholdId, table.status),
+    index("notifications_merchant_status_idx").on(table.recipientMerchantId, table.status),
+    index("notifications_entity_idx").on(table.entityType, table.entityId),
+    uniqueIndex("notifications_idempotency_key_idx").on(table.idempotencyKey).where(sql`${table.idempotencyKey} is not null`),
+  ],
+);
+
 export const jobRuns = pgTable(
   "job_runs",
   {
@@ -1462,4 +1557,9 @@ export const checkpoint6DemandPoolOutputTables = {
 export const checkpoint7StoreDropTables = {
   storeDrops,
   storeDropReservations,
+};
+
+export const checkpoint8IntegrationTables = {
+  fileIntakes,
+  notifications,
 };
