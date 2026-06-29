@@ -255,8 +255,8 @@ export function InventoryDashboard() {
 
       <section className="useby-add-panel">
         <div>
-          <h2>Add expiration dates for smarter reminders</h2>
-          <p>Paste receipt lines or add one item manually. The save goes through the live grocery route when available.</p>
+          <h2>Add groceries or paste a receipt</h2>
+          <p>Use the agent for receipt text, or save one manually named item with a label date.</p>
         </div>
         <form className="useby-add-form" onSubmit={handleManualSubmit}>
           <label className="useby-field-stack">
@@ -289,7 +289,7 @@ export function InventoryDashboard() {
               <input aria-label="Label date" onChange={(event) => setManualInput({ ...manualInput, expiryDate: event.target.value })} type="date" value={manualInput.expiryDate} />
             </label>
           </div>
-          <button className="useby-button" disabled={submitting || (!manualInput.itemName.trim() && !manualInput.receiptLines.trim())} type="submit">
+          <button className="useby-button" disabled={submitting || !manualInput.itemName.trim()} type="submit">
             {submitting ? "Saving" : "Save manual item"}
           </button>
           {mutation ? <p className="useby-form-note">{mutation}</p> : null}
