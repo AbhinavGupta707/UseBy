@@ -34,23 +34,24 @@ export default function ProofPage() {
 
         <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-lg border border-[#d2dbc9] bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase text-[#65715f]">H0 Checkpoint 7</p>
+            <p className="text-xs font-semibold uppercase text-[#65715f]">H0 Checkpoint 8</p>
             <h1 className="mt-2 max-w-2xl text-4xl font-semibold leading-tight text-[#17231c]">
-              Architecture, DemandPool, surplus drop, heatmap, and audit proof for the live UseBy system.
+              External integration, private-file, notification, and AI guardrail proof for the live UseBy system.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#566250]">
               This surface reads the system endpoints directly, reports missing endpoints as unavailable,
-              and only treats Aurora/PostGIS, pools, bids, awards, orders, pickups, surplus reservations,
-              heatmap cells, jobs, and audit evidence as live when the backend returns that status. CP7
-              surplus reservations are unpaid demo intent.
+              and only treats Aurora, private uploads, Textract, geocoding, notifications, reminder jobs,
+              AI copy, semantic ranking, and audit evidence as live when the backend returns that status.
+              AI remains copy, explanation, or secondary ranking only, and payment stays deferred.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {[
               ["Aurora", "Primary state store"],
-              ["PostGIS", "Neighbourhood matching"],
-              ["Vercel", "App Router runtime"],
+              ["S3 + Textract", "Private upload and parse readiness"],
+              ["Maps privacy", "Coarse public locations"],
+              ["AI guardrails", "Copy and ranking only"],
             ].map(([label, detail]) => (
               <div key={label} className="rounded-lg border border-[#d2dbc9] bg-white p-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase text-[#65715f]">{label}</p>
