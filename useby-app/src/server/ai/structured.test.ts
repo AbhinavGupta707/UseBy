@@ -266,8 +266,26 @@ describe("structured agent provider", () => {
             {
               message: {
                 content: JSON.stringify({
-                  eligible: true,
-                  paymentStatus: "captured",
+                  summary: "AI decided eligibility and captured a payment.",
+                  actionCards: [
+                    {
+                      title: "Unsafe decision copy",
+                      body: "AI decided eligibility and captured a payment.",
+                      actionType: "share",
+                      priority: "high",
+                      reasonChips: ["decision"],
+                    },
+                  ],
+                  reviewNotes: [],
+                  requiresReview: true,
+                  deterministicAuthority: {
+                    safety: "deterministic",
+                    eligibility: "deterministic",
+                    trust: "deterministic",
+                    payment: "deterministic",
+                    reservationCapacity: "deterministic",
+                    visibility: "deterministic",
+                  },
                 }),
               },
             },

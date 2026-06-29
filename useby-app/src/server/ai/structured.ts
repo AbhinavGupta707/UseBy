@@ -520,7 +520,8 @@ async function requestStructuredDraft<T>(
     const payload = (await response.json()) as ChatCompletionResponse;
     const content = payload.choices?.[0]?.message?.content;
     const parsedContent = parseStructuredContent(content);
-    const forbidden = forbiddenDecisionClaims(guardrailText(parsedContent));
+    const parsedDraft = options.schema.parse(parsedContent);
+    const forbidden = forbiddenDecisionClaims(guardrailText(parsedDraft));
     if (forbidden.length > 0) {
       return {
         status: "fallback",
@@ -536,7 +537,7 @@ async function requestStructuredDraft<T>(
       status: "generated",
       provider: readiness.provider,
       model: readiness.model,
-      draft: options.schema.parse(parsedContent),
+      draft: parsedDraft,
       reason: null,
       guardrails: aiGuardrailSummary(),
     };
@@ -695,8 +696,9 @@ export async function draftActionPlan(
       `Draft action-card copy for item: ${input.itemTitle}.`,
       `Category: ${input.category ?? "unknown"}.`,
       `Days until use-by: ${input.daysUntilUseBy ?? "unknown"}.`,
-      `Safety status from deterministic code: ${input.safetyStatus ?? "unknown"}.`,
-      "Do not decide safety, eligibility, trust, payment, capacity, privacy, or visibility.",
+      `Rule-review status is ${input.safetyStatus ? "present" : "unknown"} but must not be repeated as a decision.`,
+      "Return only the requested schema fields; never add rule-decision booleans, statuses, contact details, coordinates, or payment state.",
+      "Use neutral review copy. Avoid claims that an item is eligible, safe, visible, reserved, charged, trusted, approved, or shared.",
       "Facts:",
       ...(input.deterministicFacts ?? []).map((fact) => `- ${fact}`),
     ].join("\n"),
