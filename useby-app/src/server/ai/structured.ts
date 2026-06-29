@@ -44,33 +44,44 @@ const DEFAULT_FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_MODEL = "accounts/fireworks/models/kimi-k2p5";
 
+function boundedText(maxLength: number) {
+  return z.preprocess(
+    (value) =>
+      typeof value === "string" ? value.trim().slice(0, maxLength) : value,
+    z.string().min(1).max(maxLength),
+  );
+}
+
 const receiptItemSchema = z.object({
-  name: z.string().min(1).max(120),
+  name: boundedText(120),
   quantity: z.number().positive().max(999).default(1),
-  unit: z.string().min(1).max(32).default("item"),
+  unit: boundedText(32).default("item"),
   storageHint: z.enum(["fridge", "freezer", "cupboard", "sealed", "opened", "unknown"]).default("unknown"),
-  useByDate: z.string().max(32).nullable().default(null),
+  useByDate: z.preprocess(
+    (value) => (typeof value === "string" ? value.trim().slice(0, 32) : value),
+    z.string().max(32).nullable().default(null),
+  ),
   confidence: z.enum(["low", "medium", "high"]).default("medium"),
 });
 
 export const receiptDraftSchema = z.object({
   items: z.array(receiptItemSchema).max(30),
-  notes: z.array(z.string().max(160)).max(6).default([]),
+  notes: z.array(boundedText(160)).max(6).default([]),
   requiresReview: z.literal(true).default(true),
 });
 
 const actionCardDraftSchema = z.object({
-  title: z.string().min(1).max(120),
-  body: z.string().min(1).max(280),
+  title: boundedText(120),
+  body: boundedText(280),
   actionType: z.enum(["use_first", "freeze", "share", "check_label", "plan_meal"]),
   priority: z.enum(["low", "medium", "high"]),
-  reasonChips: z.array(z.string().min(1).max(32)).max(5),
+  reasonChips: z.array(boundedText(32)).max(5),
 });
 
 export const actionPlanDraftSchema = z.object({
-  summary: z.string().min(1).max(280),
+  summary: boundedText(280),
   actionCards: z.array(actionCardDraftSchema).min(1).max(5),
-  reviewNotes: z.array(z.string().max(160)).max(6).default([]),
+  reviewNotes: z.array(boundedText(160)).max(6).default([]),
   requiresReview: z.literal(true).default(true),
   deterministicAuthority: z.object({
     safety: z.literal("deterministic"),
@@ -83,9 +94,9 @@ export const actionPlanDraftSchema = z.object({
 });
 
 export const matchDraftSchema = z.object({
-  explanation: z.string().min(1).max(280),
-  reasonChips: z.array(z.string().min(1).max(32)).max(5),
-  pickupCopy: z.string().min(1).max(180),
+  explanation: boundedText(280),
+  reasonChips: z.array(boundedText(32)).max(5),
+  pickupCopy: boundedText(180),
   requiresReview: z.literal(true).default(true),
 });
 
@@ -555,19 +566,19 @@ export function receiptDraftJsonSchema() {
           additionalProperties: false,
           required: ["name", "quantity", "unit", "storageHint", "useByDate", "confidence"],
           properties: {
-            name: { type: "string" },
+            name: { type: "string", maxLength: 120 },
             quantity: { type: "number" },
-            unit: { type: "string" },
+            unit: { type: "string", maxLength: 32 },
             storageHint: {
               type: "string",
               enum: ["fridge", "freezer", "cupboard", "sealed", "opened", "unknown"],
             },
-            useByDate: { anyOf: [{ type: "string" }, { type: "null" }] },
+            useByDate: { anyOf: [{ type: "string", maxLength: 32 }, { type: "null" }] },
             confidence: { type: "string", enum: ["low", "medium", "high"] },
           },
         },
       },
-      notes: { type: "array", items: { type: "string" }, maxItems: 6 },
+      notes: { type: "array", items: { type: "string", maxLength: 160 }, maxItems: 6 },
       requiresReview: { type: "boolean", enum: [true] },
     },
   };
@@ -579,7 +590,7 @@ export function actionPlanDraftJsonSchema() {
     additionalProperties: false,
     required: ["summary", "actionCards", "reviewNotes", "requiresReview", "deterministicAuthority"],
     properties: {
-      summary: { type: "string" },
+      summary: { type: "string", maxLength: 280 },
       actionCards: {
         type: "array",
         minItems: 1,
@@ -589,18 +600,26 @@ export function actionPlanDraftJsonSchema() {
           additionalProperties: false,
           required: ["title", "body", "actionType", "priority", "reasonChips"],
           properties: {
-            title: { type: "string" },
-            body: { type: "string" },
+            title: { type: "string", maxLength: 120 },
+            body: { type: "string", maxLength: 280 },
             actionType: {
               type: "string",
               enum: ["use_first", "freeze", "share", "check_label", "plan_meal"],
             },
             priority: { type: "string", enum: ["low", "medium", "high"] },
-            reasonChips: { type: "array", items: { type: "string" }, maxItems: 5 },
+            reasonChips: {
+              type: "array",
+              items: { type: "string", maxLength: 32 },
+              maxItems: 5,
+            },
           },
         },
       },
-      reviewNotes: { type: "array", items: { type: "string" }, maxItems: 6 },
+      reviewNotes: {
+        type: "array",
+        items: { type: "string", maxLength: 160 },
+        maxItems: 6,
+      },
       requiresReview: { type: "boolean", enum: [true] },
       deterministicAuthority: {
         type: "object",
@@ -625,9 +644,13 @@ export function matchDraftJsonSchema() {
     additionalProperties: false,
     required: ["explanation", "reasonChips", "pickupCopy", "requiresReview"],
     properties: {
-      explanation: { type: "string" },
-      reasonChips: { type: "array", items: { type: "string" }, maxItems: 5 },
-      pickupCopy: { type: "string" },
+      explanation: { type: "string", maxLength: 280 },
+      reasonChips: {
+        type: "array",
+        items: { type: "string", maxLength: 32 },
+        maxItems: 5,
+      },
+      pickupCopy: { type: "string", maxLength: 180 },
       requiresReview: { type: "boolean", enum: [true] },
     },
   };

@@ -112,6 +112,70 @@ describe("structured agent provider", () => {
     });
   });
 
+  it("normalizes overlong provider copy without falling back", async () => {
+    const fetcher = async () =>
+      ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  summary: "Review this yoghurt plan before applying it.",
+                  actionCards: [
+                    {
+                      title: "Plan yoghurt",
+                      body: "Use this review-only draft as customer-facing copy, not as a rules decision.",
+                      actionType: "plan_meal",
+                      priority: "medium",
+                      reasonChips: [
+                        "human confirmed label date before import",
+                        "deterministic safety",
+                        "review",
+                      ],
+                    },
+                  ],
+                  reviewNotes: ["No safety or visibility decision was made by AI."],
+                  requiresReview: true,
+                  deterministicAuthority: {
+                    safety: "deterministic",
+                    eligibility: "deterministic",
+                    trust: "deterministic",
+                    payment: "deterministic",
+                    reservationCapacity: "deterministic",
+                    visibility: "deterministic",
+                  },
+                }),
+              },
+            },
+          ],
+        }),
+      }) as Response;
+
+    const result = await draftActionPlan(
+      {
+        itemTitle: "Greek yoghurt",
+        category: "grocery",
+        daysUntilUseBy: 4,
+        safetyStatus: "eligible",
+      },
+      {
+        env: {
+          AI_AGENT_ENABLED: "true",
+          AI_AGENT_PROVIDER: "fireworks",
+          FIREWORKS_API_KEY: "test-key",
+          FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2p5",
+        },
+        fetcher,
+      },
+    );
+
+    expect(result.status).toBe("generated");
+    expect(result.draft.actionCards[0]?.reasonChips[0]).toHaveLength(32);
+    expect(result.draft.deterministicAuthority.visibility).toBe("deterministic");
+  });
+
   it("accepts Fireworks JSON-like booleans after schema validation", async () => {
     const fetcher = async () =>
       ({
