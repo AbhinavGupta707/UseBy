@@ -232,18 +232,28 @@ The orchestrator must update this table after worker creation.
 
 ## Integration Status
 
-All CP3 worker lanes have been merged into `main` in dependency order. The master integration patch wires Lane 3B policy/trust hooks into the Lane 3A booking runtime, removes public food-safety overclaim wording, and adds a regression test that keeps those hooks in place.
+All CP3 worker lanes have been merged into `main` in dependency order. The master integration patch wires Lane 3B policy/trust hooks into the Lane 3A booking runtime, removes public food-safety overclaim wording, and adds regression tests that keep those hooks and live schema writes in place.
 
 Local verification after all merges and the integration patch:
 
 - `npm run lint` passed.
 - `npm run typecheck` passed.
-- `npm run test` passed: 24 files, 83 tests.
+- `npm run test` passed: 24 files, 84 tests.
 - `npm run build` passed.
 - `git diff --check` passed.
 
-Remaining production gate before launching Checkpoint 4:
+Production gate:
 
-- Apply `useby-app/drizzle/0002_booking_handoff_trust.sql` to Aurora.
-- Deploy the merged CP3 app to Vercel.
-- Run the API/browser smoke steps in `docs/checkpoint-3-live-smoke.md`.
+- Aurora migration `useby-app/drizzle/0002_booking_handoff_trust.sql` applied through AWS CloudShell/RDS Data API.
+- Drizzle hash recorded: `191bafac29eac912908c7ef3932fce2e7d70ea9e6dba6aa52a3ea8e2247bfa19`.
+- Production deployment: `dpl_HZ6jvZNpmugJ9wnVvGNEJXSgKAyU`, aliased to `https://useby-app.vercel.app`.
+- API smoke passed for `db-proof`, `system/state`, invalid mutation rejection, safety acknowledgement, booking request, accept/reserve, duplicate reservation conflict, pickup scheduling, picked-up, completion, review, and booking list.
+- Live smoke booking: `1cc06fa5-d95c-408d-88c4-a5c71a45ceb4`; duplicate reservation returned HTTP `409` with `Item state is reserved.`.
+- Browser smoke passed for `/grocery`, `/bookings`, and `/proof` on the production alias.
+
+Production-smoke fixes committed after the first live run:
+
+- `ccdd34b` fixed safety acknowledgement inserts to include required `neighbourhood_id`, `demo_scope_id`, and `is_demo`.
+- `2fc9b3c` removed an invalid transaction isolation statement from booking acceptance while preserving row-lock and active-reservation conflict protections.
+
+Checkpoint 3 is complete and Checkpoint 4 may launch from `main` after this documentation update is committed and pushed.

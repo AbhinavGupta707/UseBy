@@ -51,7 +51,12 @@ Verified from the repository root:
 
 - `git diff --check` passed.
 
-Production migration, deployment, and browser/API smoke are still pending until `0002_booking_handoff_trust.sql` is applied to Aurora and the merged app is deployed.
+Production migration, deployment, and browser/API smoke are complete for Checkpoint 3.
+
+Additional production-smoke fixes:
+
+- `ccdd34b` fixed `safety_acknowledgements` writes so live inserts include required `neighbourhood_id`, `demo_scope_id`, and `is_demo`.
+- `2fc9b3c` removed an invalid `SET TRANSACTION ISOLATION LEVEL` call from booking acceptance after RDS Data API had already started the transaction. The accept path still uses row locking and the active-reservation exclusion/unique-index contract.
 
 ## Migration Notes
 
@@ -65,7 +70,12 @@ Lane 3A owns schema and migrations. The CP3 migration should add or verify these
 - `reports`;
 - `blocks`.
 
-Apply the migration through the established Aurora/RDS Data API path. Record the migration file, Drizzle hash, production deployment id, and any unavailable table reasons in the checkpoint handoff.
+Applied through the established Aurora/RDS Data API path:
+
+- Migration file: `useby-app/drizzle/0002_booking_handoff_trust.sql`.
+- Drizzle hash: `191bafac29eac912908c7ef3932fce2e7d70ea9e6dba6aa52a3ea8e2247bfa19`.
+- Verified tables: `bookings`, `handoffs`, `safety_acknowledgements`, `trust_events`, `reviews`, `reports`, and `blocks`.
+- Verified Drizzle record exists.
 
 ## Local Runtime Smoke
 
@@ -107,6 +117,35 @@ Expected production evidence:
 - successful booking/handoff actions update `/api/system/state` counts and latest audit events.
 - public booking and match DTOs do not include raw latitude/longitude or direct contact fields.
 
+### Completed Production Result
+
+Deployment:
+
+- Production deployment: `dpl_HZ6jvZNpmugJ9wnVvGNEJXSgKAyU`.
+- Public alias: `https://useby-app.vercel.app`.
+
+API smoke:
+
+- `GET /api/system/db-proof` returned `status: "available"` with Aurora PostgreSQL `17.7`, PostGIS, pgvector, pgcrypto, and pg_trgm available.
+- `GET /api/system/state` returned CP3 counts for all migrated tables.
+- Invalid empty `POST` requests to `/api/safety/acknowledgements`, `/api/bookings/request`, `/api/reports`, and `/api/blocks` returned clear HTTP `400` JSON errors.
+- Live booking flow succeeded from current Aurora rows:
+  - run id: `cp3-live-1782709367234`;
+  - booking id: `1cc06fa5-d95c-408d-88c4-a5c71a45ceb4`;
+  - match id: `f5c7a439-6f04-4fb7-9217-16ae1c34d31e`;
+  - item id: `d524c70c-b88d-5810-af8b-f77ca5ee041c`;
+  - duplicate reservation attempt returned HTTP `409` with `Item state is reserved.`;
+  - final booking status: `reviewed`.
+- System-state count movement during the successful flow:
+  - `handoffs`: `0` to `1`;
+  - `safetyAcknowledgements`: `1` to `2`;
+  - `trustEvents`: `0` to `3`;
+  - `reviews`: `0` to `1`.
+
+Aurora auto-pause note:
+
+- The first production proof request returned an honest unavailable state while Aurora Serverless was resuming. A retry after wake-up returned available state and the smoke proceeded.
+
 ## Browser Smoke
 
 - Open `https://useby-app.vercel.app/grocery`.
@@ -116,6 +155,12 @@ Expected production evidence:
 - Attempt a second reservation for the same item and verify a conflict/unavailable state.
 - Schedule pickup, mark picked up, complete, and submit a review.
 - Open `https://useby-app.vercel.app/proof` and verify booking, handoff, safety acknowledgement, trust, review, report, and block proof rows.
+
+Completed browser result:
+
+- `/grocery` rendered on the production alias with live route state and no app error.
+- `/bookings` rendered on the production alias with live booking route state and no app error.
+- `/proof` rendered on the production alias with CP3 architecture/proof state and no app error.
 
 ## Unavailable States
 
