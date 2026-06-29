@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -91,7 +93,32 @@ describe("demo seed/reset plan", () => {
     expect(resetPlan.deleteOrder.indexOf("pool_orders")).toBeLessThan(
       resetPlan.deleteOrder.indexOf("demand_pool_commitments"),
     );
+    expect(resetPlan.deleteOrder.indexOf("safety_acknowledgements")).toBeLessThan(
+      resetPlan.deleteOrder.indexOf("bookings"),
+    );
+    expect(resetPlan.deleteOrder.indexOf("bookings")).toBeLessThan(
+      resetPlan.deleteOrder.indexOf("item_instances"),
+    );
     expect(resetPlan.deleteOrder.at(-1)).toBe("neighbourhoods");
+
+    const adapterSource = readFileSync(
+      "src/server/seed/demo-seed-adapter.ts",
+      "utf8",
+    );
+    const itemDeleteIndex = adapterSource.indexOf("delete from item_instances");
+    for (const derivedTable of [
+      "handoffs",
+      "reviews",
+      "trust_events",
+      "safety_acknowledgements",
+      "bookings",
+      "action_cards",
+      "matches",
+    ]) {
+      const deleteIndex = adapterSource.indexOf(`delete from ${derivedTable}`);
+      expect(deleteIndex).toBeGreaterThan(-1);
+      expect(deleteIndex).toBeLessThan(itemDeleteIndex);
+    }
 
     for (const finalOutputTable of FINAL_OUTPUT_TABLES_NOT_SEEDED) {
       expect(seedPlan.insertOrder).not.toContain(finalOutputTable);
