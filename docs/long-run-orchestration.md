@@ -11,7 +11,8 @@ This document records the master-session instruction for the post-Checkpoint 1 b
 - Checkpoint 2 status: merged, pushed, deployed, local and live smoke passed.
 - Checkpoint 3 status: merged, pushed, deployed, local and live smoke passed.
 - Checkpoint 4 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `81b3c0f`.
-- Next active checkpoint: Checkpoint 6. Checkpoint 5 remains skipped for this run.
+- Checkpoint 6 status: merged locally and full local verification passed at `51ba5ea`; production push/deploy/Aurora smoke pending before Checkpoint 7 launch.
+- Next active checkpoint: Checkpoint 6 live verification. Checkpoint 5 remains skipped for this run.
 
 ## Sequential Scope
 
