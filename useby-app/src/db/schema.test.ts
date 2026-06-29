@@ -4,6 +4,7 @@ import {
   actionCardStatusValues,
   bidStatusValues,
   bookingStatusValues,
+  checkpoint8IntegrationTables,
   checkpoint6DemandPoolOutputTables,
   checkpoint7StoreDropTables,
   checkpoint4LendingTables,
@@ -12,11 +13,15 @@ import {
   checkpoint2GroceryTables,
   expiryConfidenceValues,
   expiryObservationSourceValues,
+  fileIntakeKindValues,
+  fileIntakeStatusValues,
   itemCategoryValues,
   itemStateValues,
   matchStatusValues,
   needStatusValues,
+  notificationStatusValues,
   poolStatusValues,
+  providerRunModeValues,
   receiptImportStatusValues,
   safetyStatusValues,
   storageStateValues,
@@ -110,6 +115,10 @@ describe("checkpoint 1 schema contract", () => {
     expect(lendingAvailabilityStatusValues).toEqual(["available", "blocked", "paused"]);
     expect(lendingReservationStatusValues).toEqual(["requested", "active", "released", "cancelled"]);
     expect(lendingConditionEventTypeValues).toContain("return_evidence");
+    expect(fileIntakeKindValues).toEqual(["receipt", "expiry_label"]);
+    expect(fileIntakeStatusValues).toContain("parse_unavailable");
+    expect(providerRunModeValues).toEqual(["live", "fixture", "dry_run", "unavailable"]);
+    expect(notificationStatusValues).toEqual(["unread", "read", "archived", "queued", "failed"]);
   });
 
   it("exports the checkpoint 3 booking lifecycle tables for booking and trust lanes", () => {
@@ -156,5 +165,14 @@ describe("checkpoint 1 schema contract", () => {
     );
     expect(Object.keys(checkpoint1Tables)).not.toContain("storeDrops");
     expect(Object.keys(checkpoint1Tables)).not.toContain("storeDropReservations");
+  });
+
+  it("exports checkpoint 8 integration primitives separately", () => {
+    expect(Object.keys(checkpoint8IntegrationTables).sort()).toEqual(
+      [
+        "fileIntakes",
+        "notifications",
+      ].sort(),
+    );
   });
 });

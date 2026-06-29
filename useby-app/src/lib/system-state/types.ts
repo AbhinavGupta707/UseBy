@@ -26,6 +26,16 @@ export type IntegrationAvailability = {
   s3: {
     configured: boolean;
     bucket: string | null;
+    privateAccess: "server_mediated";
+    mode: "live" | "unavailable";
+    reason?: string | null;
+  };
+  textract: {
+    configured: boolean;
+    provider: "textract";
+    mode: "live" | "unavailable";
+    requiresPrivateS3Object: boolean;
+    reason?: string | null;
   };
 };
 
