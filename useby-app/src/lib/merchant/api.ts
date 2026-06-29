@@ -158,6 +158,7 @@ export function normalizeMerchantPool(value: unknown, index = 0): MerchantDemand
   const item = firstObject(record, ["item", "catalogItem", "catalog_item"]);
   const demand = firstObject(record, ["demand", "summary", "aggregateDemand", "aggregate_demand"]);
   const location = firstObject(record, ["location", "area", "neighbourhood"]);
+  const merchantBid = firstObject(record, ["merchantBid", "merchant_bid"]);
   const status = stringValue(findFirst(record, ["status", "poolStatus", "pool_status"]), "gathering");
   const committedHouseholds = numberValue(
     findFirst(record, ["committedHouseholds", "committed_households", "householdCount", "household_count"]) ??
@@ -194,10 +195,10 @@ export function normalizeMerchantPool(value: unknown, index = 0): MerchantDemand
     demandSummary: demandSummary(committedHouseholds, thresholdHouseholds, committedQuantity, thresholdQuantity, unit),
     requestedItems,
     maxPriceLabel: priceLabel(
-      numberValue(findFirst(record, ["maxPriceCents", "max_price_cents", "maxPricePence", "max_price_pence"])),
+      numberValue(findFirst(record, ["maxPriceCentsPerHousehold", "max_price_cents_per_household", "maxPriceCents", "max_price_cents", "maxPricePence", "max_price_pence"])),
       stringValue(findFirst(record, ["currency"]), "GBP"),
     ),
-    bidStatus: stringValue(findFirst(record, ["bidStatus", "bid_status", "merchantBidStatus"]), "") || null,
+    bidStatus: stringValue(findFirst(record, ["bidStatus", "bid_status", "merchantBidStatus"]) ?? findFirst(merchantBid, ["status"]), "") || null,
   };
 }
 
@@ -239,12 +240,12 @@ export function normalizeMerchantPickup(value: unknown, index = 0): MerchantPick
     status,
     householdLabel: stringValue(
       findFirst(record, ["householdLabel", "household_label", "customerLabel", "customer_label"]) ??
-        findFirst(household, ["label", "displayName", "name"]),
+        findFirst(household, ["publicLabel", "public_label", "label", "displayName", "name"]),
       "Household",
     ),
     coarseArea: stringValue(
       findFirst(record, ["coarseArea", "coarse_area", "areaLabel", "area_label"]) ??
-        findFirst(household, ["coarseArea", "coarseLocation", "area"]),
+        findFirst(household, ["coarseLocationLabel", "coarse_location_label", "coarseArea", "coarseLocation", "area"]),
       "",
     ) || null,
     quantity: numberValue(findFirst(record, ["quantity"]) ?? order.quantity),
@@ -336,7 +337,7 @@ async function postJson(
       endpoint,
       httpStatus: response.status,
       message: responseMessage(response, body),
-      entityId: stringValue(findFirst(body, ["id", "bidId", "orderId", "pickupId"]) ?? findFirst(entity, ["id"]), "") || null,
+      entityId: stringValue(findFirst(body, ["id", "bidId", "orderId", "pickupId"]) ?? findFirst(entity, ["id", "orderId", "order_id", "pickupTaskId", "pickup_task_id"]), "") || null,
     };
   } catch (error) {
     return {
