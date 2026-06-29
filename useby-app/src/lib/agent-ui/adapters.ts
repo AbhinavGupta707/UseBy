@@ -287,10 +287,10 @@ export function normalizeRun(value: unknown, index = 0): AgentRunSummary {
 }
 
 function localDraftLines(input: ManualGroceryInput): ReceiptDraftLine[] {
-  const directName = sanitizeVisibleText(input.itemName);
+  const directName = displayProductName(input.itemName);
   const receiptNames = input.receiptLines
     .split(/\r?\n/)
-    .map((line) => sanitizeVisibleText(line))
+    .map((line) => displayProductName(line))
     .filter(Boolean)
     .slice(0, 5);
   const names = directName ? [directName] : receiptNames;
@@ -312,7 +312,7 @@ function normalizeDraftLine(value: unknown, index: number): ReceiptDraftLine {
 
   return {
     id: stringValue(findFirst(record, ["id", "lineId", "line_id"]), `draft-line-${index + 1}`),
-    itemName: sanitizeVisibleText(stringValue(findFirst(record, ["itemName", "item_name", "name", "title"]))),
+    itemName: displayProductName(stringValue(findFirst(record, ["itemName", "item_name", "name", "title"]))),
     quantity: stringValue(findFirst(record, ["quantity", "qty"]), "1"),
     unit: stringValue(record.unit, "each"),
     storageState: storageStateValue(findFirst(record, ["storageState", "storage_state"]), "cupboard"),
@@ -360,6 +360,24 @@ function sanitizeVisibleText(value: string): string {
     .replace(/\b(flat|unit|apt|apartment)\s+\w+/gi, "[redacted unit]")
     .trim()
     .slice(0, 96);
+}
+
+function displayProductName(value: string): string {
+  const safe = sanitizeVisibleText(value)
+    .replace(/\b\d+(?:\.\d+)?\s?(?:g|kg|ml|l|cl|oz|lb|pk|pack|x)\b/gi, "")
+    .replace(/\b\d+\s?(?:pack|pk)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!safe) {
+    return "";
+  }
+
+  if (safe === safe.toUpperCase()) {
+    return safe.toLowerCase().replace(/\b[a-z]/g, (character) => character.toUpperCase());
+  }
+
+  return safe;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

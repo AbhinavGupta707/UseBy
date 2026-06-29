@@ -494,14 +494,15 @@ function MetricCard({ label, value, detail, tone }: { label: string; value: stri
 
 function GroceryProductCard({ item }: { item: GroceryInventoryItem }) {
   const days = item.expiryDate ? daysUntil(item.expiryDate) : null;
-  const visual = visualFor(item.name, "groceries");
+  const name = consumerTitle(item.name);
+  const visual = visualFor(name, "groceries");
   const cta = item.expiryBand === "fresh" ? "Freeze" : "Cook";
   return (
     <article className="useby-product-card">
       <Visual src={visual} label="" className="useby-product-image" decorative />
       {days !== null ? <span className="useby-date-pill">{days <= 0 ? "today" : `${days} days`}</span> : null}
-      <h3>{item.name}</h3>
-      <p>{item.quantity} {item.unit}</p>
+      <h3>{name}</h3>
+      <p>{formatQuantity(item.quantity)} {item.unit}</p>
       <span className={`useby-status-dot useby-status-${item.expiryBand}`}>{expiryLabel(item.expiryBand)}</span>
       <Link className="useby-button" href="/grocery#matches">{cta}<ArrowIcon /></Link>
     </article>
@@ -581,7 +582,7 @@ function MatchCard({ match }: { match: GroceryMatch }) {
         <p>{match.rationale}</p>
         <div className="useby-reason-row">
           <span>{formatLabel(match.safetyStatus)}</span>
-          <span>{match.itemName}</span>
+          <span>{consumerTitle(match.itemName)}</span>
         </div>
       </div>
       <div className="useby-match-action">
@@ -602,11 +603,12 @@ function MatchCard({ match }: { match: GroceryMatch }) {
 function FeaturedPool({ pool, onRefresh }: { pool: DemandPool; onRefresh: () => Promise<void> }) {
   const winner = pool.winningBid ?? pool.merchantBids.find((bid) => bid.safeToShow) ?? null;
   const progress = poolProgress(pool);
+  const title = consumerTitle(pool.title);
   return (
     <section className="useby-featured-pool">
       <div>
         <span className="useby-featured-label">Featured</span>
-        <h2>{pool.title}</h2>
+        <h2>{title}</h2>
         <p>{winner?.merchantName ?? "Local merchant"} - {pickupAreaCopy(pool)}</p>
         <p>{pool.description ?? itemList(pool.items) ?? "Fresh produce, pantry staples, and local bundles."}</p>
       </div>
@@ -619,7 +621,7 @@ function FeaturedPool({ pool, onRefresh }: { pool: DemandPool; onRefresh: () => 
           <span><strong>{pool.thresholdQuantity}</strong> Pool target</span>
         </div>
       </div>
-      <Visual src={visualFor(pool.title, "groceries")} label="" className="useby-featured-visual" decorative />
+      <Visual src={visualFor(title, "groceries")} label="" className="useby-featured-visual" decorative />
       <PoolCommitButton pool={pool} onRefresh={onRefresh} />
     </section>
   );
@@ -627,10 +629,11 @@ function FeaturedPool({ pool, onRefresh }: { pool: DemandPool; onRefresh: () => 
 
 function PoolMiniCard({ pool, onRefresh }: { pool: DemandPool; onRefresh: () => Promise<void> }) {
   const progress = poolProgress(pool);
+  const title = consumerTitle(pool.title);
   return (
     <article className="useby-pool-mini">
-      <Visual src={visualFor(pool.title, "pantry")} label="" className="useby-pool-thumb" decorative />
-      <h3>{pool.title}</h3>
+      <Visual src={visualFor(title, "pantry")} label="" className="useby-pool-thumb" decorative />
+      <h3>{title}</h3>
       <p>{pickupAreaCopy(pool)} - {pool.householdCount} joined</p>
       <div className="useby-mini-progress"><span style={{ width: `${progress}%` }} /></div>
       <div className="useby-meta-row">
@@ -647,7 +650,11 @@ function PoolCommitButton({ pool, onRefresh, small = false }: { pool: DemandPool
   const [result, setResult] = useState<DemandPoolMutationResult | null>(null);
   async function commit() {
     setPending(true);
-    const next = await submitDemandPoolCommitment(window.fetch.bind(window), { poolId: pool.id, quantity: "1", maxPrice: pool.maxPriceCents ? String(pool.maxPriceCents / 100) : "" });
+    const next = await submitDemandPoolCommitment(window.fetch.bind(window), {
+      poolId: pool.id,
+      quantity: "1",
+      maxPrice: String((pool.maxPriceCents ?? 1200) / 100),
+    });
     setResult(next);
     if (next.status === "ok") {
       await onRefresh();
@@ -669,6 +676,7 @@ function DropCard({ drop, onRefresh }: { drop: StoreDrop; onRefresh: () => Promi
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<StoreDropMutationResult | null>(null);
   const reservable = canReserveDrop(drop);
+  const title = consumerTitle(drop.title);
 
   async function reserve(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -683,10 +691,10 @@ function DropCard({ drop, onRefresh }: { drop: StoreDrop; onRefresh: () => Promi
 
   return (
     <article className="useby-drop-card">
-      <Visual src={visualFor(drop.title, "brunch")} label="" className="useby-drop-image" decorative />
+      <Visual src={visualFor(title, "brunch")} label="" className="useby-drop-image" decorative />
       <div>
         <span className="useby-featured-label">{formatDropStatus(drop.status)}</span>
-        <h2>{drop.title}</h2>
+        <h2>{title}</h2>
         <p>{drop.merchantDisplayName} - {drop.coarsePickupArea ?? "Coarse area only"}</p>
         <div className="useby-meta-row">
           <span>{remainingCopy(drop)}</span>
@@ -695,7 +703,7 @@ function DropCard({ drop, onRefresh }: { drop: StoreDrop; onRefresh: () => Promi
         </div>
       </div>
       <form className="useby-reserve-form" onSubmit={reserve}>
-        <input aria-label={`Quantity for ${drop.title}`} min="1" onChange={(event) => setQuantity(event.target.value)} type="number" value={quantity} />
+        <input aria-label={`Quantity for ${title}`} min="1" onChange={(event) => setQuantity(event.target.value)} type="number" value={quantity} />
         <button className="useby-button" disabled={!reservable || pending} type="submit">
           {pending ? "Reserving" : "Reserve"}<ArrowIcon />
         </button>
@@ -707,12 +715,13 @@ function DropCard({ drop, onRefresh }: { drop: StoreDrop; onRefresh: () => Promi
 }
 
 function BookingActivityCard({ booking }: { booking: Booking }) {
+  const itemName = consumerTitle(booking.item.name);
   return (
     <article className="useby-activity-card">
-      <Visual src={visualFor(booking.item.name, "herbs")} label="" className="useby-activity-image" decorative />
+      <Visual src={visualFor(itemName, "herbs")} label="" className="useby-activity-image" decorative />
       <div>
         <span>{formatStatus(booking.status)}</span>
-        <h3>{booking.item.name}</h3>
+        <h3>{itemName}</h3>
         <p>{partyLabel(booking.owner)} to {partyLabel(booking.receiver)}</p>
         <p>{booking.locationLabel ?? booking.owner.coarseLocation ?? "Coarse location only"} - {booking.distanceLabel ?? "Approximate distance"}</p>
       </div>
@@ -817,7 +826,7 @@ function ArrowIcon() {
 function buildTodayCards(actions: GroceryActionCard[], inventory: GroceryInventoryItem[], matches: GroceryMatch[], pools: DemandPool[], drops: StoreDrop[]) {
   const actionDerived = actions.slice(0, 2).map((card) => ({
     title: consumerActionTitle(card),
-    body: card.itemName ? `${card.itemName}. ${card.body}` : card.body,
+    body: card.itemName ? `${consumerTitle(card.itemName)}. ${card.body}` : card.body,
     cta: card.type.includes("share") ? "Offer nearby" : "See meal ideas",
     href: card.type.includes("share") ? "/grocery#matches" : "/grocery",
     visual: visualFor(`${card.title} ${card.itemName ?? ""}`, "groceries"),
@@ -828,11 +837,11 @@ function buildTodayCards(actions: GroceryActionCard[], inventory: GroceryInvento
   const drop = drops.find((candidate) => canReserveDrop(candidate));
   return [
     ...actionDerived,
-    useSoon ? { title: `Use ${useSoon.name} soon`, body: `${useSoon.quantity} ${useSoon.unit} is ready for tonight.`, cta: "Cook", href: "/grocery", visual: visualFor(useSoon.name, "groceries"), tone: "green" } : null,
-    matches[0] ? { title: "Share before Friday", body: `${matches[0].itemName} has a nearby match.`, cta: "Offer nearby", href: "/grocery#matches", visual: visualFor(matches[0].itemName, "herbs"), tone: "coral" } : null,
-    pool ? { title: "Join a local deal", body: pool.title, cta: "View pool", href: "/pools", visual: visualFor(pool.title, "groceries"), tone: "green" } : null,
-    drop ? { title: "Pick up surplus", body: `${drop.merchantDisplayName} has ${drop.title.toLowerCase()}.`, cta: "Reserve", href: "/drops", visual: visualFor(drop.title, "brunch"), tone: "gold" } : null,
-    { title: "Rent out this weekend", body: "Wardrobe and household items can earn trust nearby.", cta: "List item", href: "/lending", visual: visuals.dress, tone: "gold" },
+    useSoon ? { title: `Use ${consumerTitle(useSoon.name)} soon`, body: `${formatQuantity(useSoon.quantity)} ${useSoon.unit} is ready for tonight.`, cta: "Cook", href: "/grocery", visual: visualFor(useSoon.name, "groceries"), tone: "green" } : null,
+    matches[0] ? { title: "Share before Friday", body: `${consumerTitle(matches[0].itemName)} has a nearby match.`, cta: "Offer nearby", href: "/grocery#matches", visual: visualFor(matches[0].itemName, "herbs"), tone: "coral" } : null,
+    pool ? { title: "Join a local deal", body: consumerTitle(pool.title), cta: "View pool", href: "/pools", visual: visualFor(pool.title, "groceries"), tone: "green" } : null,
+    drop ? { title: "Pick up surplus", body: `${drop.merchantDisplayName} has ${consumerTitle(drop.title).toLowerCase()}.`, cta: "Reserve", href: "/drops", visual: visualFor(drop.title, "brunch"), tone: "gold" } : null,
+    { title: "Lend this weekend", body: "Wardrobe and household items can build trust nearby.", cta: "List item", href: "/lending", visual: visuals.dress, tone: "gold" },
   ].filter(Boolean) as Array<{ title: string; body: string; cta: string; href: string; visual: string; tone: string }>;
 }
 
@@ -841,14 +850,14 @@ function buildNearbyOpportunities(matches: GroceryMatch[], pools: DemandPool[], 
     ...matches.map((match) => ({
       id: `match-${match.id}`,
       title: match.needTitle,
-      detail: match.rationale,
+      detail: match.rationale.replace(match.itemName, consumerTitle(match.itemName)),
       distance: formatDistance(match.distanceMeters),
       tag: "Food",
       visual: visualFor(match.itemName, "herbs"),
     })),
     ...pools.map((pool) => ({
       id: `pool-${pool.id}`,
-      title: pool.title,
+      title: consumerTitle(pool.title),
       detail: `${pool.householdCount} households joined.`,
       distance: pickupAreaCopy(pool),
       tag: "Deal",
@@ -856,7 +865,7 @@ function buildNearbyOpportunities(matches: GroceryMatch[], pools: DemandPool[], 
     })),
     ...drops.map((drop) => ({
       id: `drop-${drop.id}`,
-      title: drop.title,
+      title: consumerTitle(drop.title),
       detail: drop.merchantDisplayName,
       distance: drop.coarsePickupArea ?? "Coarse area",
       tag: "Drop",
@@ -900,7 +909,45 @@ function expiryLabel(value: GroceryInventoryItem["expiryBand"]) {
   if (value === "expired" || value === "today" || value === "use_soon") return "Use soon";
   if (value === "watch") return "Watch";
   if (value === "fresh") return "Good";
-  return "Needs date";
+  return "Add date";
+}
+
+function consumerTitle(value: string) {
+  const cleaned = value
+    .replace(/\byoghourt\b/gi, "yoghurt")
+    .replace(/\bfinal\s+smoke\b/gi, "")
+    .replace(/\b\d{8,}\b/g, "")
+    .replace(/\b\d+(?:\.\d+)?\s?(?:g|kg|ml|l|cl|oz|lb|pk|pack|x)\b/gi, "")
+    .replace(/\b\d+\s?(?:pack|pk)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!cleaned) {
+    return "Item";
+  }
+
+  if (cleaned === cleaned.toUpperCase()) {
+    return titleCase(cleaned.toLowerCase());
+  }
+
+  return cleaned.replace(/\b[a-z]/g, (character) => character.toUpperCase());
+}
+
+function titleCase(value: string) {
+  return value.replace(/\b[a-z]/g, (character) => character.toUpperCase());
+}
+
+function formatQuantity(value: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return value;
+  }
+
+  if (Number.isInteger(parsed)) {
+    return String(parsed);
+  }
+
+  return parsed.toFixed(2).replace(/\.?0+$/, "");
 }
 
 function formatDistance(value: number | null) {

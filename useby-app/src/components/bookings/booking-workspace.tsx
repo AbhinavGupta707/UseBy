@@ -114,6 +114,7 @@ export function BookingWorkspace({
       terminal: bookings.filter((booking) => terminalStatuses.has(booking.status)).length,
     };
   }, [snapshot]);
+  const detailBooking = mode === "detail" ? snapshot?.bookings[0] ?? null : null;
 
   return (
     <div className="useby-bookings-root space-y-5">
@@ -138,7 +139,9 @@ export function BookingWorkspace({
               {mode === "detail" ? "Booking handoff detail" : "Booking and handoff queue"}
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[#566250]">
-              Live booking routes drive this surface. Missing CP3 routes stay marked unavailable instead of showing demo state.
+              {mode === "detail"
+                ? "Track the request, pickup, and completion state while household locations stay coarse."
+                : "Live booking rows show current requests, pickups, and completed handoffs."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -155,10 +158,21 @@ export function BookingWorkspace({
         </div>
 
         <div className="grid gap-0 divide-y divide-[#edf1e8] md:grid-cols-4 md:divide-x md:divide-y-0">
-          <Metric label="Route state" value={bookingsEndpointSummary(snapshot)} />
-          <Metric label="Bookings" value={String(counts.total)} />
-          <Metric label="Active" value={String(counts.active)} />
-          <Metric label="Closed" value={String(counts.terminal)} />
+          {detailBooking ? (
+            <>
+              <Metric label="Status" value={formatStatus(detailBooking.status)} />
+              <Metric label="Owner area" value={detailBooking.owner.coarseLocation ?? "Coarse area"} />
+              <Metric label="Receiver area" value={detailBooking.receiver.coarseLocation ?? "Coarse area"} />
+              <Metric label="Distance" value={detailBooking.distanceLabel ?? "Approximate only"} />
+            </>
+          ) : (
+            <>
+              <Metric label="Route state" value={bookingsEndpointSummary(snapshot)} />
+              <Metric label="Bookings" value={String(counts.total)} />
+              <Metric label="Active" value={String(counts.active)} />
+              <Metric label="Closed" value={String(counts.terminal)} />
+            </>
+          )}
         </div>
       </section>
 
@@ -167,7 +181,7 @@ export function BookingWorkspace({
         <Notice
           status={mutationResult.status}
           title={mutationResult.status === "ok" ? "Saved through live route" : "Live route did not complete"}
-          detail={`${mutationResult.endpoint}${mutationResult.httpStatus ? ` returned HTTP ${mutationResult.httpStatus}` : ""}. ${mutationResult.message}`}
+          detail={mode === "detail" ? mutationResult.message : `${mutationResult.endpoint}${mutationResult.httpStatus ? ` returned HTTP ${mutationResult.httpStatus}` : ""}. ${mutationResult.message}`}
         />
       ) : null}
 
@@ -185,7 +199,7 @@ export function BookingWorkspace({
               }
             }}
           />
-          <EndpointPanel endpoints={snapshot.endpoints} />
+          {mode === "detail" ? null : <EndpointPanel endpoints={snapshot.endpoints} />}
         </>
       ) : null}
     </div>
@@ -211,7 +225,7 @@ function BookingsPanel({
       {bookings.length === 0 ? (
         <EmptyState
           title="No bookings returned"
-          detail="Requests created from eligible grocery matches will appear here after the CP3 booking routes are installed."
+          detail="Requests created from eligible nearby matches will appear here after a neighbour asks to reserve an item."
         />
       ) : (
         <div className="divide-y divide-[#edf1e8]">
@@ -240,7 +254,7 @@ function BookingCard({
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase text-[#65715f]">{formatStatus(booking.status)}</p>
             <h2 className="mt-1 break-words text-lg font-semibold leading-snug text-[#17231c]">
-              {booking.item.name}
+              {displayItemName(booking.item.name)}
             </h2>
           </div>
           {mode === "list" ? (
@@ -330,7 +344,7 @@ function BookingActionControls({
           {booking.viewerRole === "unknown" ? "Owner / receiver controls" : `${formatStatus(booking.viewerRole)} controls`}
         </h3>
         <p className="mt-2 text-sm leading-6 text-[#65715f]">
-          Buttons call live CP3 routes and report unavailable states directly.
+          Move this handoff through the live booking workflow.
         </p>
       </div>
 
@@ -338,7 +352,7 @@ function BookingActionControls({
         <Notice
           status="unavailable"
           title="No actions available"
-          detail="This state has no client-side transition controls, or the API did not return available actions."
+          detail="This handoff is waiting for the next participant or has reached a closed state."
         />
       ) : null}
 
@@ -551,4 +565,15 @@ function TextInput({
 
 function partyLabel(party: Booking["owner"]): string {
   return [party.label, party.coarseLocation, party.trustLabel].filter(Boolean).join(" · ");
+}
+
+function displayItemName(value: string): string {
+  const cleaned = value
+    .replace(/\byoghourt\b/gi, "yoghurt")
+    .replace(/\bfinal\s+smoke\b/gi, "")
+    .replace(/\b\d{8,}\b/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return cleaned || "Shared item";
 }

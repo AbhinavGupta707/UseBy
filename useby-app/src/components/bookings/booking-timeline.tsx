@@ -66,19 +66,19 @@ function timelineDetail(status: BookingLifecycleStatus): string {
     return "Waiting for owner response.";
   }
   if (status === "reserved") {
-    return "Accepting should reserve the item and prevent a second active booking.";
+    return "Once accepted, the item is held for this neighbour and cannot be double-booked.";
   }
   if (status === "pickup_scheduled") {
-    return "Pickup hint appears only after acceptance and must not include raw coordinates.";
+    return "Pickup details stay coarse and avoid exact household coordinates.";
   }
   if (status === "picked_up") {
     return "Receiver has collected the item.";
   }
   if (status === "completed") {
-    return "Completion can update trust, inventory, and audit state.";
+    return "Completion closes the handoff and records the outcome.";
   }
   if (status === "reviewed") {
-    return "Review evidence is recorded.";
+    return "Review saved for trust context.";
   }
   if (status === "declined") {
     return "The owner declined this request.";
