@@ -132,6 +132,14 @@ export async function createSafetyAcknowledgement(
     value: context.household.id,
     cast: "uuid",
   });
+  pushIfColumn(
+    columns,
+    availability.columns,
+    "neighbourhood_id",
+    "neighbourhoodId",
+    context.neighbourhood.id,
+    "uuid",
+  );
   columns.push({
     column: typeColumn,
     param: "acknowledgementType",
@@ -181,6 +189,8 @@ export async function createSafetyAcknowledgement(
     },
     "jsonb",
   );
+  pushIfColumn(columns, availability.columns, "demo_scope_id", "demoScope", context.demoScope);
+  pushIfColumn(columns, availability.columns, "is_demo", "isDemo", true);
   pushIfColumn(
     columns,
     availability.columns,

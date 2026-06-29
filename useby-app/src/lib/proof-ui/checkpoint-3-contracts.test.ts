@@ -275,6 +275,15 @@ describe("Checkpoint 3 transaction, seed, and safety proof contracts", () => {
     expect(evidence).toMatch(/audit_events/);
   });
 
+  it("keeps safety acknowledgement writes aligned with required schema columns", () => {
+    const safetyRuntime = readSourceTree("src/server/safety");
+
+    expect(safetyRuntime).toMatch(/neighbourhood_id/);
+    expect(safetyRuntime).toMatch(/context\.neighbourhood\.id/);
+    expect(safetyRuntime).toMatch(/demo_scope_id/);
+    expect(safetyRuntime).toMatch(/is_demo/);
+  });
+
   it("keeps seed data to input world state and out of CP3 final outputs", () => {
     const seedPlan = buildDemoSeedPlan("seed");
 
