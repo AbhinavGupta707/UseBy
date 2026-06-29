@@ -225,7 +225,7 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 3A Booking Schema And Transactions | Pending | Pending | Pending launch | Owns all CP3 migrations/schema |
-| 3B Trust, Safety, And Moderation Runtime | Pending | Pending | Pending launch | No schema edits |
-| 3C Booking And Handoff UI | Pending | Pending | Pending launch | API consumer only |
-| 3D Concurrency QA, Proof, And Docs | Pending | Pending | Pending launch | Proof/docs/tests |
+| 3A Booking Schema And Transactions | Pending | `local:9aa9a839-c075-4aad-938b-663d08a4b9bf` | Queued | Owns all CP3 migrations/schema |
+| 3B Trust, Safety, And Moderation Runtime | Pending | `local:9e5c3b5f-51e6-46c6-bf89-117dbe6c2da0` | Queued | No schema edits |
+| 3C Booking And Handoff UI | Pending | `local:af5358d2-3324-4077-9363-4e4110654713` | Queued | API consumer only |
+| 3D Concurrency QA, Proof, And Docs | Pending | `local:412c1823-f979-462b-ba5c-ac8891076ef0` | Queued | Proof/docs/tests |
