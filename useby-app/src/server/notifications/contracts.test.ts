@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -46,5 +47,28 @@ describe("notification contracts", () => {
         householdId: "household-b",
       }),
     ).not.toBe(notificationIdempotencyKey(baseCandidate));
+  });
+
+  it("keeps the notification writer aligned to the runtime table contract", () => {
+    const runtimeSource = readFileSync("src/server/notifications/runtime.ts", "utf8");
+    const insertStatement = runtimeSource.match(
+      /insert into notifications \([\s\S]*?returning id::text as id/,
+    )?.[0];
+
+    expect(insertStatement, "notification insert SQL should be discoverable").toBeTruthy();
+
+    for (const column of REQUIRED_NOTIFICATION_COLUMNS) {
+      if (column === "id" || column === "read_at") {
+        continue;
+      }
+
+      expect(insertStatement, `writeNotificationCandidate must reference ${column}`).toContain(
+        column,
+      );
+    }
+
+    expect(insertStatement).not.toContain("recipient_household_id");
+    expect(insertStatement).not.toContain("recipient_user_id");
+    expect(insertStatement).not.toContain("recipient_merchant_id");
   });
 });
