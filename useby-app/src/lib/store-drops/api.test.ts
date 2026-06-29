@@ -78,6 +78,50 @@ describe("store drops UI API helpers", () => {
     expect(snapshot.endpoints.every((endpoint) => endpoint.status === "unavailable")).toBe(true);
   });
 
+  it("normalizes the CP7 public runtime DTO shape", () => {
+    const drop = normalizeStoreDrop({
+      id: "drop-7a",
+      title: "Evening bread box",
+      status: "published",
+      merchant: {
+        displayName: "Courtyard Bakehouse",
+      },
+      pickup: {
+        areaLabel: "Market arch",
+        windowStart: "2026-06-29T17:00:00.000Z",
+        windowEnd: "2026-06-29T18:00:00.000Z",
+      },
+      quantity: {
+        total: "12.000",
+        reserved: "3.000",
+        remaining: "9.000",
+      },
+      price: {
+        amountCents: 350,
+        currency: "GBP",
+      },
+      safety: {
+        notes: "Merchant-packed.",
+        notice: "No freshness guarantee.",
+      },
+      currentHouseholdReservation: {
+        id: "reservation-7a",
+        dropId: "drop-7a",
+        quantity: "2.000",
+        status: "active",
+        reservedAt: "2026-06-29T16:00:00.000Z",
+      },
+    });
+
+    expect(drop.remainingQuantity).toBe(9);
+    expect(drop.totalQuantity).toBe(12);
+    expect(drop.pickupWindowStart).toBe("2026-06-29T17:00:00.000Z");
+    expect(drop.pickupWindowEnd).toBe("2026-06-29T18:00:00.000Z");
+    expect(drop.currentReservation?.id).toBe("reservation-7a");
+    expect(drop.priceCents).toBe(350);
+    expect(drop.safetyNotes).toContain("Merchant-packed.");
+  });
+
   it("validates reservation quantity and posts unpaid no-payment metadata", async () => {
     const calls: Array<{ endpoint: string; body: Record<string, unknown> }> = [];
     const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {

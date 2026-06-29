@@ -187,8 +187,11 @@ export function normalizeStoreDrop(value: unknown, index = 0): StoreDrop {
   const record = asRecord(value);
   const merchant = firstObject(record, ["merchant", "merchantProfile", "merchant_profile", "store"]);
   const pickup = firstObject(record, ["pickup", "pickupWindow", "pickup_window"]);
-  const availability = firstObject(record, ["availability", "capacity"]);
+  const availability = firstObject(record, ["quantity", "availability", "capacity"]);
+  const price = firstObject(record, ["price", "demoPrice", "demo_price"]);
   const reservation = firstObject(record, [
+    "currentHouseholdReservation",
+    "current_household_reservation",
     "currentReservation",
     "current_reservation",
     "viewerReservation",
@@ -200,16 +203,16 @@ export function normalizeStoreDrop(value: unknown, index = 0): StoreDrop {
   ]);
   const id = stringValue(findFirst(record, ["id", "dropId", "drop_id", "storeDropId", "store_drop_id"]), `drop-${index}`);
   const totalQuantity = integerValue(
-    findFirst(record, ["totalQuantity", "total_quantity", "quantity", "initialQuantity", "initial_quantity"]) ??
-      findFirst(availability, ["totalQuantity", "quantity", "initialQuantity"]),
+    findFirst(record, ["totalQuantity", "total_quantity", "initialQuantity", "initial_quantity"]) ??
+      findFirst(availability, ["total", "totalQuantity", "quantity", "initialQuantity"]),
   );
   const reservedQuantity = integerValue(
     findFirst(record, ["reservedQuantity", "reserved_quantity", "activeReservationQuantity", "active_reservation_quantity"]) ??
-      findFirst(availability, ["reservedQuantity", "reserved"]),
+      findFirst(availability, ["reserved", "reservedQuantity"]),
   );
   const explicitRemaining = integerValue(
     findFirst(record, ["remainingQuantity", "remaining_quantity", "availableQuantity", "available_quantity"]) ??
-      findFirst(availability, ["remainingQuantity", "availableQuantity", "remaining", "available"]),
+      findFirst(availability, ["remaining", "remainingQuantity", "availableQuantity", "available"]),
   );
 
   return {
@@ -228,14 +231,17 @@ export function normalizeStoreDrop(value: unknown, index = 0): StoreDrop {
     reservedQuantity,
     pickupWindowStart: dateTimeValue(
       findFirst(record, ["pickupWindowStart", "pickup_window_start", "windowStart", "window_start"]) ??
-        findFirst(pickup, ["start", "startsAt", "starts_at", "pickupWindowStart"]),
+        findFirst(pickup, ["start", "startsAt", "starts_at", "windowStart", "window_start", "pickupWindowStart"]),
     ),
     pickupWindowEnd: dateTimeValue(
       findFirst(record, ["pickupWindowEnd", "pickup_window_end", "windowEnd", "window_end"]) ??
-        findFirst(pickup, ["end", "endsAt", "ends_at", "pickupWindowEnd"]),
+        findFirst(pickup, ["end", "endsAt", "ends_at", "windowEnd", "window_end", "pickupWindowEnd"]),
     ),
-    priceCents: centsValue(findFirst(record, ["priceCents", "price_cents", "pricePence", "price_pence", "price", "displayPrice"])),
-    currency: stringValue(findFirst(record, ["currency"]), "GBP"),
+    priceCents: centsValue(
+      findFirst(record, ["priceCents", "price_cents", "pricePence", "price_pence", "displayPrice"]) ??
+        findFirst(price, ["amountCents", "amount_cents", "priceCents", "price_cents"]),
+    ),
+    currency: stringValue(findFirst(record, ["currency"]) ?? findFirst(price, ["currency"]), "GBP"),
     safetyNotes: safetyNotes(record),
     currentReservation: normalizeStoreDropReservation(reservation, id),
     availableActions: normalizeActions(findFirst(record, ["availableActions", "available_actions", "actions"])),
@@ -356,7 +362,7 @@ async function postJson(
       endpoint,
       httpStatus: response.status,
       message: responseMessage(response, body),
-      dropId: stringValue(findFirst(body, ["dropId", "drop_id", "storeDropId", "store_drop_id"]), dropId ?? "") || dropId,
+      dropId: mutationDropId(body, dropId),
     };
   } catch (error) {
     return {
@@ -466,6 +472,7 @@ function coarsePickupArea(
 }
 
 function safetyNotes(record: Record<string, unknown>): string[] {
+  const safety = firstObject(record, ["safety", "safetyContract"]);
   const explicit = childArray(record, ["safetyNotes", "safety_notes", "consumerSafetyNotes", "consumer_safety_notes"])
     .map((note) => stringValue(note))
     .filter(Boolean)
@@ -473,6 +480,14 @@ function safetyNotes(record: Record<string, unknown>): string[] {
 
   if (explicit.length > 0) {
     return explicit;
+  }
+
+  const nested = [
+    stringValue(findFirst(safety, ["notes"])),
+    stringValue(findFirst(safety, ["notice"])),
+  ].filter(Boolean);
+  if (nested.length > 0) {
+    return nested.slice(0, 4);
   }
 
   return [
@@ -516,6 +531,15 @@ function booleanValue(value: unknown, fallback = false): boolean {
   }
 
   return fallback;
+}
+
+function mutationDropId(body: Record<string, unknown>, fallback: string | null): string | null {
+  const nestedDrop = firstObject(body, ["drop", "storeDrop", "store_drop"]);
+  return stringValue(
+    findFirst(body, ["dropId", "drop_id", "storeDropId", "store_drop_id"]) ??
+      findFirst(nestedDrop, ["id", "dropId", "drop_id", "storeDropId", "store_drop_id"]),
+    fallback ?? "",
+  ) || fallback;
 }
 
 function validationResult(dropId: string | null, message: string): StoreDropMutationResult {
