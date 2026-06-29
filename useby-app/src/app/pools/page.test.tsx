@@ -3,14 +3,12 @@ import { describe, expect, it } from "vitest";
 import DemandPoolsPage from "./page";
 
 describe("DemandPoolsPage", () => {
-  it("renders the DemandPool shell and navigation", () => {
+  it("renders the premium pools surface", () => {
     render(<DemandPoolsPage />);
 
-    expect(screen.getByText("UseBy")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Neighbourhood group buys" })).toBeInTheDocument();
-    expect(screen.getByText(/does not capture deposits, cards, or payments/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Grocery" })).toHaveAttribute("href", "/grocery");
-    expect(screen.getByRole("link", { name: "Bookings" })).toHaveAttribute("href", "/bookings");
-    expect(screen.getByRole("link", { name: "Proof" })).toHaveAttribute("href", "/proof");
+    expect(screen.getByRole("heading", { name: "Community pools" })).toBeInTheDocument();
+    expect(screen.getByText(/Unlock better local prices together/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ending soonest" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Loading live pool")).toBeInTheDocument();
   });
 });

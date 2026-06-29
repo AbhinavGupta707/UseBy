@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Weekend brunch bundle</title>
+  <desc id="desc">Bread, eggs, berries, and milk for a weekend neighbourhood bundle.</desc>
+  <rect width="720" height="480" fill="#fffdf7"/>
+  <ellipse cx="360" cy="410" rx="252" ry="34" fill="#e2d9c8"/>
+  <rect x="426" y="110" width="93" height="270" rx="30" fill="#f9f6ed" stroke="#d8cbb7" stroke-width="7"/>
+  <rect x="443" y="160" width="59" height="84" fill="#dde7d8"/>
+  <circle cx="246" cy="289" r="68" fill="#f7e8c5" stroke="#d8cbb7" stroke-width="7"/>
+  <circle cx="246" cy="289" r="28" fill="#d8a84e"/>
+  <path d="M120 170c41-43 127-38 153 13 30 59-29 129-96 110-67-19-98-80-57-123z" fill="#d8a84e"/>
+  <path d="M145 183c30 9 58 25 83 48M126 220c38 2 74 11 108 28" stroke="#8d6333" stroke-width="8" opacity=".5"/>
+  <circle cx="561" cy="318" r="18" fill="#e98570"/>
+  <circle cx="598" cy="296" r="18" fill="#e98570"/>
+  <circle cx="621" cy="334" r="18" fill="#e98570"/>
+</svg>

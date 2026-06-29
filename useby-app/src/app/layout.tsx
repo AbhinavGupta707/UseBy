@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { ConsumerShell } from "../components/consumer/consumer-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "UseBy",
-  description: "Neighbourhood inventory-to-action engine for dense communities.",
+  description: "A premium neighbourhood app for using more, sharing more, and unlocking nearby food, pools, drops, and lending.",
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body>
+        <ConsumerShell>{children}</ConsumerShell>
+      </body>
     </html>
   );
 }

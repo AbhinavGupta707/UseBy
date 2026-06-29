@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Household tools</title>
+  <desc id="desc">A drill and ladder available for neighbourhood lending.</desc>
+  <rect width="720" height="480" fill="#fffdf7"/>
+  <path d="M111 400l95-292h55l-94 292M287 400l-95-292h-55l94 292" fill="none" stroke="#69786d" stroke-width="18" stroke-linecap="round"/>
+  <path d="M142 206h118M117 284h170M91 362h224" stroke="#9caf9c" stroke-width="14" stroke-linecap="round"/>
+  <path d="M390 220h173c43 0 78 35 78 78v17H459c-38 0-69-31-69-69z" fill="#255c45"/>
+  <path d="M530 182h78c31 0 56 25 56 56v28H530z" fill="#255c45"/>
+  <path d="M432 315h67l38 90h-75z" fill="#173d2f"/>
+  <circle cx="592" cy="266" r="22" fill="#d8a84e"/>
+  <rect x="362" y="200" width="62" height="43" rx="14" fill="#9caf9c"/>
+</svg>
