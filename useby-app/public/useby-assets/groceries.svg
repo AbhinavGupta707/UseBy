@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Fresh groceries</title>
+  <desc id="desc">A basket of leafy greens, tomatoes, carrots, wraps, and mushrooms on a warm counter.</desc>
+  <rect width="720" height="480" fill="#fffdf7"/>
+  <ellipse cx="360" cy="410" rx="250" ry="34" fill="#e2d9c8"/>
+  <path d="M178 208h364l-41 196H219z" fill="#c99f61"/>
+  <path d="M210 208c20-78 88-124 150-124s130 46 150 124" fill="none" stroke="#8d6333" stroke-width="24" stroke-linecap="round"/>
+  <path d="M205 248h310M198 298h304M188 348h304" stroke="#8d6333" stroke-width="8" opacity=".35"/>
+  <circle cx="462" cy="178" r="47" fill="#e98570"/>
+  <circle cx="410" cy="169" r="38" fill="#d8a84e"/>
+  <path d="M378 237c-56-80-33-150 58-190 26 95 4 158-58 190zM295 240c-84-39-105-103-55-180 82 56 101 117 55 180zM528 240c39-90 100-119 181-81-53 91-113 116-181 81z" fill="#255c45"/>
+  <path d="M260 200c-46-58-34-104 36-139 36 74 27 121-36 139zM560 190c-7-79 31-120 114-123-8 87-45 127-114 123z" fill="#9caf9c"/>
+  <circle cx="260" cy="208" r="34" fill="#f4efe4"/>
+  <circle cx="304" cy="210" r="35" fill="#f4efe4"/>
+  <circle cx="226" cy="226" r="28" fill="#f4efe4"/>
+  <path d="M122 300c110-28 205-28 316 0 20 5 20 34 0 39-111 28-206 28-316 0-20-5-20-34 0-39z" fill="#f6e4c8" stroke="#d8cbb7"/>
+  <path d="M130 317h300" stroke="#c49a64" stroke-width="5" opacity=".45"/>
+</svg>

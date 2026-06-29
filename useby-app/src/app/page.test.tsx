@@ -3,14 +3,13 @@ import { describe, expect, it } from "vitest";
 import Home from "./page";
 
 describe("Home", () => {
-  it("renders the UseBy grocery shelf and proof links", () => {
+  it("renders the premium Today dashboard", () => {
     render(<Home />);
 
-    expect(screen.getByText("UseBy")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Grocery inventory and neighbour actions" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Live backend signals" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Grocery" })).toHaveAttribute("href", "/grocery");
-    expect(screen.getByRole("link", { name: "Pools" })).toHaveAttribute("href", "/pools");
-    expect(screen.getByRole("link", { name: "Proof" })).toHaveAttribute("href", "/proof");
+    expect(screen.getByRole("heading", { name: "Good evening, Maya" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Nearby opportunities" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /List item/i })).toHaveAttribute("href", "/lending");
+    expect(screen.getByRole("link", { name: /View all matches/i })).toHaveAttribute("href", "/grocery#matches");
   });
 });

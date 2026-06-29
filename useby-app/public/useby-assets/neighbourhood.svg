@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 280" role="img" aria-labelledby="title desc">
+  <title id="title">Warm neighbourhood illustration</title>
+  <desc id="desc">A calm row of homes, trees, and a market street in soft cream, sage, green, gold, and coral.</desc>
+  <rect width="900" height="280" fill="#fffdf7"/>
+  <circle cx="705" cy="84" r="58" fill="#f3dfb0"/>
+  <circle cx="760" cy="95" r="42" fill="#f7e8c5"/>
+  <path d="M0 239c135-28 245-24 362-2 120 22 235 28 372 4 70-12 120-10 166 5v34H0z" fill="#dde7d8"/>
+  <path d="M106 168h98v70h-98z" fill="#f4efe4" stroke="#d8cbb7"/>
+  <path d="M94 168l61-48 62 48z" fill="#9caf9c"/>
+  <path d="M137 190h32v48h-32z" fill="#255c45"/>
+  <path d="M250 142h116v96H250z" fill="#fff7e5" stroke="#d8cbb7"/>
+  <path d="M238 142l70-54 72 54z" fill="#e98570"/>
+  <rect x="286" y="174" width="45" height="64" fill="#255c45"/>
+  <path d="M425 116h92v122h-92z" fill="#f4efe4" stroke="#d8cbb7"/>
+  <path d="M457 56h28v60h-28z" fill="#d8a84e"/>
+  <path d="M446 116l26-34 26 34z" fill="#255c45"/>
+  <rect x="445" y="154" width="52" height="84" fill="#dde7d8"/>
+  <path d="M578 155h120v83H578z" fill="#fff7e5" stroke="#d8cbb7"/>
+  <path d="M560 155l78-60 78 60z" fill="#9caf9c"/>
+  <rect x="622" y="183" width="36" height="55" fill="#255c45"/>
+  <path d="M742 178h88v60h-88z" fill="#f4efe4" stroke="#d8cbb7"/>
+  <path d="M730 178l56-42 56 42z" fill="#d8a84e"/>
+  <path d="M71 238c18-58 24-107 3-149M61 138c22-14 40-12 54 7M77 111c-20-19-40-22-62-9" fill="none" stroke="#255c45" stroke-width="9" stroke-linecap="round"/>
+  <path d="M810 238c18-58 24-107 3-149M800 138c22-14 40-12 54 7M816 111c-20-19-40-22-62-9" fill="none" stroke="#255c45" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="69" cy="156" r="18" fill="#9caf9c"/>
+  <circle cx="814" cy="156" r="18" fill="#9caf9c"/>
+</svg>

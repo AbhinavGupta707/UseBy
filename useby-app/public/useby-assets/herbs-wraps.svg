@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Herbs and wraps</title>
+  <desc id="desc">Fresh coriander beside folded wraps on a cream marble surface.</desc>
+  <rect width="720" height="480" fill="#fffdf7"/>
+  <path d="M69 333c105-68 206-83 344-45 28 8 33 51 6 66-121 70-228 78-351 21-20-9-18-31 1-42z" fill="#f6e4c8" stroke="#d8cbb7"/>
+  <path d="M108 342c101-23 195-24 284-4M138 370c72-13 142-13 215-1" stroke="#c99757" stroke-width="6" opacity=".45"/>
+  <path d="M476 307c-45-74-20-146 74-214 48 111 20 187-74 214zM533 302c-22-91 23-157 135-199 17 119-29 186-135 199zM432 310c-81-48-104-118-68-210 80 75 103 144 68 210z" fill="#255c45"/>
+  <path d="M489 329c-99-30-152-92-160-185 106 21 160 83 160 185zM540 331c30-96 91-147 185-153-24 103-84 154-185 153z" fill="#9caf9c"/>
+  <circle cx="501" cy="321" r="18" fill="#d8a84e"/>
+</svg>

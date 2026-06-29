@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">Yogurt and herbs</title>
+  <desc id="desc">A sealed yogurt tub next to a bunch of fresh herbs.</desc>
+  <rect width="720" height="480" fill="#fffdf7"/>
+  <ellipse cx="324" cy="406" rx="218" ry="28" fill="#e2d9c8"/>
+  <path d="M180 134h234l-25 254H205z" fill="#f9f6ed" stroke="#d8cbb7" stroke-width="7"/>
+  <ellipse cx="297" cy="134" rx="117" ry="31" fill="#ffffff" stroke="#d8cbb7" stroke-width="7"/>
+  <path d="M225 207h145v78H225z" fill="#dde7d8"/>
+  <text x="297" y="251" font-family="Georgia, serif" font-size="38" text-anchor="middle" fill="#1f2e26">UseBy</text>
+  <path d="M507 348c-66-65-69-137-9-216 73 84 76 157 9 216zM552 360c-27-90 12-159 116-207 25 119-15 189-116 207zM468 365c-94-31-142-91-143-180 102 20 150 80 143 180z" fill="#255c45"/>
+  <path d="M575 344c45-83 111-119 199-108-51 91-117 127-199 108z" fill="#9caf9c"/>
+</svg>
