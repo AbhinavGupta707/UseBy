@@ -69,8 +69,8 @@ const CHECKPOINT_4_COUNT_TABLES = [
     key: "cp4ListedLendingItems",
     label: "CP4 listed fashion/household items",
     table: "item_instances",
-    where: "category in ('fashion', 'household') and state = 'listed'",
-    requiredColumns: ["category", "state"],
+    where: "category in ('fashion', 'household') and item_state = 'listed'",
+    requiredColumns: ["category", "item_state"],
   },
   {
     key: "cp4OpenLendingNeeds",
@@ -112,14 +112,19 @@ const CHECKPOINT_4_COUNT_TABLES = [
     requiredColumns: ["booking_id"],
   },
   {
-    key: "rentalWindows",
-    label: "Rental windows",
-    table: "rental_windows",
+    key: "cp4LendingAvailabilityWindows",
+    label: "CP4 lending availability windows",
+    table: "lending_availability_windows",
   },
   {
-    key: "conditionEvents",
-    label: "Condition events",
-    table: "condition_events",
+    key: "cp4LendingReservations",
+    label: "CP4 lending reservations",
+    table: "lending_reservations",
+  },
+  {
+    key: "cp4LendingConditionEvents",
+    label: "CP4 lending condition events",
+    table: "lending_condition_events",
   },
 ] satisfies CountContract[];
 

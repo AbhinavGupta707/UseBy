@@ -103,13 +103,18 @@ describe("system state service", () => {
       available: false,
       count: null,
     });
-    expect(state.counts.find((count) => count.key === "rentalWindows")).toMatchObject({
-      table: "rental_windows",
+    expect(state.counts.find((count) => count.key === "cp4LendingAvailabilityWindows")).toMatchObject({
+      table: "lending_availability_windows",
       available: false,
       count: null,
     });
-    expect(state.counts.find((count) => count.key === "conditionEvents")).toMatchObject({
-      table: "condition_events",
+    expect(state.counts.find((count) => count.key === "cp4LendingReservations")).toMatchObject({
+      table: "lending_reservations",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp4LendingConditionEvents")).toMatchObject({
+      table: "lending_condition_events",
       available: false,
       count: null,
     });
