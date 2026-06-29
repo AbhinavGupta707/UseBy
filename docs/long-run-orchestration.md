@@ -8,6 +8,10 @@ This document records the master-session instruction for the post-Checkpoint 1 b
 - Baseline commit before Checkpoint 2 launch: `c584f08`
 - Production URL: `https://useby-app.vercel.app`
 - Checkpoint 1 status: merged, pushed, deployed, Aurora live smoke passed.
+- Checkpoint 2 status: merged, pushed, deployed, local and live smoke passed.
+- Checkpoint 3 status: merged, pushed, deployed, local and live smoke passed.
+- Checkpoint 4 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `81b3c0f`.
+- Next active checkpoint: Checkpoint 6. Checkpoint 5 remains skipped for this run.
 
 ## Sequential Scope
 

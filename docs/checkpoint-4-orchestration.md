@@ -233,8 +233,17 @@ The orchestrator must update this table after worker creation.
 
 Checkpoint 4 merge integration completed on 2026-06-29.
 
+- Final integration commit: `bfd55f1`.
+- Proof-state fix commit: `81b3c0f`.
+- Production deployment: `dpl_Cx525YGZcNYWx1XJwoerS7RkACao`.
+- Public production alias: `https://useby-app.vercel.app`.
 - Master patch added live demo reset cleanup for `lending_condition_events`, `lending_reservations`, and `lending_availability_windows`.
 - Master patch aligned CP4 proof contracts and docs to the actual Lane 4A table names.
+- Master patch fixed `/api/system/state` CP4 counts to use `item_state` and actual CP4 tables: `lending_availability_windows`, `lending_reservations`, and `lending_condition_events`.
 - Local verification passed from `useby-app`: `npm run lint`, `npm run typecheck`, `npm run test` (32 files, 116 tests), and `npm run build`.
 - Repository whitespace check passed with `git diff --check`.
 - Aurora migration `useby-app/drizzle/0003_lending_schema_runtime.sql` was applied through the RDS Data API with Drizzle hash `efe8381a07ffe76b227e482f42482fc6263f980ee8b9ec5f25059d8ad5dd18ab`.
+- Production API smoke passed for `/api/system/db-proof`, `/api/system/state`, `/api/lending/listings`, `/api/lending/requests`, and the invalid-body guard on `POST /api/lending/request`.
+- Production mutation smoke passed with live booking `e8e5c79d-9634-4d76-98ab-216cd02f9168`: request `200`, accept/reserve `200`, overlapping conflict `409`, schedule pickup `200`, picked up `200`, returned `200`, complete `200`, review `200`.
+- Post-mutation system state reported CP4 live evidence: `cp4LendingReservations=1`, `cp4LendingConditionEvents=5`, `cp4LendingHandoffs=1`, `cp4LendingTrustEvents=3`, and `cp4LendingReviews=1`.
+- Chrome rendered smoke passed for `/lending` and `/proof`: live wardrobe/household listings, request controls, no-payment copy, and CP4 proof evidence rendered from production.

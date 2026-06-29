@@ -78,6 +78,13 @@ Required environment posture:
 - S3 variables configured only when storage proof is expected.
 - No Stripe/payment capture variables are required for CP4.
 
+Completed production deployment:
+
+- Commit: `81b3c0f`.
+- Deployment: `dpl_Cx525YGZcNYWx1XJwoerS7RkACao`.
+- Public alias: `https://useby-app.vercel.app`.
+- Deployment state: ready.
+
 ## API Smoke
 
 Use `curl -i` so status codes and headers are visible:
@@ -101,6 +108,20 @@ Expected API results:
 - Return, complete, and review write live handoff, inventory, trust/review, and audit evidence.
 - Payment/deposit wording is informational only. No response may claim Stripe, card, deposit, or payment capture.
 
+Completed production API smoke on 2026-06-29:
+
+- `/api/system/db-proof`: `HTTP 200`, Aurora database `useby`, PostgreSQL `17.7`, required extensions available: `postgis`, `vector`, `pgcrypto`, and `pg_trgm`.
+- `/api/system/state`: `HTTP 200`, status `available`, CP4 table counts available.
+- `/api/lending/listings`: `HTTP 200`, returned 12 live listed `fashion` and `household` items with coarse owner location only.
+- `/api/lending/requests`: `HTTP 200`.
+- Invalid `POST /api/lending/request` without JSON: `HTTP 400` with an honest request-body error.
+- Live mutation smoke id `cp4-live-1782712140533` created booking `e8e5c79d-9634-4d76-98ab-216cd02f9168` from current Aurora rows.
+- Mutation status evidence: request `200`, accept/reserve `200`, overlapping conflict `409`, schedule pickup `200`, picked up `200`, returned `200`, complete `200`, review `200`.
+- Final booking status: `reviewed`.
+- Final reservation status: `released`.
+- Post-mutation `/api/system/state` included `cp4LendingReservations=1`, `cp4LendingConditionEvents=5`, `cp4LendingHandoffs=1`, `cp4LendingTrustEvents=3`, and `cp4LendingReviews=1`.
+- Latest audit evidence included `lending.requested`, `lending.accepted`, `lending.pickup_scheduled`, `lending.picked_up`, `lending.returned`, `lending.completed`, and `lending.reviewed`.
+
 ## Browser Smoke
 
 Open:
@@ -118,6 +139,12 @@ Check:
 5. Attempt a second overlapping request and verify a live conflict.
 6. Advance picked-up/returned/complete/review states when the UI exposes those controls.
 7. Open `/proof` and verify CP4 row counts and lending controls reflect the live actions.
+
+Completed rendered production smoke on 2026-06-29:
+
+- `https://useby-app.vercel.app/lending` rendered with 12 listings, wardrobe and household filters, request controls, coarse owner-area copy, and no-payment/deposit-note wording.
+- `https://useby-app.vercel.app/proof` rendered the CP4 proof surface with live database, lending, rental, reservation, and condition evidence text.
+- No browser smoke required Stripe, card, deposit capture, exact coordinates, or direct contact information.
 
 ## No-Payment Constraint
 
