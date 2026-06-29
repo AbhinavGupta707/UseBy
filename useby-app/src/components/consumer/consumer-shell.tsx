@@ -63,7 +63,7 @@ export function ConsumerShell({ children }: { children: ReactNode }) {
         <header className="useby-topbar">
           <button className="useby-location" type="button">
             <PinIcon aria-hidden="true" />
-            <span>North Park</span>
+            <span>Riverside Quarter</span>
             <ChevronIcon aria-hidden="true" />
           </button>
 

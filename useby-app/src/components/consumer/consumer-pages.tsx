@@ -99,7 +99,7 @@ export function TodayDashboard() {
           <h1>Good evening, Maya</h1>
           <p>Use more. Share more. Unlock what is nearby. Good for you, your neighbours, and the planet.</p>
         </div>
-        <Visual src={visuals.neighbourhood} label="North Park neighbourhood" className="useby-hero-art" />
+        <Visual src={visuals.neighbourhood} label="Riverside Quarter neighbourhood" className="useby-hero-art" />
       </section>
 
       <section className="useby-metrics" aria-label="Live neighbourhood summary">
@@ -154,6 +154,9 @@ export function TodayDashboard() {
             </article>
           ))}
         </div>
+        {!grocery.loading && !pools.loading && !drops.loading && nearby.length === 0 ? (
+          <EmptyConsumerState title="No nearby opportunities returned" detail="Matches, pools, and merchant drops will appear here when live rows are available." />
+        ) : null}
       </section>
 
       <LiveStateNotice states={[grocery, pools, drops, bookings]} />
@@ -485,8 +488,8 @@ function MatchesSurface({ matches, loading }: { matches: GroceryMatch[]; loading
       <div className="useby-filter-row">
         {["All", "Grocery", "Fashion", "Household", "Tonight"].map((item) => <button className="useby-chip-button" key={item} type="button">{item}</button>)}
       </div>
-      <div className="useby-map-strip" aria-label="North Park and nearby within 2 km">
-        <span>North Park and nearby - within 2 km</span>
+      <div className="useby-map-strip" aria-label="Riverside Quarter and nearby within 2 km">
+        <span>Riverside Quarter and nearby - within 2 km</span>
       </div>
       <div className="useby-match-list">
         {matches.map((match) => <MatchCard key={match.id} match={match} />)}
@@ -534,7 +537,7 @@ function MatchCard({ match }: { match: GroceryMatch }) {
       <Visual src={visualFor(`${match.itemName} ${match.needTitle}`, "herbs")} label="" className="useby-match-image" decorative />
       <div>
         <h3>{match.needTitle || `${match.itemName} nearby`}</h3>
-        <p className="useby-meta-line">{formatDistance(match.distanceMeters)} - Pickup window from live row - {match.requesterCoarseLocation ?? "North Park"}</p>
+        <p className="useby-meta-line">{formatDistance(match.distanceMeters)} - Pickup window from live row - {match.requesterCoarseLocation ?? "Riverside Quarter"}</p>
         <p>{match.rationale}</p>
         <div className="useby-reason-row">
           <span>{formatLabel(match.safetyStatus)}</span>
@@ -819,14 +822,6 @@ function buildNearbyOpportunities(matches: GroceryMatch[], pools: DemandPool[], 
       tag: "Drop",
       visual: visualFor(drop.title, "brunch"),
     })),
-    {
-      id: "fallback-apples",
-      title: "Apple surplus",
-      detail: "Nearby opportunities appear here from current rows.",
-      distance: "North Park",
-      tag: "Food",
-      visual: visuals.apples,
-    },
   ];
 }
 
@@ -841,7 +836,7 @@ function consumerActionTitle(card: GroceryActionCard) {
 function estimateSavings(pools: DemandPool[], drops: StoreDrop[]) {
   const poolSaving = pools.reduce((sum, pool) => sum + estimatedPoolSaving(pool), 0);
   const dropSaving = drops.filter((drop) => canReserveDrop(drop)).length * 600;
-  return formatMoney(poolSaving + dropSaving || 14250);
+  return formatMoney(poolSaving + dropSaving);
 }
 
 function estimatedPoolSaving(pool: DemandPool) {
@@ -892,7 +887,7 @@ function itemList(items: DemandPool["items"]) {
 function pickupAreaCopy(pool: DemandPool) {
   if (pool.pickupAreaLabel) return pool.pickupAreaLabel;
   if (pool.pickupRadiusMeters) return `within ${(pool.pickupRadiusMeters / 1000).toFixed(1)} km`;
-  return "North Park";
+  return "Riverside Quarter";
 }
 
 function remainingCopy(drop: StoreDrop) {
