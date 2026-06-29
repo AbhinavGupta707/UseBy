@@ -161,6 +161,15 @@ async function fetchEndpoint(fetcher: Fetcher, endpoint: string): Promise<{
 }
 
 export function normalizeDemandPoolItem(value: unknown, index = 0): DemandPoolItem {
+  if (typeof value === "string") {
+    return {
+      id: null,
+      name: value,
+      quantity: null,
+      unit: null,
+    };
+  }
+
   const record = asRecord(value);
   return {
     id: stringValue(findFirst(record, ["id", "itemId", "item_id"]), "") || null,
@@ -180,7 +189,7 @@ function normalizeCommitment(value: unknown, poolId: string): DemandPoolCommitme
     id: stringValue(findFirst(record, ["id", "commitmentId", "commitment_id"]), "") || null,
     poolId,
     quantity: Math.max(1, integerValue(findFirst(record, ["quantity", "qty"]), 1)),
-    maxPriceCents: centsValue(findFirst(record, ["maxPriceCents", "max_price_cents", "maxPriceIntentCents", "max_price_intent_cents", "maxPrice", "max_price"])),
+    maxPriceCents: centsValue(findFirst(record, ["maxPricePence", "max_price_pence", "maxPriceCents", "max_price_cents", "maxPriceIntentCents", "max_price_intent_cents", "maxPrice", "max_price"])),
     status: stringValue(findFirst(record, ["status", "commitmentStatus", "commitment_status"]), "active"),
     unpaidDemoIntent: booleanValue(findFirst(record, ["unpaidDemoIntent", "unpaid_demo_intent", "isDemoIntent", "is_demo_intent"]), true),
     createdAt: dateTimeValue(findFirst(record, ["createdAt", "created_at"])),
@@ -210,6 +219,7 @@ export function normalizeDemandPoolBid(value: unknown, index = 0): DemandPoolBid
 export function normalizeDemandPoolOrder(value: unknown, index = 0): DemandPoolOrder {
   const record = asRecord(value);
   const merchant = firstObject(record, ["merchant", "merchantProfile", "merchant_profile"]);
+  const pickup = firstObject(record, ["pickup", "pickupTask", "pickup_task"]);
 
   return {
     id: stringValue(findFirst(record, ["id", "orderId", "order_id", "pickupTaskId", "pickup_task_id"]), `order-${index}`),
@@ -218,19 +228,21 @@ export function normalizeDemandPoolOrder(value: unknown, index = 0): DemandPoolO
     merchantName: stringValue(findFirst(record, ["merchantName", "merchant_name"]) ?? findFirst(merchant, ["name", "displayName", "display_name"]), "") || null,
     quantity: numberValue(findFirst(record, ["quantity", "qty"])),
     totalPriceCents: centsValue(findFirst(record, ["totalPriceCents", "total_price_cents", "priceCents", "price_cents", "totalPrice", "total_price"])),
-    pickupWindowStart: dateTimeValue(findFirst(record, ["pickupWindowStart", "pickup_window_start", "windowStart", "window_start"])),
-    pickupWindowEnd: dateTimeValue(findFirst(record, ["pickupWindowEnd", "pickup_window_end", "windowEnd", "window_end"])),
-    pickupAreaLabel: stringValue(findFirst(record, ["pickupAreaLabel", "pickup_area_label", "pickupArea", "pickup_area"]), "") || null,
-    pickupHint: stringValue(findFirst(record, ["pickupHint", "pickup_hint", "pickupLocationHint", "pickup_location_hint"]), "") || null,
-    readyAt: dateTimeValue(findFirst(record, ["readyAt", "ready_at"])),
-    collectedAt: dateTimeValue(findFirst(record, ["collectedAt", "collected_at"])),
+    pickupWindowStart: dateTimeValue(findFirst(record, ["pickupWindowStart", "pickup_window_start", "windowStart", "window_start"]) ?? findFirst(pickup, ["pickupWindowStart", "pickup_window_start", "windowStart", "window_start"])),
+    pickupWindowEnd: dateTimeValue(findFirst(record, ["pickupWindowEnd", "pickup_window_end", "windowEnd", "window_end"]) ?? findFirst(pickup, ["pickupWindowEnd", "pickup_window_end", "windowEnd", "window_end"])),
+    pickupAreaLabel: stringValue(findFirst(record, ["pickupAreaLabel", "pickup_area_label", "pickupArea", "pickup_area"]) ?? findFirst(merchant, ["pickupAreaLabel", "pickup_area_label"]) ?? findFirst(pickup, ["coarsePickupLabel", "coarse_pickup_label"]), "") || null,
+    pickupHint: stringValue(findFirst(record, ["pickupHint", "pickup_hint", "pickupLocationHint", "pickup_location_hint"]) ?? findFirst(pickup, ["coarsePickupLabel", "coarse_pickup_label"]), "") || null,
+    readyAt: dateTimeValue(findFirst(record, ["readyAt", "ready_at"]) ?? findFirst(pickup, ["readyAt", "ready_at"])),
+    collectedAt: dateTimeValue(findFirst(record, ["collectedAt", "collected_at"]) ?? findFirst(pickup, ["collectedAt", "collected_at"])),
   };
 }
 
 export function normalizeDemandPool(value: unknown, index = 0): DemandPool {
   const record = asRecord(value);
   const id = stringValue(findFirst(record, ["id", "poolId", "pool_id", "demandPoolId", "demand_pool_id"]), `pool-${index}`);
-  const progress = firstObject(record, ["progress", "threshold"]);
+  const progress = firstObject(record, ["progress"]);
+  const threshold = firstObject(record, ["threshold"]);
+  const committed = firstObject(record, ["committed"]);
   const currentUserCommitment = firstObject(record, [
     "currentUserCommitment",
     "current_user_commitment",
@@ -246,9 +258,9 @@ export function normalizeDemandPool(value: unknown, index = 0): DemandPool {
     title: stringValue(findFirst(record, ["title", "name"]), "Neighbourhood demand pool"),
     description: stringValue(findFirst(record, ["description", "summary", "detail"]), "") || null,
     status: stringValue(findFirst(record, ["status", "poolStatus", "pool_status"]), "gathering"),
-    thresholdQuantity: Math.max(1, integerValue(findFirst(record, ["thresholdQuantity", "threshold_quantity", "targetQuantity", "target_quantity"]) ?? progress.target, 1)),
-    committedQuantity: integerValue(findFirst(record, ["committedQuantity", "committed_quantity", "currentQuantity", "current_quantity", "totalQuantity", "total_quantity"]) ?? progress.current, 0),
-    householdCount: integerValue(findFirst(record, ["householdCount", "household_count", "committedHouseholds", "committed_households"]) ?? progress.households, 0),
+    thresholdQuantity: Math.max(1, integerValue(findFirst(record, ["thresholdQuantity", "threshold_quantity", "targetQuantity", "target_quantity"]) ?? findFirst(threshold, ["quantity"]) ?? progress.target, 1)),
+    committedQuantity: integerValue(findFirst(record, ["committedQuantity", "committed_quantity", "currentQuantity", "current_quantity", "totalQuantity", "total_quantity"]) ?? findFirst(committed, ["quantity"]) ?? progress.current, 0),
+    householdCount: integerValue(findFirst(record, ["householdCount", "household_count", "committedHouseholds", "committed_households"]) ?? findFirst(committed, ["households"]) ?? progress.households, 0),
     closesAt: dateTimeValue(findFirst(record, ["closesAt", "closes_at", "closeAt", "close_at", "biddingEndsAt", "bidding_ends_at"])),
     maxPriceCents: centsValue(findFirst(record, ["maxPriceCents", "max_price_cents", "maxPriceIntentCents", "max_price_intent_cents", "maxPrice", "max_price"])),
     pickupRadiusMeters: numberValue(findFirst(record, ["pickupRadiusMeters", "pickup_radius_meters", "radiusMeters", "radius_meters"])),
@@ -326,10 +338,12 @@ export async function submitDemandPoolCommitment(
 
   return postJson(fetcher, `${POOLS_ENDPOINT}/${encodeURIComponent(input.poolId)}/commit`, {
     quantity: Math.round(quantity),
-    maxPriceCents,
-    maxPriceIntentCents: maxPriceCents,
-    unpaidDemoIntent: true,
-    source: "consumer_demand_pool_ui",
+    maxPricePence: maxPriceCents,
+    metadata: {
+      maxPriceCents,
+      unpaidDemoIntent: true,
+      source: "consumer_demand_pool_ui",
+    },
   }, input.poolId);
 }
 
@@ -362,23 +376,29 @@ export async function submitDemandPoolCreate(
     .split(/\r?\n|,/)
     .map((item) => item.trim())
     .filter(Boolean)
-    .map((name) => ({ name, quantity: "1", unit: "bundle item" }));
+    .slice(0, 12);
 
   if (requestedItems.length === 0) {
     return validationResult(null, "Add at least one requested item.");
   }
 
+  const closesAt = input.closesAt
+    ? new Date(input.closesAt).toISOString()
+    : new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
   return postJson(fetcher, POOLS_ENDPOINT, {
     title: input.title.trim(),
     requestedItems,
     thresholdQuantity: Math.round(targetQuantity),
-    maxPriceCents,
-    maxPriceIntentCents: maxPriceCents,
+    maxPricePencePerHousehold: maxPriceCents,
     pickupRadiusMeters,
-    pickupAreaLabel: input.pickupArea.trim() || null,
-    closesAt: input.closesAt || null,
-    unpaidDemoIntent: true,
-    source: "consumer_demand_pool_ui",
+    closesAt,
+    metadata: {
+      pickupAreaLabel: input.pickupArea.trim() || null,
+      maxPriceCents,
+      unpaidDemoIntent: true,
+      source: "consumer_demand_pool_ui",
+    },
   }, null);
 }
 

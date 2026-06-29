@@ -112,9 +112,12 @@ describe("demand pool UI API helpers", () => {
     expect(calls[0]?.endpoint).toBe("/api/demand-pools/pool-roast/commit");
     expect(calls[0]?.body).toMatchObject({
       quantity: 2,
-      maxPriceCents: 1150,
-      unpaidDemoIntent: true,
-      source: "consumer_demand_pool_ui",
+      maxPricePence: 1150,
+      metadata: {
+        maxPriceCents: 1150,
+        unpaidDemoIntent: true,
+        source: "consumer_demand_pool_ui",
+      },
     });
     expect(calls[0]?.body).not.toHaveProperty("card");
     expect(calls[0]?.body).not.toHaveProperty("deposit");
@@ -141,9 +144,13 @@ describe("demand pool UI API helpers", () => {
     expect(payload).toMatchObject({
       title: "Student pantry staples",
       thresholdQuantity: 8,
-      maxPriceCents: 900,
-      unpaidDemoIntent: true,
-      source: "consumer_demand_pool_ui",
+      maxPricePencePerHousehold: 900,
+      requestedItems: ["Rice", "beans"],
+      metadata: {
+        maxPriceCents: 900,
+        unpaidDemoIntent: true,
+        source: "consumer_demand_pool_ui",
+      },
     });
     expect(payload).not.toHaveProperty("winningBid");
     expect(payload).not.toHaveProperty("orders");
