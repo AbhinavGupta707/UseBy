@@ -35,6 +35,7 @@ describe("proof UI adapters", () => {
     expect(snapshot.dbProofEndpoint.status).toBe("unavailable");
     expect(snapshot.rowCounts.every((row) => row.count === null)).toBe(true);
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/demo/reset");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/bookings/request");
   });
 
   it("normalizes live counts, extensions, audit events, and jobs", () => {
@@ -51,6 +52,18 @@ describe("proof UI adapters", () => {
           { key: "needs", table: "needs", count: 5 },
           { key: "actionCards", table: "action_cards", count: 4, available: true },
           { key: "matches", table: "matches", count: 2, available: true },
+          { key: "bookings", table: "bookings", count: 3, available: true },
+          { key: "handoffs", table: "handoffs", count: 2, available: true },
+          {
+            key: "safetyAcknowledgements",
+            table: "safety_acknowledgements",
+            count: 5,
+            available: true,
+          },
+          { key: "trustEvents", table: "trust_events", count: 2, available: true },
+          { key: "reviews", table: "reviews", count: 1, available: true },
+          { key: "reports", table: "reports", count: 1, available: true },
+          { key: "blocks", table: "blocks", count: 1, available: true },
           { key: "demandPools", table: "demand_pools", count: 3 },
           { key: "auditEvents", table: "audit_events", count: 12 },
           { key: "jobRuns", table: "job_runs", count: 2 },
@@ -98,6 +111,13 @@ describe("proof UI adapters", () => {
     expect(snapshot.rowCounts.find((row) => row.key === "households")?.count).toBe(8);
     expect(snapshot.rowCounts.find((row) => row.key === "action_cards")?.count).toBe(4);
     expect(snapshot.rowCounts.find((row) => row.key === "matches")?.count).toBe(2);
+    expect(snapshot.rowCounts.find((row) => row.key === "bookings")?.count).toBe(3);
+    expect(snapshot.rowCounts.find((row) => row.key === "handoffs")?.count).toBe(2);
+    expect(snapshot.rowCounts.find((row) => row.key === "safety_acknowledgements")?.count).toBe(5);
+    expect(snapshot.rowCounts.find((row) => row.key === "trust_events")?.count).toBe(2);
+    expect(snapshot.rowCounts.find((row) => row.key === "reviews")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "reports")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "blocks")?.count).toBe(1);
     expect(snapshot.extensions.find((extension) => extension.name === "postgis")?.status).toBe("ok");
     expect(snapshot.extensions.find((extension) => extension.name === "vector")?.status).toBe("unavailable");
     expect(snapshot.auditEvents[0]?.title).toBe("demo.seeded");
@@ -142,5 +162,85 @@ describe("proof UI adapters", () => {
       available: false,
       reason: "status column is required for active count",
     });
+  });
+
+  it("keeps CP3 missing tables visible as unavailable proof rows", () => {
+    const snapshot = normalizeProofSnapshot(
+      endpoint("/api/system/state", "ok", {
+        status: "partial",
+        counts: [
+          {
+            key: "bookings",
+            table: "bookings",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "handoffs",
+            table: "handoffs",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "safetyAcknowledgements",
+            table: "safety_acknowledgements",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "trustEvents",
+            table: "trust_events",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "reviews",
+            table: "reviews",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "reports",
+            table: "reports",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "blocks",
+            table: "blocks",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+        ],
+      }),
+      endpoint("/api/system/db-proof", "ok", {
+        status: "available",
+        database: { available: true, currentDatabase: "useby", versionSummary: "PostgreSQL 17.7" },
+        extensions: { available: true, items: [] },
+      }),
+    );
+
+    for (const key of [
+      "bookings",
+      "handoffs",
+      "safety_acknowledgements",
+      "trust_events",
+      "reviews",
+      "reports",
+      "blocks",
+    ]) {
+      expect(snapshot.rowCounts.find((row) => row.key === key)).toMatchObject({
+        count: null,
+        available: false,
+        reason: "table is not available",
+      });
+    }
   });
 });
