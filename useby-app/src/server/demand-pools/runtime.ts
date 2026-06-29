@@ -591,8 +591,8 @@ async function recomputePoolCounters(
     context,
     `
       update demand_pools
-      set committed_quantity = :committedQuantity,
-          committed_households = :committedHouseholds,
+      set committed_quantity = :committedQuantity::numeric,
+          committed_households = :committedHouseholds::int,
           status = :status::pool_status,
           bidding_opens_at = case
             when :status::pool_status in ('threshold_met', 'bidding') and bidding_opens_at is null
