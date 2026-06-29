@@ -150,6 +150,7 @@ function tableIds(world: DemoWorldFixture): IdMap {
       demoUuidFor(commitment.demoId),
     ] as const),
     ...world.merchantBids.map((bid) => [bid.demoId, demoUuidFor(bid.demoId)] as const),
+    ...world.storeDrops.map((drop) => [drop.demoId, demoUuidFor(drop.demoId)] as const),
     [world.metadata.seedBatchId, demoUuidFor(world.metadata.seedBatchId)],
   ]);
 }
@@ -190,12 +191,14 @@ async function resetDemoRows(context: TransactionContext) {
   const statements = [
     "delete from pickup_tasks where demo_scope_id = :demoScope or demand_pool_id in (select id from demand_pools where demo_scope_id = :demoScope) or household_id in (select id from households where demo_scope_id = :demoScope) or pool_order_id in (select id from pool_orders where demo_scope_id = :demoScope)",
     "delete from pool_orders where demo_scope_id = :demoScope or demand_pool_id in (select id from demand_pools where demo_scope_id = :demoScope) or household_id in (select id from households where demo_scope_id = :demoScope) or commitment_id in (select id from demand_pool_commitments where demo_scope_id = :demoScope)",
+    "delete from store_drop_reservations where demo_scope_id = :demoScope or store_drop_id in (select id from store_drops where demo_scope_id = :demoScope) or household_id in (select id from households where demo_scope_id = :demoScope)",
     "delete from lending_condition_events where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope or booking_id in (select id from bookings where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope) or item_instance_id in (select id from item_instances where demo_scope_id = :demoScope)",
     "delete from lending_reservations where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope or booking_id in (select id from bookings where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope) or item_instance_id in (select id from item_instances where demo_scope_id = :demoScope) or requester_household_id in (select id from households where demo_scope_id = :demoScope) or owner_household_id in (select id from households where demo_scope_id = :demoScope)",
     "delete from lending_availability_windows where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope or item_instance_id in (select id from item_instances where demo_scope_id = :demoScope) or owner_household_id in (select id from households where demo_scope_id = :demoScope)",
     "delete from inventory_events where metadata->>'demoScope' = :demoScope or item_instance_id in (select id from item_instances where demo_scope_id = :demoScope)",
     "delete from demand_pool_commitments where demo_scope_id = :demoScope or demand_pool_id in (select id from demand_pools where demo_scope_id = :demoScope)",
     "delete from merchant_bids where demo_scope_id = :demoScope or demand_pool_id in (select id from demand_pools where demo_scope_id = :demoScope)",
+    "delete from store_drops where demo_scope_id = :demoScope or merchant_id in (select id from merchants where demo_scope_id = :demoScope)",
     "delete from item_instances where demo_scope_id = :demoScope",
     "delete from needs where demo_scope_id = :demoScope",
     "delete from demand_pools where demo_scope_id = :demoScope",
@@ -674,6 +677,60 @@ async function insertCommitmentsAndBids(
   }
 }
 
+async function insertStoreDrops(
+  context: TransactionContext,
+  world: DemoWorldFixture,
+  ids: IdMap,
+) {
+  const neighbourhoodId = mustGet(ids, world.neighbourhood.demoId);
+
+  for (const drop of world.storeDrops) {
+    const [pickupWindowStart, pickupWindowEnd] = drop.pickupWindow.split("/");
+    const merchantLocationId = mustGet(ids, `location:${drop.merchantId}`);
+
+    await execTx(
+      context,
+      `
+        insert into store_drops (
+          id, merchant_id, merchant_location_id, neighbourhood_id, title,
+          description, status, quantity_total, unit, price_cents, currency,
+          pickup_window_start, pickup_window_end, safety_notes,
+          pickup_location, metadata, demo_scope_id, is_demo
+        )
+        values (
+          :id::uuid, :merchantId::uuid, :merchantLocationId::uuid,
+          :neighbourhoodId::uuid, :title, :description,
+          :status::store_drop_status, :quantityTotal::numeric, 'box',
+          :priceCents, 'GBP', :pickupWindowStart::timestamp with time zone,
+          :pickupWindowEnd::timestamp with time zone, :safetyNotes,
+          ${pointSql}, :metadata::jsonb, :demoScope, true
+        )
+      `,
+      params({
+        id: mustGet(ids, drop.demoId),
+        merchantId: mustGet(ids, drop.merchantId),
+        merchantLocationId,
+        neighbourhoodId,
+        title: drop.title,
+        description: null,
+        status: drop.status,
+        quantityTotal: drop.quantityTotal,
+        priceCents: drop.pricePence,
+        pickupWindowStart,
+        pickupWindowEnd,
+        safetyNotes: drop.safetyNotes,
+        lng: drop.location.lng,
+        lat: drop.location.lat,
+        metadata: rowMetadata(drop.demoId, {
+          quantityReservedSeedInputIgnored: drop.quantityReserved,
+          seededAsInputOnly: true,
+        }),
+        demoScope: DEMO_SCOPE,
+      }),
+    );
+  }
+}
+
 async function insertSeedProofRows(
   context: TransactionContext,
   world: DemoWorldFixture,
@@ -754,6 +811,7 @@ async function insertDemoWorld(
   await insertNeeds(context, world, ids);
   await insertDemandPools(context, world, ids, seedContext);
   await insertCommitmentsAndBids(context, world, ids, seedContext);
+  await insertStoreDrops(context, world, ids);
   await insertSeedProofRows(context, world, ids, seedContext);
 }
 
