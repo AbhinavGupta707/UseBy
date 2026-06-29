@@ -1,9 +1,9 @@
 # Checkpoint 8 Orchestration Control
 
 Checkpoint 7 completed commit: `f9f4c61`.
-Checkpoint 8 plan commit: pending.
-Worker launch base: pending.
-Current worker registry commit: pending.
+Checkpoint 8 plan commit: `5f821f3` (`Plan checkpoint 8 external integrations orchestration`).
+Worker launch base: `5f821f3`.
+Current worker registry commit: pending while CP8 workers are active.
 
 ## Outcome
 
@@ -177,14 +177,15 @@ Avoid:
 
 | Lane | Thread | Worktree | Status |
 | --- | --- | --- | --- |
-| 8A S3 And Textract Ingestion | pending | pending | pending launch |
-| 8B Maps And Geocoding | pending | pending | pending launch |
-| 8C Notifications And Reminder Jobs | pending | pending | pending launch |
-| 8D AI, Semantic Matching, Proof, And Docs | pending | pending | pending launch |
+| 8A S3 And Textract Ingestion | `019f127b-13df-7890-8e27-5f7ad52c2007` | `/Users/abhinavgupta/.codex/worktrees/19e5/UseBy` | active |
+| 8B Maps And Geocoding | `019f127b-5341-7832-8fab-361a4690ea7e` | `/Users/abhinavgupta/.codex/worktrees/f895/UseBy` | active |
+| 8C Notifications And Reminder Jobs | `019f127b-9516-7b41-9b1d-a24506aa4114` | `/Users/abhinavgupta/.codex/worktrees/d680/UseBy` | active |
+| 8D AI, Semantic Matching, Proof, And Docs | `019f127b-e189-7892-93b4-a5fef30cf8bc` | `/Users/abhinavgupta/.codex/worktrees/4eaa/UseBy` | active |
 
 ## Integration Log
 
-- Pending CP8 worker launch from the plan commit.
+- `5f821f3` created the CP8 external integrations orchestration plan.
+- CP8 workers launched from `5f821f3` in four isolated Codex worktrees. Merge order remains 8A, 8B, 8C, 8D, then master integration patch.
 
 ## Verification
 
