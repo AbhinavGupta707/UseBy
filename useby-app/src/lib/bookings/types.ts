@@ -101,6 +101,7 @@ export type SafetyAcknowledgementInput = {
   matchId: string;
   itemInstanceId: string | null;
   needId: string | null;
+  householdId?: string | null;
   acknowledged: boolean;
   sealedPackagedOnly: boolean;
   noSafetyCertification: boolean;
@@ -111,6 +112,7 @@ export type BookingRequestInput = {
   matchId: string;
   itemInstanceId: string | null;
   needId: string | null;
+  householdId?: string | null;
   source: "grocery_match_card" | "booking_detail";
 };
 

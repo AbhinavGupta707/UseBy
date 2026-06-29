@@ -218,6 +218,20 @@ export function normalizeMatch(value: unknown, index = 0): GroceryMatch {
     rationale: stringValue(findFirst(record, ["rationale", "explanation", "reason"]), "Match rationale was not returned."),
     safetyStatus: normalizeSafety(findFirst(record, ["safetyStatus", "safety_status"]) ?? item.safetyStatus),
     status: stringValue(record.status, "proposed"),
+    storageState: stringValue(findFirst(record, ["storageState", "storage_state"]) ?? item.storageState, "") || null,
+    itemState: stringValue(findFirst(record, ["itemState", "item_state"]) ?? item.itemState, "") || null,
+    requesterHouseholdId: stringValue(
+      findFirst(record, ["requesterHouseholdId", "requester_household_id"]) ??
+      need.requesterHouseholdId ??
+      need.requester_household_id,
+      "",
+    ) || null,
+    ownerHouseholdId: stringValue(
+      findFirst(record, ["ownerHouseholdId", "owner_household_id"]) ??
+      item.ownerHouseholdId ??
+      item.owner_household_id,
+      "",
+    ) || null,
     ownerCoarseLocation: stringValue(
       findFirst(record, ["ownerCoarseLocation", "owner_coarse_location"]) ??
       item.ownerCoarseLocation ??

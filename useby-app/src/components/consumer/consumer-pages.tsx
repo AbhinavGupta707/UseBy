@@ -259,19 +259,38 @@ export function InventoryDashboard() {
           <p>Paste receipt lines or add one item manually. The save goes through the live grocery route when available.</p>
         </div>
         <form className="useby-add-form" onSubmit={handleManualSubmit}>
-          <textarea
-            onChange={(event) => setManualInput({ ...manualInput, receiptLines: event.target.value })}
-            placeholder={"BABY SPINACH 200G\nTORTILLA WRAPS 8PK"}
-            value={manualInput.receiptLines}
-          />
+          <label className="useby-field-stack">
+            <span>Receipt lines</span>
+            <textarea
+              aria-describedby="receipt-lines-help"
+              onChange={(event) => setManualInput({ ...manualInput, receiptLines: event.target.value })}
+              placeholder={"BABY SPINACH 200G\nTORTILLA WRAPS 8PK"}
+              value={manualInput.receiptLines}
+            />
+          </label>
+          <p className="useby-form-note" id="receipt-lines-help">
+            Paste receipt text here, then use Draft with agent to review extracted items before saving.
+          </p>
           <div className="useby-form-grid">
-            <input aria-label="Item name" onChange={(event) => setManualInput({ ...manualInput, itemName: event.target.value })} placeholder="Greek yoghurt" value={manualInput.itemName} />
-            <input aria-label="Quantity" onChange={(event) => setManualInput({ ...manualInput, quantity: event.target.value })} placeholder="1" value={manualInput.quantity} />
-            <input aria-label="Unit" onChange={(event) => setManualInput({ ...manualInput, unit: event.target.value })} placeholder="each" value={manualInput.unit} />
-            <input aria-label="Label date" onChange={(event) => setManualInput({ ...manualInput, expiryDate: event.target.value })} type="date" value={manualInput.expiryDate} />
+            <label className="useby-field-stack">
+              <span>Manual item name</span>
+              <input aria-label="Item name" onChange={(event) => setManualInput({ ...manualInput, itemName: event.target.value })} placeholder="Greek yoghurt" value={manualInput.itemName} />
+            </label>
+            <label className="useby-field-stack">
+              <span>Quantity</span>
+              <input aria-label="Quantity" onChange={(event) => setManualInput({ ...manualInput, quantity: event.target.value })} placeholder="1" value={manualInput.quantity} />
+            </label>
+            <label className="useby-field-stack">
+              <span>Unit</span>
+              <input aria-label="Unit" onChange={(event) => setManualInput({ ...manualInput, unit: event.target.value })} placeholder="each" value={manualInput.unit} />
+            </label>
+            <label className="useby-field-stack">
+              <span>Label date</span>
+              <input aria-label="Label date" onChange={(event) => setManualInput({ ...manualInput, expiryDate: event.target.value })} type="date" value={manualInput.expiryDate} />
+            </label>
           </div>
           <button className="useby-button" disabled={submitting || (!manualInput.itemName.trim() && !manualInput.receiptLines.trim())} type="submit">
-            {submitting ? "Saving" : "Scan or add"}
+            {submitting ? "Saving" : "Save manual item"}
           </button>
           {mutation ? <p className="useby-form-note">{mutation}</p> : null}
         </form>
@@ -514,7 +533,15 @@ function MatchCard({ match }: { match: GroceryMatch }) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<BookingMutationResult | null>(null);
-  const eligible = match.safetyStatus === "eligible" && ["proposed", "active"].includes(match.status);
+  const activeStatus = ["proposed", "active"].includes(match.status);
+  const eligible = match.safetyStatus === "eligible" && activeStatus && Boolean(match.requesterHouseholdId);
+  const unavailableReason = !activeStatus
+    ? "This match is no longer active."
+    : match.safetyStatus !== "eligible"
+      ? `Sharing is blocked because the item safety status is ${formatLabel(match.safetyStatus)}.`
+      : !match.requesterHouseholdId
+        ? "This match is missing requester context, so the booking cannot be attached to the right household."
+        : "";
 
   async function reserve() {
     setSubmitting(true);
@@ -523,6 +550,7 @@ function MatchCard({ match }: { match: GroceryMatch }) {
       matchId: match.id,
       itemInstanceId: match.itemId,
       needId: match.needId,
+      householdId: match.requesterHouseholdId,
       acknowledged,
       sealedPackagedOnly: true,
       noSafetyCertification: true,
@@ -537,6 +565,7 @@ function MatchCard({ match }: { match: GroceryMatch }) {
       matchId: match.id,
       itemInstanceId: match.itemId,
       needId: match.needId,
+      householdId: match.requesterHouseholdId,
       source: "grocery_match_card",
     });
     setResult(bookingResult);
@@ -563,7 +592,7 @@ function MatchCard({ match }: { match: GroceryMatch }) {
         <button className="useby-button" disabled={!eligible || !acknowledged || submitting} onClick={() => void reserve()} type="button">
           {submitting ? "Reserving" : "Reserve"}<ArrowIcon />
         </button>
-        {!eligible ? <small>Unavailable until the live match is active and eligible.</small> : null}
+        {!eligible ? <small>{unavailableReason}</small> : null}
         {result ? <small>{result.status === "ok" ? "Booking requested." : result.message}</small> : null}
       </div>
     </article>

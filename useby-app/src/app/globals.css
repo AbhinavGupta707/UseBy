@@ -914,6 +914,18 @@ button:disabled {
   gap: 12px;
 }
 
+.useby-field-stack {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.useby-field-stack > span {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .useby-agent-review {
   grid-column: 1 / -1;
   min-width: 0;

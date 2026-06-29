@@ -46,6 +46,10 @@ export type GroceryMatch = {
   rationale: string;
   safetyStatus: SafetyStatus | string;
   status: string;
+  storageState: string | null;
+  itemState: string | null;
+  requesterHouseholdId: string | null;
+  ownerHouseholdId: string | null;
   ownerCoarseLocation: string | null;
   requesterCoarseLocation: string | null;
 };

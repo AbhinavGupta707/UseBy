@@ -79,6 +79,53 @@ describe("grocery UI API helpers", () => {
     expect(snapshot.actionCards).toHaveLength(0);
   });
 
+  it("normalizes nested live match eligibility and household context", async () => {
+    const fetcher = async (input: RequestInfo | URL) => {
+      const endpoint = String(input);
+      if (endpoint === "/api/grocery/inventory" || endpoint === "/api/grocery/action-cards") {
+        return jsonResponse({});
+      }
+
+      return jsonResponse({
+        matches: [
+          {
+            id: "match-wraps",
+            status: "proposed",
+            distanceMeters: 75,
+            score: 61.6,
+            rationale: "Package-safe grocery filters passed.",
+            need: {
+              id: "need-wraps",
+              title: "Wraps or tortillas for dinner",
+              requesterHouseholdId: "hh-requester",
+              requesterCoarseLocation: "Studio Yard",
+            },
+            item: {
+              id: "item-wraps",
+              title: "Gluten free wraps",
+              safetyStatus: "eligible",
+              storageState: "cupboard",
+              itemState: "use_soon",
+              ownerHouseholdId: "hh-owner",
+              ownerCoarseLocation: "Canopy House",
+            },
+          },
+        ],
+      });
+    };
+
+    const snapshot = await loadGrocerySnapshot(fetcher);
+
+    expect(snapshot.matches[0]).toMatchObject({
+      id: "match-wraps",
+      safetyStatus: "eligible",
+      storageState: "cupboard",
+      itemState: "use_soon",
+      requesterHouseholdId: "hh-requester",
+      ownerHouseholdId: "hh-owner",
+    });
+  });
+
   it("tries live mutation routes and reports unavailable when none are installed", async () => {
     const calls: string[] = [];
     const fetcher = async (input: RequestInfo | URL) => {

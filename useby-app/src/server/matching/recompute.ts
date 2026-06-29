@@ -39,6 +39,9 @@ export type GroceryMatchDto = {
     title: string;
     quantity: number;
     unit: string;
+    safetyStatus: string;
+    storageState: string;
+    itemState: string;
     ownerHouseholdId: string;
     ownerCoarseLocation: string | null;
   };
@@ -350,6 +353,9 @@ export async function listGroceryMatches(
       item_title: string;
       item_quantity: string;
       item_unit: string;
+      item_safety_status: string;
+      item_storage_state: string;
+      item_state: string;
       owner_household_id: string;
       owner_coarse_location: string | null;
       created_at: string | null;
@@ -373,6 +379,9 @@ export async function listGroceryMatches(
           i.title as item_title,
           i.quantity::text as item_quantity,
           i.unit as item_unit,
+          i.safety_status::text as item_safety_status,
+          i.storage_state::text as item_storage_state,
+          i.item_state::text as item_state,
           owner.id::text as owner_household_id,
           owner.coarse_location_label as owner_coarse_location,
           m.created_at::text as created_at,
@@ -419,6 +428,9 @@ export async function listGroceryMatches(
         title: row.item_title,
         quantity: Number(row.item_quantity),
         unit: row.item_unit,
+        safetyStatus: row.item_safety_status,
+        storageState: row.item_storage_state,
+        itemState: row.item_state,
         ownerHouseholdId: row.owner_household_id,
         ownerCoarseLocation: row.owner_coarse_location,
       },

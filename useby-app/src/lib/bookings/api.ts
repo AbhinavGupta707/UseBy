@@ -25,6 +25,15 @@ const SAFETY_ACK_ENDPOINTS = [
   "/api/bookings/safety-acknowledgements",
 ] as const;
 
+function withHouseholdContext(endpoint: string, householdId?: string | null): string {
+  if (!householdId) {
+    return endpoint;
+  }
+
+  const separator = endpoint.includes("?") ? "&" : "?";
+  return `${endpoint}${separator}householdId=${encodeURIComponent(householdId)}`;
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -427,7 +436,7 @@ export async function submitSafetyAcknowledgement(
   let lastResult: BookingMutationResult | null = null;
 
   for (const endpoint of SAFETY_ACK_ENDPOINTS) {
-    const result = await postJson(fetcher, endpoint, payload);
+    const result = await postJson(fetcher, withHouseholdContext(endpoint, input.householdId), payload);
     if (result.status !== "unavailable") {
       return result;
     }
@@ -444,7 +453,7 @@ export async function submitSafetyAcknowledgement(
 }
 
 export async function requestBooking(fetcher: Fetcher, input: BookingRequestInput): Promise<BookingMutationResult> {
-  return postJson(fetcher, BOOKING_REQUEST_ENDPOINT, {
+  return postJson(fetcher, withHouseholdContext(BOOKING_REQUEST_ENDPOINT, input.householdId), {
     matchId: input.matchId,
     itemInstanceId: input.itemInstanceId,
     needId: input.needId,

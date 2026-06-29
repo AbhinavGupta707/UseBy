@@ -88,6 +88,37 @@ describe("booking UI API helpers", () => {
     expect(calls).toContain("/api/bookings/request");
   });
 
+  it("passes household context through safety and booking mutations", async () => {
+    const calls: string[] = [];
+    const fetcher = async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return jsonResponse({ message: "ok", bookingId: "booking-1" });
+    };
+
+    const ack = await submitSafetyAcknowledgement(fetcher, {
+      matchId: "match-1",
+      itemInstanceId: "item-1",
+      needId: "need-1",
+      householdId: "hh-requester",
+      acknowledged: true,
+      sealedPackagedOnly: true,
+      noSafetyCertification: true,
+      source: "grocery_match_card",
+    });
+    const request = await requestBooking(fetcher, {
+      matchId: "match-1",
+      itemInstanceId: "item-1",
+      needId: "need-1",
+      householdId: "hh-requester",
+      source: "grocery_match_card",
+    });
+
+    expect(ack.status).toBe("ok");
+    expect(request.status).toBe("ok");
+    expect(calls[0]).toBe("/api/safety/food-acknowledgements?householdId=hh-requester");
+    expect(calls[1]).toBe("/api/bookings/request?householdId=hh-requester");
+  });
+
   it("builds transition endpoints for handoff actions", async () => {
     const calls: string[] = [];
     const fetcher = async (input: RequestInfo | URL) => {
