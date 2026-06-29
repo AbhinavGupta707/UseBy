@@ -26,6 +26,7 @@ const AGENT_RUN_ENDPOINTS = [
 
 export const AGENT_DTO_ASSUMPTIONS = [
   "POST /api/agent/receipt-draft accepts { flow, reviewMode, input } and returns a reviewable draft.",
+  "POST /api/agent/action-plan accepts deterministic item facts and returns advisory action-card copy only.",
   "GET /api/agent/runs returns redacted run summaries only; trace ids are optional and shown only when present.",
   "AI may draft, explain, extract, or summarize. Deterministic routes still decide safety, eligibility, visibility, payment, trust, and capacity.",
 ];

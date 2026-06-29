@@ -914,6 +914,10 @@ button:disabled {
   gap: 12px;
 }
 
+.useby-agent-review {
+  min-width: 0;
+}
+
 .useby-add-form textarea {
   min-height: 108px;
   resize: vertical;

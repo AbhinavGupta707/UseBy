@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { ReceiptAgentReview } from "../agent/receipt-agent-review";
 import {
   loadGrocerySnapshot,
   submitManualGrocery,
@@ -180,15 +181,22 @@ export function InventoryDashboard() {
 
   async function handleManualSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await confirmManualInput(manualInput, true);
+  }
+
+  async function confirmManualInput(input: ManualGroceryInput, resetOnSuccess = false) {
     setSubmitting(true);
     setMutation(null);
-    const result = await submitManualGrocery(window.fetch.bind(window), manualInput);
+    const result = await submitManualGrocery(window.fetch.bind(window), input);
     setMutation(result.status === "ok" ? "Saved. Your shelf will refresh with current rows." : `Could not save yet: ${result.message}`);
     if (result.status === "ok") {
-      setManualInput(defaultManualInput);
+      if (resetOnSuccess) {
+        setManualInput(defaultManualInput);
+      }
       await grocery.refresh();
     }
     setSubmitting(false);
+    return result;
   }
 
   return (
@@ -267,6 +275,9 @@ export function InventoryDashboard() {
           </button>
           {mutation ? <p className="useby-form-note">{mutation}</p> : null}
         </form>
+        <div className="useby-agent-review">
+          <ReceiptAgentReview input={manualInput} onConfirm={(input) => confirmManualInput(input)} />
+        </div>
       </section>
     </main>
   );
