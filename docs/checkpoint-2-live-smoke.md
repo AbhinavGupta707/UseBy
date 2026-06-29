@@ -68,6 +68,20 @@ Browser smoke:
 - Add a nearby food need and confirm an eligible sealed/package-safe item can produce a match.
 - Confirm restricted, opened, unknown, or high-risk grocery items do not produce neighbour-sharing cards or matches.
 
+## Completed Production Smoke
+
+Completed on 2026-06-29 against `https://useby-app.vercel.app`.
+
+- Production deployment: `dpl_DvdCPj48gJgLa1N3kyXeLB3X2SJj`.
+- Aurora migration: `drizzle/0001_grocery_inventory_runtime.sql` applied through AWS CloudShell/RDS Data API; Drizzle hash `be9570ba951834fd4a854dc69f27601f578ee8e3b291ecd8655c60ec99747e93`.
+- `GET /api/system/db-proof` returned `status: "available"` with PostgreSQL `17.7` and installed `postgis`, `vector`, `pgcrypto`, and `pg_trgm`.
+- `POST /api/jobs/recompute-matches` returned `status: "succeeded"`, `actionCards.generated: 39`, and `matches.generated: 3`.
+- `GET /api/grocery/action-cards` returned `status: "available"` and `count: 39`.
+- `GET /api/grocery/matches` returned `status: "available"` and `count: 3`, with coarse locations and approximate distances only.
+- `GET /api/system/state` returned live counts for `action_cards` and `matches` plus a succeeded recompute job/audit event.
+- Browser smoke for `/grocery` showed `Live`, `3/3 grocery routes live`, `39` action cards, and `3` matches.
+- Browser smoke for `/proof` showed live Aurora/Data API/PostGIS status and HTTP 200 system endpoints.
+
 ## Integrated Unavailable States
 
 Before Aurora env is configured or before the CP2 migration has run:

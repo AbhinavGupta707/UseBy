@@ -210,18 +210,26 @@ Merged on `main` in dependency order. Master integration fixes:
 
 - `5cd6c1a` aligned the grocery UI helper with landed live routes: `/api/grocery/import`, `/api/grocery/items/:itemId`, `/api/grocery/action-cards`, `/api/grocery/matches`, and `/api/jobs/recompute-matches`.
 - Proof contract tests and `docs/checkpoint-2-live-smoke.md` were updated after merge to remove pre-merge route guesses.
+- `273cb5c` made the recompute job idempotent against the partial `job_runs_idempotency_key_idx` index.
+- `1dc0727` cast recompute job status values to `job_run_status` for Aurora PostgreSQL enum writes.
+- `d6cda72` aligned CP2 action-card/match runtime SQL with the landed schema: `recompute_key` plus JSONB rationale payloads.
 
-Local verification after all merges:
+Local verification after live-smoke fixes:
 
 - `npm run lint` passed.
 - `npm run typecheck` passed.
-- `npm run test` passed: 15 files, 47 tests.
+- `npm run test` passed: 15 files, 49 tests.
 - `npm run build` passed and listed the CP2 grocery routes plus `/grocery`.
 - `git diff --check` passed.
 
-Remaining live verification:
+Live verification completed on 2026-06-29:
 
-- Push merged `main`.
-- Wait for Vercel production deployment.
-- Run the production smoke commands from `docs/checkpoint-2-live-smoke.md`.
-- Apply the CP2 migration to Aurora if production reports missing CP2 tables.
+- Applied `drizzle/0001_grocery_inventory_runtime.sql` to Aurora `useby` via AWS CloudShell and RDS Data API in one transaction.
+- Recorded Drizzle migration hash `be9570ba951834fd4a854dc69f27601f578ee8e3b291ecd8655c60ec99747e93` with `created_at` `1782694741126`.
+- Final production deployment: `dpl_DvdCPj48gJgLa1N3kyXeLB3X2SJj`, aliased to `https://useby-app.vercel.app`.
+- `POST /api/jobs/recompute-matches` returned `status: "succeeded"` with `39` generated action cards and `3` generated matches.
+- `GET /api/grocery/action-cards` returned `status: "available"` with `count: 39`.
+- `GET /api/grocery/matches` returned `status: "available"` with `count: 3`.
+- `GET /api/system/state` returned Aurora-backed counts including `actionCards: 39`, `matches: 3`, and the latest recompute job as `succeeded`.
+- Browser smoke for `/grocery` showed `Live`, `3/3 grocery routes live`, `39` action cards, and `3` matches.
+- Browser smoke for `/proof` showed live Aurora/Data API/PostGIS status and HTTP 200 system endpoints.
