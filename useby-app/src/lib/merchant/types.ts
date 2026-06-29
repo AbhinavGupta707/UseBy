@@ -81,12 +81,63 @@ export type MerchantPickup = {
   availableActions: string[];
 };
 
+export type MerchantStoreDropStatus =
+  | "draft"
+  | "published"
+  | "paused"
+  | "sold_out"
+  | "closed"
+  | "expired"
+  | string;
+
+export type MerchantStoreDropReservation = {
+  id: string;
+  dropId: string | null;
+  status: string;
+  quantity: number | null;
+  householdLabel: string;
+  coarseArea: string | null;
+  reservedAt: string | null;
+  pickupWindowStart: string | null;
+  pickupWindowEnd: string | null;
+};
+
+export type MerchantStoreDrop = {
+  id: string;
+  title: string;
+  status: MerchantStoreDropStatus;
+  quantityTotal: number | null;
+  quantityReserved: number | null;
+  remainingQuantity: number | null;
+  unit: string;
+  priceLabel: string | null;
+  pickupWindowStart: string | null;
+  pickupWindowEnd: string | null;
+  coarseArea: string | null;
+  safetyNotes: string | null;
+  activeReservations: MerchantStoreDropReservation[];
+};
+
+export type MerchantHeatmapCell = {
+  id: string;
+  label: string;
+  demandCount: number | null;
+  dropCount: number | null;
+  reservationCount: number | null;
+  intensity: "low" | "medium" | "high" | string;
+  updatedAt: string | null;
+};
+
 export type MerchantDemandSummary = {
   activePools: number;
   committedHouseholds: number;
   committedQuantity: number;
   submittedBids: number;
   awardedPickups: number;
+  publishedDrops: number;
+  activeDropReservations: number;
+  remainingDropQuantity: number;
+  heatmapCells: number;
 };
 
 export type MerchantSnapshot = {
@@ -95,6 +146,8 @@ export type MerchantSnapshot = {
   pools: MerchantDemandPool[];
   bids: MerchantBid[];
   pickups: MerchantPickup[];
+  storeDrops: MerchantStoreDrop[];
+  heatmapCells: MerchantHeatmapCell[];
   summary: MerchantDemandSummary;
   endpoints: MerchantEndpointState[];
   message: string | null;
@@ -115,6 +168,22 @@ export type MerchantBidInput = {
 export type MerchantPickupActionInput = {
   orderId: string;
   action: "ready" | "collected";
+};
+
+export type MerchantStoreDropInput = {
+  dropId?: string;
+  title: string;
+  quantityTotal: number;
+  unit: string;
+  priceCents: number;
+  pickupWindowStart: string;
+  pickupWindowEnd: string;
+  safetyNotes: string;
+};
+
+export type MerchantStoreDropActionInput = {
+  dropId: string;
+  action: "publish" | "pause" | "close";
 };
 
 export type MerchantMutationResult = {

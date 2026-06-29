@@ -182,6 +182,50 @@ const CHECKPOINT_6_COUNT_TABLES = [
   },
 ] satisfies CountContract[];
 
+const CHECKPOINT_7_COUNT_TABLES = [
+  {
+    key: "cp7PublishedDrops",
+    label: "CP7 published surplus drops",
+    table: "store_drops",
+    where: "status = 'published'",
+    requiredColumns: ["status"],
+  },
+  {
+    key: "cp7ActiveDropReservations",
+    label: "CP7 active drop reservations",
+    table: "store_drop_reservations",
+    where: "status in ('active', 'reserved', 'confirmed', 'pending_pickup')",
+    requiredColumns: ["status"],
+  },
+  {
+    key: "cp7ClosedOrSoldOutDrops",
+    label: "CP7 closed or sold-out drops",
+    table: "store_drops",
+    where: "status in ('sold_out', 'closed', 'expired')",
+    requiredColumns: ["status"],
+  },
+  {
+    key: "cp7HeatmapCells",
+    label: "CP7 heatmap cells",
+    table: "merchant_heatmap_cells",
+  },
+  {
+    key: "cp7ExpireDropJobRuns",
+    label: "CP7 expire-drop job runs",
+    table: "job_runs",
+    where: "job_type = 'expire-store-drops'",
+    requiredColumns: ["job_type"],
+  },
+  {
+    key: "cp7AuditEvents",
+    label: "CP7 audit events",
+    table: "audit_events",
+    where:
+      "entity_type in ('store_drop', 'store_drop_reservation', 'merchant_heatmap_cell') or action like 'store_drop.%' or action like 'store_drop_reservation.%' or action like 'merchant_heatmap.%'",
+    requiredColumns: ["entity_type", "action"],
+  },
+] satisfies CountContract[];
+
 const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ...SYSTEM_COUNT_TABLES.map((contract) =>
     contract.key === "bookings"
@@ -195,6 +239,7 @@ const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
   ...CHECKPOINT_3_COUNT_TABLES,
   ...CHECKPOINT_4_COUNT_TABLES,
   ...CHECKPOINT_6_COUNT_TABLES,
+  ...CHECKPOINT_7_COUNT_TABLES,
 ];
 
 function safeJson(value: unknown): Record<string, unknown> | null {

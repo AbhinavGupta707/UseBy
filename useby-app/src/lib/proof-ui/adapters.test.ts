@@ -40,6 +40,11 @@ describe("proof UI adapters", () => {
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/lending/:bookingId/complete");
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/demand-pools/:poolId/commit");
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/merchant/pickups/:orderId/ready");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/merchant/store-drops/:dropId/publish");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/store-drops/:dropId/reserve");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/store-drops/:dropId/cancel-reservation");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/jobs/expire-store-drops");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/merchant/heatmap");
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/system/state");
   });
 
@@ -99,6 +104,12 @@ describe("proof UI adapters", () => {
           { key: "cp6PickupTasks", table: "pickup_tasks", count: 6, available: true },
           { key: "cp6ClosePoolJobRuns", table: "job_runs", count: 1, available: true },
           { key: "cp6AuditEvents", table: "audit_events", count: 7, available: true },
+          { key: "cp7PublishedDrops", table: "store_drops", count: 2, available: true },
+          { key: "cp7ActiveDropReservations", table: "store_drop_reservations", count: 3, available: true },
+          { key: "cp7ClosedOrSoldOutDrops", table: "store_drops", count: 1, available: true },
+          { key: "cp7HeatmapCells", table: "merchant_heatmap_cells", count: 4, available: true },
+          { key: "cp7ExpireDropJobRuns", table: "job_runs", count: 1, available: true },
+          { key: "cp7AuditEvents", table: "audit_events", count: 8, available: true },
           { key: "auditEvents", table: "audit_events", count: 12 },
           { key: "jobRuns", table: "job_runs", count: 2 },
         ],
@@ -170,6 +181,12 @@ describe("proof UI adapters", () => {
     expect(snapshot.rowCounts.find((row) => row.key === "cp6PickupTasks")?.count).toBe(6);
     expect(snapshot.rowCounts.find((row) => row.key === "cp6ClosePoolJobRuns")?.count).toBe(1);
     expect(snapshot.rowCounts.find((row) => row.key === "cp6AuditEvents")?.count).toBe(7);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp7PublishedDrops")?.count).toBe(2);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp7ActiveDropReservations")?.count).toBe(3);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp7ClosedOrSoldOutDrops")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp7HeatmapCells")?.count).toBe(4);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp7ExpireDropJobRuns")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp7AuditEvents")?.count).toBe(8);
     expect(snapshot.extensions.find((extension) => extension.name === "postgis")?.status).toBe("ok");
     expect(snapshot.extensions.find((extension) => extension.name === "vector")?.status).toBe("unavailable");
     expect(snapshot.auditEvents[0]?.title).toBe("demo.seeded");
@@ -402,6 +419,69 @@ describe("proof UI adapters", () => {
     );
 
     for (const key of ["cp6ActiveDemandPools", "cp6PoolOrders", "cp6PickupTasks", "cp6AuditEvents"]) {
+      expect(snapshot.rowCounts.find((row) => row.key === key)).toMatchObject({
+        count: null,
+        available: false,
+      });
+    }
+  });
+
+  it("keeps CP7 missing output tables and filtered counts visible as unavailable proof rows", () => {
+    const snapshot = normalizeProofSnapshot(
+      endpoint("/api/system/state", "ok", {
+        status: "partial",
+        counts: [
+          {
+            key: "cp7PublishedDrops",
+            table: "store_drops",
+            available: false,
+            count: null,
+            reason: "status column is required for filtered count",
+          },
+          {
+            key: "cp7ActiveDropReservations",
+            table: "store_drop_reservations",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "cp7HeatmapCells",
+            table: "merchant_heatmap_cells",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "cp7ExpireDropJobRuns",
+            table: "job_runs",
+            available: false,
+            count: null,
+            reason: "job_type column is required for filtered count",
+          },
+          {
+            key: "cp7AuditEvents",
+            table: "audit_events",
+            available: false,
+            count: null,
+            reason: "entity_type, action columns are required for filtered count",
+          },
+        ],
+      }),
+      endpoint("/api/system/db-proof", "ok", {
+        status: "available",
+        database: { available: true, currentDatabase: "useby", versionSummary: "PostgreSQL 17.7" },
+        extensions: { available: true, items: [] },
+      }),
+    );
+
+    for (const key of [
+      "cp7PublishedDrops",
+      "cp7ActiveDropReservations",
+      "cp7HeatmapCells",
+      "cp7ExpireDropJobRuns",
+      "cp7AuditEvents",
+    ]) {
       expect(snapshot.rowCounts.find((row) => row.key === key)).toMatchObject({
         count: null,
         available: false,

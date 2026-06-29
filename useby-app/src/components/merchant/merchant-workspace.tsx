@@ -8,16 +8,21 @@ import {
   loadMerchantSnapshot,
   merchantEndpointSummary,
   submitMerchantBid,
+  submitMerchantStoreDrop,
   transitionMerchantPickup,
+  transitionMerchantStoreDrop,
 } from "../../lib/merchant/api";
 import type {
   MerchantBid,
   MerchantBidInput,
   MerchantDemandPool,
   MerchantEndpointState,
+  MerchantHeatmapCell,
   MerchantMutationResult,
   MerchantPickup,
   MerchantSnapshot,
+  MerchantStoreDrop,
+  MerchantStoreDropInput,
 } from "../../lib/merchant/types";
 
 const statusClasses = {
@@ -39,6 +44,16 @@ const emptyBidInput: MerchantBidInput = {
   terms: "",
   substitutionPolicy: "",
   fulfilmentNotes: "",
+};
+
+const emptyStoreDropInput: MerchantStoreDropInput = {
+  title: "",
+  quantityTotal: 1,
+  unit: "bundle",
+  priceCents: 0,
+  pickupWindowStart: "",
+  pickupWindowEnd: "",
+  safetyNotes: "Merchant-packed surplus. User and merchant confirm pickup; UseBy does not guarantee freshness or allergens.",
 };
 
 export function MerchantWorkspace() {
@@ -155,8 +170,8 @@ export function MerchantWorkspace() {
         <div className="grid gap-0 divide-y divide-[#edf1e8] md:grid-cols-4 md:divide-x md:divide-y-0">
           <Metric label="Route state" value={merchantEndpointSummary(snapshot)} />
           <Metric label="Active pools" value={String(snapshot?.summary.activePools ?? 0)} />
-          <Metric label="Committed households" value={String(snapshot?.summary.committedHouseholds ?? 0)} />
-          <Metric label="Awarded pickups" value={String(snapshot?.summary.awardedPickups ?? 0)} />
+          <Metric label="Published drops" value={String(snapshot?.summary.publishedDrops ?? 0)} />
+          <Metric label="Drop reservations" value={String(snapshot?.summary.activeDropReservations ?? 0)} />
         </div>
       </section>
 
@@ -172,7 +187,7 @@ export function MerchantWorkspace() {
       <Notice
         status="unavailable"
         title="Payment deferred"
-        detail="Checkpoint 6 records unpaid demo commitments only. This portal does not represent payment collection or reserved funds."
+        detail="Checkpoint 6 commitments and Checkpoint 7 surplus reservations are unpaid demo intent. This portal does not represent payment collection or reserved funds."
       />
 
       {isLoading && !snapshot ? <LoadingGrid /> : null}
@@ -197,6 +212,17 @@ export function MerchantWorkspace() {
             />
           </section>
 
+          <SurplusDropsPanel
+            drops={snapshot.storeDrops}
+            heatmapCells={snapshot.heatmapCells}
+            onDropResult={async (result) => {
+              setMutationResult(result);
+              if (result.status === "ok") {
+                await refresh();
+              }
+            }}
+          />
+
           <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
             <BidsPanel bids={snapshot.bids} />
             <PickupsPanel
@@ -214,6 +240,284 @@ export function MerchantWorkspace() {
         </>
       ) : null}
     </div>
+  );
+}
+
+function SurplusDropsPanel({
+  drops,
+  heatmapCells,
+  onDropResult,
+}: {
+  drops: MerchantStoreDrop[];
+  heatmapCells: MerchantHeatmapCell[];
+  onDropResult: (result: MerchantMutationResult) => Promise<void>;
+}) {
+  const totals = useMemo(() => ({
+    activeReservations: drops.reduce((sum, drop) => sum + drop.activeReservations.length, 0),
+    remainingQuantity: drops.reduce((sum, drop) => sum + (drop.remainingQuantity ?? 0), 0),
+    publishedDrops: drops.filter((drop) => drop.status === "published").length,
+  }), [drops]);
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_420px]">
+      <Panel className="p-0">
+        <PanelHeader
+          label="Surplus drops"
+          title="Create, publish, pause, and close merchant surplus"
+          detail="Drop capacity and reservation totals are display evidence from live routes. Remaining quantity should be reconciled from current reservation rows by the backend."
+        />
+        <div className="grid gap-4 border-b border-[#edf1e8] px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <StoreDropForm onDropResult={onDropResult} />
+          <div className="grid content-start gap-3">
+            <Fact label="Published drops" value={String(totals.publishedDrops)} />
+            <Fact label="Active reservations" value={String(totals.activeReservations)} />
+            <Fact label="Remaining capacity" value={String(totals.remainingQuantity)} />
+          </div>
+        </div>
+        {drops.length === 0 ? (
+          <EmptyState
+            title="No surplus drops returned"
+            detail="Create and status controls will save when /api/merchant/store-drops is installed and returns live rows."
+          />
+        ) : (
+          <div className="divide-y divide-[#edf1e8]">
+            {drops.map((drop) => (
+              <StoreDropRow key={drop.id} drop={drop} onDropResult={onDropResult} />
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      <HeatmapPanel cells={heatmapCells} />
+    </section>
+  );
+}
+
+function StoreDropForm({
+  onDropResult,
+}: {
+  onDropResult: (result: MerchantMutationResult) => Promise<void>;
+}) {
+  const [input, setInput] = useState<MerchantStoreDropInput>(emptyStoreDropInput);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    const result = await submitMerchantStoreDrop(window.fetch.bind(window), input);
+    await onDropResult(result);
+    if (result.status === "ok") {
+      setInput(emptyStoreDropInput);
+    }
+    setIsSubmitting(false);
+  }
+
+  return (
+    <form className="grid gap-3 rounded-md border border-[#e3e8dc] bg-[#fbfcf7] p-4" onSubmit={handleSubmit}>
+      <div>
+        <p className="text-xs font-semibold uppercase text-[#65715f]">Create or edit</p>
+        <h3 className="mt-1 text-base font-semibold text-[#17231c]">Surplus drop details</h3>
+      </div>
+      <TextInput
+        label="Drop ID for edit"
+        onChange={(value) => setInput((current) => ({ ...current, dropId: value || undefined }))}
+        placeholder="Leave blank for new drop"
+        value={input.dropId ?? ""}
+      />
+      <TextInput
+        label="Title"
+        onChange={(value) => setInput((current) => ({ ...current, title: value }))}
+        placeholder="Evening bakery bundles"
+        value={input.title}
+      />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <TextInput
+          label="Quantity"
+          min="1"
+          onChange={(value) => setInput((current) => ({ ...current, quantityTotal: Number(value) || 1 }))}
+          type="number"
+          value={String(input.quantityTotal)}
+        />
+        <TextInput
+          label="Unit"
+          onChange={(value) => setInput((current) => ({ ...current, unit: value }))}
+          value={input.unit}
+        />
+        <TextInput
+          label="Price"
+          min="0"
+          onChange={(value) => setInput((current) => ({ ...current, priceCents: Math.round((Number(value) || 0) * 100) }))}
+          step="0.01"
+          type="number"
+          value={input.priceCents ? String(input.priceCents / 100) : ""}
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TextInput
+          label="Pickup starts"
+          onChange={(value) => setInput((current) => ({ ...current, pickupWindowStart: value }))}
+          type="datetime-local"
+          value={input.pickupWindowStart}
+        />
+        <TextInput
+          label="Pickup ends"
+          onChange={(value) => setInput((current) => ({ ...current, pickupWindowEnd: value }))}
+          type="datetime-local"
+          value={input.pickupWindowEnd}
+        />
+      </div>
+      <TextArea
+        label="Safety notes"
+        onChange={(value) => setInput((current) => ({ ...current, safetyNotes: value }))}
+        value={input.safetyNotes}
+      />
+      <button
+        className="min-h-11 rounded-md bg-[#315b44] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#254635] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315b44] disabled:cursor-wait disabled:opacity-60"
+        disabled={isSubmitting}
+        type="submit"
+      >
+        {isSubmitting ? "Saving" : input.dropId ? "Save edits" : "Create drop"}
+      </button>
+    </form>
+  );
+}
+
+function StoreDropRow({
+  drop,
+  onDropResult,
+}: {
+  drop: MerchantStoreDrop;
+  onDropResult: (result: MerchantMutationResult) => Promise<void>;
+}) {
+  const [pendingAction, setPendingAction] = useState<"publish" | "pause" | "close" | null>(null);
+
+  async function runAction(action: "publish" | "pause" | "close") {
+    setPendingAction(action);
+    const result = await transitionMerchantStoreDrop(window.fetch.bind(window), {
+      dropId: drop.id,
+      action,
+    });
+    await onDropResult(result);
+    setPendingAction(null);
+  }
+
+  return (
+    <article className="grid gap-4 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(0,1fr)_220px]">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase text-[#65715f]">{formatMerchantStatus(drop.status)}</p>
+            <h3 className="mt-1 break-words text-lg font-semibold text-[#17231c]">{safeText(drop.title)}</h3>
+          </div>
+          <span className="rounded-md border border-[#dbe4d2] bg-[#fbfcf7] px-2.5 py-1 text-sm font-semibold text-[#315b44]">
+            {drop.priceLabel ?? "Display price not returned"}
+          </span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Fact label="Reserved" value={`${drop.quantityReserved ?? "n/a"} of ${drop.quantityTotal ?? "n/a"} ${drop.unit}`} />
+          <Fact label="Remaining" value={drop.remainingQuantity === null ? "Not returned" : `${drop.remainingQuantity} ${drop.unit}`} />
+          <Fact label="Pickup starts" value={formatDateTime(drop.pickupWindowStart)} />
+          <Fact label="Pickup ends" value={formatDateTime(drop.pickupWindowEnd)} />
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <CopyBlock title="Pickup area" detail={drop.coarseArea ?? "Coarse merchant area only"} />
+          <CopyBlock title="Safety" detail={drop.safetyNotes ?? "Merchant-packed surplus with user and merchant pickup confirmation."} />
+        </div>
+        <ReservationsList reservations={drop.activeReservations} />
+      </div>
+      <div className="grid content-start gap-2 sm:grid-cols-3 xl:grid-cols-1">
+        <button
+          className="min-h-10 rounded-md border border-[#315b44] px-3 py-2 text-sm font-semibold text-[#315b44] transition hover:bg-[#315b44] hover:text-white disabled:cursor-wait disabled:opacity-50"
+          disabled={pendingAction !== null || drop.status === "published"}
+          onClick={() => void runAction("publish")}
+          type="button"
+        >
+          {pendingAction === "publish" ? "Publishing" : "Publish"}
+        </button>
+        <button
+          className="min-h-10 rounded-md border border-[#b7c2af] px-3 py-2 text-sm font-semibold text-[#315b44] transition hover:border-[#315b44] hover:bg-[#f6f8f2] disabled:cursor-wait disabled:opacity-50"
+          disabled={pendingAction !== null || ["paused", "closed", "expired"].includes(drop.status)}
+          onClick={() => void runAction("pause")}
+          type="button"
+        >
+          {pendingAction === "pause" ? "Pausing" : "Pause"}
+        </button>
+        <button
+          className="min-h-10 rounded-md bg-[#315b44] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#254635] disabled:cursor-wait disabled:opacity-50"
+          disabled={pendingAction !== null || ["closed", "expired"].includes(drop.status)}
+          onClick={() => void runAction("close")}
+          type="button"
+        >
+          {pendingAction === "close" ? "Closing" : "Close"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function ReservationsList({ reservations }: { reservations: MerchantStoreDrop["activeReservations"] }) {
+  if (reservations.length === 0) {
+    return (
+      <div className="mt-4 rounded-md border border-dashed border-[#cfd8c6] bg-[#fbfcf7] px-3 py-3 text-sm text-[#65715f]">
+        Active reservations will appear here as aggregate-safe rows after the reservation route returns them.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-md border border-[#e3e8dc]">
+      <div className="grid grid-cols-[1fr_90px_1fr] gap-3 bg-[#f6f8f2] px-3 py-2 text-xs font-semibold uppercase text-[#65715f]">
+        <span>Household</span>
+        <span>Quantity</span>
+        <span>Area</span>
+      </div>
+      {reservations.map((reservation) => (
+        <div key={reservation.id} className="grid grid-cols-[1fr_90px_1fr] gap-3 border-t border-[#edf1e8] px-3 py-2 text-sm text-[#17231c]">
+          <span className="break-words">{safeText(reservation.householdLabel)}</span>
+          <span>{reservation.quantity ?? "n/a"}</span>
+          <span className="break-words">{reservation.coarseArea ?? "Coarse area"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HeatmapPanel({ cells }: { cells: MerchantHeatmapCell[] }) {
+  return (
+    <Panel className="p-0">
+      <PanelHeader
+        label="Neighbourhood heatmap"
+        title="Coarse demand and reservation summary"
+        detail="Heatmap output must be aggregate cells only. Exact household positions, unit labels, and direct contact fields are not valid merchant output."
+      />
+      {cells.length === 0 ? (
+        <EmptyState
+          title="No heatmap cells returned"
+          detail="Cells will appear when /api/merchant/heatmap computes coarse demand, drop, and reservation aggregates."
+        />
+      ) : (
+        <div className="divide-y divide-[#edf1e8]">
+          {cells.map((cell) => (
+            <div key={cell.id} className="grid gap-3 px-4 py-4 sm:px-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-[#65715f]">{formatMerchantStatus(cell.intensity)}</p>
+                  <h3 className="mt-1 font-semibold text-[#17231c]">{safeText(cell.label)}</h3>
+                </div>
+                <span className="rounded-md border border-[#dbe4d2] bg-[#fbfcf7] px-2.5 py-1 text-xs font-semibold text-[#315b44]">
+                  {formatDateTime(cell.updatedAt)}
+                </span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <SummaryRow label="Demand" value={cell.demandCount === null ? "n/a" : String(cell.demandCount)} />
+                <SummaryRow label="Drops" value={cell.dropCount === null ? "n/a" : String(cell.dropCount)} />
+                <SummaryRow label="Reservations" value={cell.reservationCount === null ? "n/a" : String(cell.reservationCount)} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -552,16 +856,46 @@ function unavailableSnapshot(message: string): MerchantSnapshot {
     pools: [],
     bids: [],
     pickups: [],
+    storeDrops: [],
+    heatmapCells: [],
     summary: {
       activePools: 0,
       committedHouseholds: 0,
       committedQuantity: 0,
       submittedBids: 0,
       awardedPickups: 0,
+      publishedDrops: 0,
+      activeDropReservations: 0,
+      remainingDropQuantity: 0,
+      heatmapCells: 0,
     },
     endpoints: [
       {
         endpoint: "/api/merchant/demand-pools",
+        status: "unavailable",
+        httpStatus: null,
+        message,
+      },
+      {
+        endpoint: "/api/merchant/bids",
+        status: "unavailable",
+        httpStatus: null,
+        message,
+      },
+      {
+        endpoint: "/api/merchant/pickups",
+        status: "unavailable",
+        httpStatus: null,
+        message,
+      },
+      {
+        endpoint: "/api/merchant/store-drops",
+        status: "unavailable",
+        httpStatus: null,
+        message,
+      },
+      {
+        endpoint: "/api/merchant/heatmap",
         status: "unavailable",
         httpStatus: null,
         message,
