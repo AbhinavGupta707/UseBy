@@ -199,7 +199,29 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 2A Grocery Schema And Inventory Runtime | `019f10d5-68d7-7220-9286-9ce00cdcb77a` | `/Users/abhinavgupta/.codex/worktrees/0005/UseBy` | Active | Pending ID `local:3365e94c-074c-43c7-8775-6ec01a2c323e`; owns all CP2 migrations/schema |
-| 2B Action Engine And Food Matching | `019f10d5-b450-7151-a62a-565f4e78afa1` | `/Users/abhinavgupta/.codex/worktrees/ccd1/UseBy` | Active | Pending ID `local:be0ead1f-c5bd-498b-b8fe-50b7b7e38a00`; no schema edits |
-| 2C Consumer Grocery UI | `019f10d7-687f-7c23-959b-552f7b0da41a` | `/Users/abhinavgupta/.codex/worktrees/1325/UseBy` | Active | Pending ID `local:52bf4f3c-dc04-46f8-b263-16962b531594`; API consumer only |
-| 2D QA Contracts And Proof Integration | `019f10d7-9c3d-7820-941e-61df0f663866` | `/Users/abhinavgupta/.codex/worktrees/f534/UseBy` | Active | Pending ID `local:623d4003-25e2-49fb-a07c-e84171060263`; proof/docs/tests |
+| 2A Grocery Schema And Inventory Runtime | `019f10d5-68d7-7220-9286-9ce00cdcb77a` | `/Users/abhinavgupta/.codex/worktrees/0005/UseBy` | Merged | Worker commit `e81b63f`; merge commit `4491df8`; owns all CP2 migrations/schema |
+| 2B Action Engine And Food Matching | `019f10d5-b450-7151-a62a-565f4e78afa1` | `/Users/abhinavgupta/.codex/worktrees/ccd1/UseBy` | Merged | Worker commit `f266e91`; merge commit `3bcb131`; no schema edits |
+| 2C Consumer Grocery UI | `019f10d7-687f-7c23-959b-552f7b0da41a` | `/Users/abhinavgupta/.codex/worktrees/1325/UseBy` | Merged | Worker commit `79fb3d9`; merge commit `5cec929`; API route alignment commit `5cd6c1a` |
+| 2D QA Contracts And Proof Integration | `019f10d7-9c3d-7820-941e-61df0f663866` | `/Users/abhinavgupta/.codex/worktrees/f534/UseBy` | Merged | Worker commit `32410ab`; merge commit `1e2f728`; proof docs/tests reconciled after API route merge |
+
+## Integration Result
+
+Merged on `main` in dependency order. Master integration fixes:
+
+- `5cd6c1a` aligned the grocery UI helper with landed live routes: `/api/grocery/import`, `/api/grocery/items/:itemId`, `/api/grocery/action-cards`, `/api/grocery/matches`, and `/api/jobs/recompute-matches`.
+- Proof contract tests and `docs/checkpoint-2-live-smoke.md` were updated after merge to remove pre-merge route guesses.
+
+Local verification after all merges:
+
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test` passed: 15 files, 47 tests.
+- `npm run build` passed and listed the CP2 grocery routes plus `/grocery`.
+- `git diff --check` passed.
+
+Remaining live verification:
+
+- Push merged `main`.
+- Wait for Vercel production deployment.
+- Run the production smoke commands from `docs/checkpoint-2-live-smoke.md`.
+- Apply the CP2 migration to Aurora if production reports missing CP2 tables.

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 
 import { GET as recomputeMatchesGet, POST as recomputeMatchesPost } from "../../app/api/jobs/recompute-matches/route";
@@ -24,8 +25,8 @@ const CHECKPOINT_2_API_CONTRACTS: Checkpoint2ApiContract[] = [
   {
     key: "receipt-import",
     method: "POST",
-    endpoint: "/api/grocery/receipt-imports",
-    requiredInputs: ["idempotencyKey", "demoHouseholdId", "lineItems"],
+    endpoint: "/api/grocery/import",
+    requiredInputs: ["idempotencyKey", "demoHouseholdId", "lines"],
     writes: [
       "receipt_imports",
       "receipt_line_items",
@@ -41,8 +42,8 @@ const CHECKPOINT_2_API_CONTRACTS: Checkpoint2ApiContract[] = [
   {
     key: "expiry-edit",
     method: "PATCH",
-    endpoint: "/api/grocery/item-instances/:itemInstanceId/expiry",
-    requiredInputs: ["itemInstanceId", "storageState or labelUseByDate or expiryConfidence"],
+    endpoint: "/api/grocery/items/:itemId",
+    requiredInputs: ["itemId", "storageState or useByDate or expiryConfidence"],
     writes: ["expiry_observations", "inventory_events", "audit_events"],
     recomputes: ["action_cards"],
     mustNotExpose: ["exact household coordinates", "plaintext secrets"],
@@ -51,7 +52,7 @@ const CHECKPOINT_2_API_CONTRACTS: Checkpoint2ApiContract[] = [
   {
     key: "action-card-recompute",
     method: "POST",
-    endpoint: "/api/grocery/action-cards/recompute",
+    endpoint: "/api/jobs/recompute-matches",
     requiredInputs: ["demoHouseholdId or neighbourhoodId"],
     writes: ["action_cards", "job_runs", "audit_events"],
     recomputes: ["action_cards"],
@@ -112,7 +113,7 @@ describe("Checkpoint 2 grocery API contracts", () => {
 
     expect(contractFor("receipt-import")).toMatchObject({
       method: "POST",
-      endpoint: "/api/grocery/receipt-imports",
+      endpoint: "/api/grocery/import",
     });
     expect(contractFor("receipt-import").writes).toEqual(
       expect.arrayContaining([
@@ -155,8 +156,14 @@ describe("Checkpoint 2 grocery API contracts", () => {
     }
 
     try {
-      for (const handler of [recomputeMatchesGet, recomputeMatchesPost]) {
-        const response = await handler();
+      const handlers = [
+        (request: NextRequest) => recomputeMatchesGet(request),
+        (request: NextRequest) => recomputeMatchesPost(request),
+      ];
+
+      for (const handler of handlers) {
+        const request = new NextRequest("http://localhost/api/jobs/recompute-matches");
+        const response = await handler(request);
         const body = await response.json();
 
         expect(response.status).toBe(200);

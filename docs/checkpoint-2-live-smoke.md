@@ -35,9 +35,9 @@ With Aurora env missing, the expected local state is honest unavailability:
 
 With Aurora env configured and CP2 migrations applied:
 
-- `POST /api/grocery/receipt-imports` writes `receipt_imports`, `receipt_line_items`, `item_instances`, `inventory_events`, `expiry_observations`, and `audit_events`, then triggers action-card/match recompute.
-- `PATCH /api/grocery/item-instances/:itemInstanceId/expiry` writes `expiry_observations`, `inventory_events`, and `audit_events`, then changes active action-card counts after recompute.
-- `POST /api/grocery/action-cards/recompute` writes current `action_cards`, `job_runs`, and `audit_events`.
+- `POST /api/grocery/import` writes `receipt_imports`, `receipt_line_items`, `item_instances`, `inventory_events`, `expiry_observations`, and `audit_events`, and returns affected item ids for recompute.
+- `PATCH /api/grocery/items/:itemId` writes `expiry_observations`, `inventory_events`, and `audit_events`, then changes active action-card counts after recompute.
+- `GET /api/grocery/action-cards` returns public action-card DTOs without exact household coordinates.
 - `POST /api/jobs/recompute-matches` refreshes `matches` and action cards from current rows and records `job_runs` plus `audit_events`.
 - `GET /api/grocery/matches` returns public match DTOs without exact household coordinates.
 
@@ -68,14 +68,14 @@ Browser smoke:
 - Add a nearby food need and confirm an eligible sealed/package-safe item can produce a match.
 - Confirm restricted, opened, unknown, or high-risk grocery items do not produce neighbour-sharing cards or matches.
 
-## Current Lane 2D State
+## Integrated Unavailable States
 
-This isolated lane does not own migrations, grocery runtime routes, or action/match algorithms. Until Lanes 2A and 2B land:
+Before Aurora env is configured or before the CP2 migration has run:
 
-- `action_cards` may be reported as unavailable because the CP2 table is not in the current Drizzle schema.
-- `matches` may be reported as unavailable if the table or active-count status column has not landed.
-- receipt import and expiry edit route tests are contract-level expectations around the planned `/api/grocery/**` APIs.
-- the existing `/api/jobs/recompute-matches` route is still a CP1 stub and must not be treated as a successful CP2 recompute.
+- `action_cards` may be reported as unavailable because the CP2 table is missing in the live database.
+- `matches` may be reported as unavailable if the table or active-count status column is missing in the live database.
+- `/api/grocery/import`, `/api/grocery/items/:itemId`, and `/api/jobs/recompute-matches` must return precise unavailable/error JSON rather than seeded final output.
+- `/proof` must surface missing-table or missing-env reasons instead of implying live recompute success.
 
 ## Safety And Privacy
 
