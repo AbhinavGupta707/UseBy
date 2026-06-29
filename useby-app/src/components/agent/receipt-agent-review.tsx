@@ -91,7 +91,9 @@ export function ReceiptAgentReview({
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#f0eadc] px-4 py-3">
                 <div>
                   <p className="text-xs font-semibold uppercase text-[#69786d]">Reviewable draft</p>
-                  <p className="mt-1 text-sm leading-6 text-[#1f2e26]">{draft.message}</p>
+                  <p className="mt-1 text-sm leading-6 text-[#1f2e26]">
+                    Review the extracted rows, add any missing dates, then confirm one item into your live shelf.
+                  </p>
                 </div>
                 <RunStatusPill status={draft.run.providerStatus} />
               </div>
@@ -116,7 +118,7 @@ export function ReceiptAgentReview({
                       </span>
                     </span>
                     <span className="rounded-md border border-[#e3e8dc] bg-[#fbfcf7] px-2 py-1 text-xs font-semibold text-[#315b44]">
-                      {line.confidence === null ? "Review" : `${Math.round(line.confidence * 100)}%`}
+                      {draftLineBadge(line)}
                     </span>
                   </label>
                 ))}
@@ -127,11 +129,11 @@ export function ReceiptAgentReview({
                     disabled={!selectedLine || state === "confirming"}
                     type="submit"
                   >
-                    {state === "confirming" ? "Confirming" : "Confirm reviewed import"}
+                    {state === "confirming" ? "Saving" : "Save selected item"}
                   </button>
                   {result ? (
                     <p className={`mt-3 rounded-md border px-3 py-2 text-sm leading-6 ${statusClasses[result.status] ?? statusClasses.error}`}>
-                      {result.endpoint}{result.httpStatus ? ` returned HTTP ${result.httpStatus}` : ""}. {result.message}
+                      {result.status === "ok" ? "Saved to your live shelf." : result.message}
                     </p>
                   ) : null}
                 </div>
@@ -144,26 +146,11 @@ export function ReceiptAgentReview({
               guardrails={draft.run.deterministicGuardrails}
             />
           </div>
-
-          <div className="grid gap-2 rounded-lg border border-[#e2d9c8] bg-white px-4 py-3 text-sm leading-6 text-[#65715f] sm:grid-cols-3">
-            <Fact label="Run status" value={formatLabel(draft.run.status)} />
-            <Fact label="Trace id" value={draft.run.langsmithTraceId ?? "Not reported"} />
-            <Fact label="Redaction" value={formatLabel(draft.run.redactionStatus)} />
-          </div>
         </div>
       ) : (
         <AgentDecisionPanel compact />
       )}
     </section>
-  );
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase text-[#69786d]">{label}</p>
-      <p className="mt-1 break-words font-mono text-sm font-semibold text-[#17231c]">{value}</p>
-    </div>
   );
 }
 
@@ -185,6 +172,18 @@ function RunStatusPill({ status }: { status: ReceiptAgentDraft["run"]["providerS
       {labels[status]}
     </span>
   );
+}
+
+function draftLineBadge(line: ReceiptAgentDraft["lines"][number]) {
+  if (!line.useByDate) {
+    return "Needs date";
+  }
+
+  if (line.confidence === null || line.confidence < 0.5) {
+    return "Review";
+  }
+
+  return "Ready";
 }
 
 function formatLabel(value: string): string {

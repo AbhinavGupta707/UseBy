@@ -18,6 +18,10 @@ function jsonResponse(data: unknown, init: ResponseInit = {}) {
   });
 }
 
+const matchId = "00000000-0000-4000-8000-000000000101";
+const itemId = "00000000-0000-4000-8000-000000000102";
+const needId = "00000000-0000-4000-8000-000000000103";
+
 describe("booking UI API helpers", () => {
   it("normalizes list responses with privacy-preserving booking fields", async () => {
     const fetcher = async () => jsonResponse({
@@ -67,24 +71,24 @@ describe("booking UI API helpers", () => {
     };
 
     const ack = await submitSafetyAcknowledgement(fetcher, {
-      matchId: "match-1",
-      itemInstanceId: "item-1",
-      needId: "need-1",
+      matchId,
+      itemInstanceId: itemId,
+      needId,
       acknowledged: true,
       sealedPackagedOnly: true,
       noSafetyCertification: true,
       source: "grocery_match_card",
     });
     const request = await requestBooking(fetcher, {
-      matchId: "match-1",
-      itemInstanceId: "item-1",
-      needId: "need-1",
+      matchId,
+      itemInstanceId: itemId,
+      needId,
       source: "grocery_match_card",
     });
 
     expect(ack.status).toBe("unavailable");
     expect(request.status).toBe("unavailable");
-    expect(calls).toContain("/api/safety/food-acknowledgements?itemId=item-1&acknowledgementType=food_handoff");
+    expect(calls).toContain(`/api/safety/food-acknowledgements?itemId=${itemId}&acknowledgementType=food_handoff`);
     expect(calls).toContain("/api/bookings/request");
   });
 
@@ -103,9 +107,9 @@ describe("booking UI API helpers", () => {
     };
 
     const ack = await submitSafetyAcknowledgement(fetcher, {
-      matchId: "match-1",
-      itemInstanceId: "item-1",
-      needId: "need-1",
+      matchId,
+      itemInstanceId: itemId,
+      needId,
       householdId: "hh-requester",
       acknowledged: true,
       sealedPackagedOnly: true,
@@ -113,25 +117,26 @@ describe("booking UI API helpers", () => {
       source: "grocery_match_card",
     });
     const request = await requestBooking(fetcher, {
-      matchId: "match-1",
-      itemInstanceId: "item-1",
-      needId: "need-1",
+      matchId,
+      itemInstanceId: itemId,
+      needId,
       householdId: "hh-requester",
       source: "grocery_match_card",
     });
 
     expect(ack.status).toBe("ok");
     expect(request.status).toBe("ok");
-    expect(calls).toContain("/api/safety/acknowledgements?householdId=hh-requester&itemId=item-1&acknowledgementType=food_handoff");
+    expect(calls).toContain(`/api/safety/acknowledgements?householdId=hh-requester&itemId=${itemId}&acknowledgementType=food_handoff`);
     expect(calls).toContain("/api/safety/acknowledgements?householdId=hh-requester");
     expect(calls).toContain("/api/bookings/request?householdId=hh-requester");
     expect(bodies[1]).toMatchObject({
       acknowledgementType: "food_handoff",
-      itemId: "item-1",
+      itemId,
       acknowledgedNotice: true,
       metadata: {
-        matchId: "match-1",
-        needId: "need-1",
+        matchId,
+        needId,
+        itemId,
         sealedPackagedOnly: true,
         noSafetyCertification: true,
       },
@@ -149,9 +154,9 @@ describe("booking UI API helpers", () => {
     };
 
     const ack = await submitSafetyAcknowledgement(fetcher, {
-      matchId: "match-1",
-      itemInstanceId: "item-1",
-      needId: "need-1",
+      matchId,
+      itemInstanceId: itemId,
+      needId,
       householdId: "hh-requester",
       acknowledged: true,
       sealedPackagedOnly: true,
@@ -161,7 +166,7 @@ describe("booking UI API helpers", () => {
 
     expect(ack.status).toBe("ok");
     expect(ack.message).toBe("Food safety acknowledgement already recorded.");
-    expect(calls).toContain("/api/safety/acknowledgements?householdId=hh-requester&itemId=item-1&acknowledgementType=food_handoff");
+    expect(calls).toContain(`/api/safety/acknowledgements?householdId=hh-requester&itemId=${itemId}&acknowledgementType=food_handoff`);
     expect(calls).not.toContain("/api/safety/acknowledgements?householdId=hh-requester");
   });
 

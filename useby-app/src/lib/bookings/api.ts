@@ -25,6 +25,12 @@ const SAFETY_ACK_ENDPOINTS = [
   "/api/bookings/safety-acknowledgements",
 ] as const;
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function uuidOrNull(value: string | null | undefined): string | null {
+  return value && UUID_PATTERN.test(value) ? value : null;
+}
+
 function withHouseholdContext(endpoint: string, householdId?: string | null): string {
   if (!householdId) {
     return endpoint;
@@ -39,8 +45,9 @@ function withSafetyAckQuery(endpoint: string, input: SafetyAcknowledgementInput)
   if (input.householdId) {
     search.set("householdId", input.householdId);
   }
-  if (input.itemInstanceId) {
-    search.set("itemId", input.itemInstanceId);
+  const itemId = uuidOrNull(input.itemInstanceId);
+  if (itemId) {
+    search.set("itemId", itemId);
   }
   search.set("acknowledgementType", "food_handoff");
 
@@ -333,19 +340,19 @@ function normalizeTimeline(
   ];
 
   if (acceptedAt || ["accepted", "reserved", "pickup_scheduled", "picked_up", "completed", "reviewed"].includes(status)) {
-    events.push({ status: "reserved", label: "Accepted / reserved", at: acceptedAt, detail: "Owner accepted and the item should be blocked from double booking." });
+    events.push({ status: "reserved", label: "Accepted / reserved", at: acceptedAt, detail: "Owner accepted and the item is held for this neighbour." });
   }
   if (pickupWindow || ["pickup_scheduled", "picked_up", "completed", "reviewed"].includes(status)) {
-    events.push({ status: "pickup_scheduled", label: "Pickup scheduled", at: pickupWindow, detail: "Pickup hint may be shown after acceptance without raw coordinates." });
+    events.push({ status: "pickup_scheduled", label: "Pickup scheduled", at: pickupWindow, detail: "Pickup hint is shown without exact household coordinates." });
   }
   if (pickedUpAt || ["picked_up", "completed", "reviewed"].includes(status)) {
     events.push({ status: "picked_up", label: "Picked up", at: pickedUpAt, detail: "Receiver confirmed collection." });
   }
   if (completedAt || ["completed", "reviewed"].includes(status)) {
-    events.push({ status: "completed", label: "Completed", at: completedAt, detail: "Completion can write trust and audit evidence." });
+    events.push({ status: "completed", label: "Completed", at: completedAt, detail: "Completion closes the handoff and records the outcome." });
   }
   if (reviewedAt || status === "reviewed") {
-    events.push({ status: "reviewed", label: "Reviewed", at: reviewedAt, detail: "Review recorded for trust context." });
+    events.push({ status: "reviewed", label: "Reviewed", at: reviewedAt, detail: "Review saved for trust context." });
   }
   if (declinedAt || status === "declined") {
     events.push({ status: "declined", label: "Declined", at: declinedAt, detail: "Owner declined the request." });
@@ -479,14 +486,16 @@ export async function submitSafetyAcknowledgement(
   fetcher: Fetcher,
   input: SafetyAcknowledgementInput,
 ): Promise<BookingMutationResult> {
+  const itemId = uuidOrNull(input.itemInstanceId);
   const payload = {
     acknowledgementType: "food_handoff",
-    itemId: input.itemInstanceId,
+    itemId,
     bookingId: null,
     acknowledgedNotice: input.acknowledged,
     metadata: {
       matchId: input.matchId,
       needId: input.needId,
+      itemId: input.itemInstanceId,
       sealedPackagedOnly: input.sealedPackagedOnly,
       noSafetyCertification: input.noSafetyCertification,
       category: "grocery",
@@ -520,7 +529,7 @@ export async function submitSafetyAcknowledgement(
 export async function requestBooking(fetcher: Fetcher, input: BookingRequestInput): Promise<BookingMutationResult> {
   return postJson(fetcher, withHouseholdContext(BOOKING_REQUEST_ENDPOINT, input.householdId), {
     matchId: input.matchId,
-    itemInstanceId: input.itemInstanceId,
+    itemId: uuidOrNull(input.itemInstanceId),
     needId: input.needId,
     bookingType: "share",
     category: "grocery",
