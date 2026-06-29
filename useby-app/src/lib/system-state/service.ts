@@ -23,6 +23,59 @@ import type {
   SystemStateResponse,
 } from "./types";
 
+type CountContract = (typeof SYSTEM_COUNT_TABLES)[number] | {
+  key: string;
+  label: string;
+  table: string;
+  where?: string;
+};
+
+const CHECKPOINT_3_COUNT_TABLES = [
+  {
+    key: "handoffs",
+    label: "Handoffs",
+    table: "handoffs",
+  },
+  {
+    key: "safetyAcknowledgements",
+    label: "Safety acknowledgements",
+    table: "safety_acknowledgements",
+  },
+  {
+    key: "trustEvents",
+    label: "Trust events",
+    table: "trust_events",
+  },
+  {
+    key: "reviews",
+    label: "Reviews",
+    table: "reviews",
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    table: "reports",
+  },
+  {
+    key: "blocks",
+    label: "Blocks",
+    table: "blocks",
+  },
+] satisfies CountContract[];
+
+const SYSTEM_STATE_COUNT_TABLES: CountContract[] = [
+  ...SYSTEM_COUNT_TABLES.map((contract) =>
+    contract.key === "bookings"
+      ? {
+          ...contract,
+          where:
+            "status in ('requested', 'accepted', 'reserved', 'pickup_scheduled', 'picked_up')",
+        }
+      : contract,
+  ),
+  ...CHECKPOINT_3_COUNT_TABLES,
+];
+
 function safeJson(value: unknown): Record<string, unknown> | null {
   if (!value) {
     return null;
@@ -47,7 +100,7 @@ function safeJson(value: unknown): Record<string, unknown> | null {
 }
 
 function unavailableCounts(reason: string): SystemCount[] {
-  return SYSTEM_COUNT_TABLES.map((contract) => ({
+  return SYSTEM_STATE_COUNT_TABLES.map((contract) => ({
     key: contract.key,
     label: contract.label,
     table: contract.table,
@@ -60,7 +113,7 @@ function unavailableCounts(reason: string): SystemCount[] {
 async function getCounts(): Promise<SystemCount[]> {
   const counts: SystemCount[] = [];
 
-  for (const contract of SYSTEM_COUNT_TABLES) {
+  for (const contract of SYSTEM_STATE_COUNT_TABLES) {
     try {
       const availability = await getTableAvailability(contract.table);
       if (!availability.exists) {

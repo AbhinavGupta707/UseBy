@@ -34,13 +34,14 @@ export default function ProofPage() {
 
         <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-lg border border-[#d2dbc9] bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase text-[#65715f]">H0 Checkpoint 2</p>
+            <p className="text-xs font-semibold uppercase text-[#65715f]">H0 Checkpoint 3</p>
             <h1 className="mt-2 max-w-2xl text-4xl font-semibold leading-tight text-[#17231c]">
-              Architecture and database proof for the live UseBy system.
+              Architecture, booking, safety, and trust proof for the live UseBy system.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#566250]">
               This surface reads the system endpoints directly, reports missing endpoints as unavailable,
-              and only treats Aurora/PostGIS as live when the backend returns that status.
+              and only treats Aurora/PostGIS, bookings, handoffs, and trust evidence as live when the backend
+              returns that status.
             </p>
           </div>
 

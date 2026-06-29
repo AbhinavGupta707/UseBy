@@ -48,6 +48,41 @@ describe("system state service", () => {
       available: false,
       count: null,
     });
+    expect(state.counts.find((count) => count.key === "bookings")).toMatchObject({
+      table: "bookings",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "handoffs")).toMatchObject({
+      table: "handoffs",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "safetyAcknowledgements")).toMatchObject({
+      table: "safety_acknowledgements",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "trustEvents")).toMatchObject({
+      table: "trust_events",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "reviews")).toMatchObject({
+      table: "reviews",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "reports")).toMatchObject({
+      table: "reports",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "blocks")).toMatchObject({
+      table: "blocks",
+      available: false,
+      count: null,
+    });
     expect(JSON.stringify(state)).not.toContain("secret-value");
   });
 });
