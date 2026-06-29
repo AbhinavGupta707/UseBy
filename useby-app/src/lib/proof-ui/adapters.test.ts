@@ -49,6 +49,8 @@ describe("proof UI adapters", () => {
           { key: "households", table: "households", count: 8 },
           { key: "itemInstances", table: "item_instances", count: 36 },
           { key: "needs", table: "needs", count: 5 },
+          { key: "actionCards", table: "action_cards", count: 4, available: true },
+          { key: "matches", table: "matches", count: 2, available: true },
           { key: "demandPools", table: "demand_pools", count: 3 },
           { key: "auditEvents", table: "audit_events", count: 12 },
           { key: "jobRuns", table: "job_runs", count: 2 },
@@ -94,9 +96,51 @@ describe("proof UI adapters", () => {
     expect(snapshot.overallStatus).toBe("ok");
     expect(snapshot.integrations.find((integration) => integration.key === "aurora")?.status).toBe("ok");
     expect(snapshot.rowCounts.find((row) => row.key === "households")?.count).toBe(8);
+    expect(snapshot.rowCounts.find((row) => row.key === "action_cards")?.count).toBe(4);
+    expect(snapshot.rowCounts.find((row) => row.key === "matches")?.count).toBe(2);
     expect(snapshot.extensions.find((extension) => extension.name === "postgis")?.status).toBe("ok");
     expect(snapshot.extensions.find((extension) => extension.name === "vector")?.status).toBe("unavailable");
     expect(snapshot.auditEvents[0]?.title).toBe("demo.seeded");
     expect(snapshot.jobRuns[0]?.name).toBe("recompute-matches");
+  });
+
+  it("keeps CP2 missing tables visible as unavailable proof rows", () => {
+    const snapshot = normalizeProofSnapshot(
+      endpoint("/api/system/state", "ok", {
+        status: "partial",
+        counts: [
+          {
+            key: "actionCards",
+            table: "action_cards",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "matches",
+            table: "matches",
+            available: false,
+            count: null,
+            reason: "status column is required for active count",
+          },
+        ],
+      }),
+      endpoint("/api/system/db-proof", "ok", {
+        status: "available",
+        database: { available: true, currentDatabase: "useby", versionSummary: "PostgreSQL 17.7" },
+        extensions: { available: true, items: [] },
+      }),
+    );
+
+    expect(snapshot.rowCounts.find((row) => row.key === "action_cards")).toMatchObject({
+      count: null,
+      available: false,
+      reason: "table is not available",
+    });
+    expect(snapshot.rowCounts.find((row) => row.key === "matches")).toMatchObject({
+      count: null,
+      available: false,
+      reason: "status column is required for active count",
+    });
   });
 });

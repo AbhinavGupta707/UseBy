@@ -277,7 +277,7 @@ function RowCountsPanel({ rows }: { rows: RowCountProof[] }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase text-[#65715f]">Row Counts</p>
-          <h2 className="mt-1 text-xl font-semibold text-[#17231c]">Checkpoint 1 tables</h2>
+          <h2 className="mt-1 text-xl font-semibold text-[#17231c]">Live checkpoint tables</h2>
         </div>
         <p className="text-sm font-semibold text-[#315b44]">{totals.length}/{rows.length} reported</p>
       </div>
@@ -288,6 +288,9 @@ function RowCountsPanel({ rows }: { rows: RowCountProof[] }) {
             <p className="mt-2 font-mono text-2xl font-semibold text-[#17231c]">
               {row.count === null ? "n/a" : row.count.toLocaleString()}
             </p>
+            {row.count === null && row.reason ? (
+              <p className="mt-1 text-xs leading-5 text-[#8a9384]">{row.reason}</p>
+            ) : null}
           </div>
         ))}
       </div>

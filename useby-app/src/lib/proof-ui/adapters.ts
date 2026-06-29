@@ -19,6 +19,8 @@ const CHECKPOINT_TABLES: RowCountProof[] = [
   { key: "item_catalog", label: "Catalog Items", count: null },
   { key: "item_instances", label: "Item Instances", count: null },
   { key: "needs", label: "Needs", count: null },
+  { key: "action_cards", label: "Action Cards", count: null },
+  { key: "matches", label: "Matches", count: null },
   { key: "demand_pools", label: "Demand Pools", count: null },
   { key: "audit_events", label: "Audit Events", count: null },
   { key: "job_runs", label: "Job Runs", count: null },
@@ -327,23 +329,31 @@ function normalizeRowCounts(
   state: Record<string, unknown> | null,
   dbProof: Record<string, unknown> | null,
 ): RowCountProof[] {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, Pick<RowCountProof, "available" | "count" | "reason">>();
   collectCounts(counts, getFirst(state, ["counts", "rowCounts", "tables", "tableCounts"]));
   collectCounts(counts, getFirst(dbProof, ["counts", "rowCounts", "tables", "tableCounts"]));
 
-  return CHECKPOINT_TABLES.map((table) => ({
-    ...table,
-    count: counts.get(table.key) ?? counts.get(slug(table.label)) ?? null,
-  }));
+  return CHECKPOINT_TABLES.map((table) => {
+    const count = counts.get(table.key) ?? counts.get(slug(table.label));
+
+    return {
+      ...table,
+      ...count,
+      count: count?.count ?? null,
+    };
+  });
 }
 
-function collectCounts(counts: Map<string, number>, value: unknown) {
+function collectCounts(
+  counts: Map<string, Pick<RowCountProof, "available" | "count" | "reason">>,
+  value: unknown,
+) {
   const record = asRecord(value);
   if (record) {
     for (const [key, rawCount] of Object.entries(record)) {
       const count = toNumber(rawCount);
       if (count !== null) {
-        counts.set(slug(key), count);
+        counts.set(slug(key), { count, available: true });
       }
     }
     return;
@@ -357,12 +367,16 @@ function collectCounts(counts: Map<string, number>, value: unknown) {
 
     const key = getString(row, ["key", "table", "tableName", "name", "label"]);
     const count = toNumber(getFirst(row, ["count", "rowCount", "rows", "total"]));
-    if (key && count !== null) {
-      counts.set(slug(key), count);
+    const available = getBoolean(row, ["available"]);
+    const reason = getString(row, ["reason", "message", "detail"]);
+
+    if (key && (count !== null || available !== null || reason)) {
+      const proof = { count, available: available ?? count !== null, reason: reason ?? undefined };
+      counts.set(slug(key), proof);
       for (const alias of ["table", "tableName", "name", "label"]) {
         const aliasKey = getString(row, [alias]);
         if (aliasKey) {
-          counts.set(slug(aliasKey), count);
+          counts.set(slug(aliasKey), proof);
         }
       }
     }

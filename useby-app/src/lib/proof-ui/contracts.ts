@@ -20,6 +20,8 @@ export type RowCountProof = {
   key: string;
   label: string;
   count: number | null;
+  available?: boolean;
+  reason?: string;
 };
 
 export type ExtensionProof = {
@@ -72,4 +74,3 @@ export type ProofSnapshot = {
   jobRuns: JobRunProof[];
   demoControls: DemoControlProof[];
 };
-

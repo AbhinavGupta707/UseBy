@@ -38,6 +38,16 @@ describe("system state service", () => {
     expect(state.integrations.aurora.available).toBe(false);
     expect(state.counts.length).toBeGreaterThan(0);
     expect(state.counts.every((count) => count.available === false)).toBe(true);
+    expect(state.counts.find((count) => count.key === "actionCards")).toMatchObject({
+      table: "action_cards",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "matches")).toMatchObject({
+      table: "matches",
+      available: false,
+      count: null,
+    });
     expect(JSON.stringify(state)).not.toContain("secret-value");
   });
 });

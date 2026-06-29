@@ -42,6 +42,12 @@ export const SYSTEM_COUNT_TABLES = [
     where: "status = 'open'",
   },
   {
+    key: "actionCards",
+    label: "Active action cards",
+    table: "action_cards",
+    where: "status = 'active'",
+  },
+  {
     key: "matches",
     label: "Active matches",
     table: "matches",
