@@ -3,7 +3,7 @@
 Checkpoint 6 completed commit: `f2d1147`.
 Checkpoint 7 plan commit: `bf7d84b`.
 Worker launch base: `bf7d84b` (`Plan checkpoint 7 surplus orchestration`).
-Current registry commit: pending worker registry commit.
+Current worker registry commit: `e2efaab` (`Record checkpoint 7 worker registry`).
 
 ## Outcome
 
