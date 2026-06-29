@@ -14,18 +14,19 @@ import type {
 
 type Fetcher = typeof fetch;
 
-const SHELF_ENDPOINT = "/api/grocery/shelf";
 const INVENTORY_ENDPOINT = "/api/grocery/inventory";
 const ACTION_CARDS_ENDPOINT = "/api/grocery/action-cards";
 const MATCHES_ENDPOINT = "/api/grocery/matches";
 
 const IMPORT_ENDPOINTS = [
+  "/api/grocery/import",
   "/api/grocery/receipt-imports",
   "/api/grocery/import-receipt",
   "/api/grocery/receipt",
 ] as const;
 
 const EXPIRY_ENDPOINTS = [
+  (itemId: string) => `/api/grocery/items/${encodeURIComponent(itemId)}`,
   (itemId: string) => `/api/grocery/inventory/${encodeURIComponent(itemId)}`,
   (itemId: string) => `/api/grocery/items/${encodeURIComponent(itemId)}/expiry`,
   () => "/api/grocery/expiry",
@@ -254,38 +255,13 @@ async function fetchEndpoint(fetcher: Fetcher, endpoint: string): Promise<{
   }
 }
 
-function snapshotFromShelf(body: Record<string, unknown>, endpoint: GroceryEndpointState): GrocerySnapshot {
-  const inventory = childArray(body, ["inventory", "items", "itemInstances", "item_instances"])
-    .map(normalizeInventoryItem);
-  const actionCards = childArray(body, ["actionCards", "action_cards", "cards"])
-    .map(normalizeActionCard);
-  const matches = childArray(body, ["matches", "foodMatches", "food_matches"])
-    .map(normalizeMatch);
-
-  return {
-    status: endpoint.status,
-    checkedAt: new Date().toISOString(),
-    inventory,
-    actionCards,
-    matches,
-    endpoints: [endpoint],
-    message: endpoint.status === "available" ? stringValue(body.message, "") || null : endpoint.message,
-  };
-}
-
 export async function loadGrocerySnapshot(fetcher: Fetcher): Promise<GrocerySnapshot> {
-  const shelf = await fetchEndpoint(fetcher, SHELF_ENDPOINT);
-  if (shelf.endpoint.status === "available") {
-    return snapshotFromShelf(shelf.body, shelf.endpoint);
-  }
-
   const [inventoryResponse, actionCardsResponse, matchesResponse] = await Promise.all([
     fetchEndpoint(fetcher, INVENTORY_ENDPOINT),
     fetchEndpoint(fetcher, ACTION_CARDS_ENDPOINT),
     fetchEndpoint(fetcher, MATCHES_ENDPOINT),
   ]);
   const endpoints = [
-    shelf.endpoint,
     inventoryResponse.endpoint,
     actionCardsResponse.endpoint,
     matchesResponse.endpoint,
@@ -294,7 +270,13 @@ export async function loadGrocerySnapshot(fetcher: Fetcher): Promise<GrocerySnap
   const errors = endpoints.filter((endpoint) => endpoint.status === "error").length;
 
   return {
-    status: available > 0 ? "partial" : errors > 0 ? "error" : "unavailable",
+    status: available === endpoints.length
+      ? "available"
+      : available > 0
+        ? "partial"
+        : errors > 0
+          ? "error"
+          : "unavailable",
     checkedAt: new Date().toISOString(),
     inventory: childArray(inventoryResponse.body, ["inventory", "items", "itemInstances", "item_instances"]).map(normalizeInventoryItem),
     actionCards: childArray(actionCardsResponse.body, ["actionCards", "action_cards", "cards"]).map(normalizeActionCard),
@@ -341,23 +323,32 @@ async function postJson(
 }
 
 export async function submitManualGrocery(fetcher: Fetcher, input: ManualGroceryInput): Promise<GroceryMutationResult> {
+  const parsedQuantity = Number(input.quantity);
+  const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0
+    ? parsedQuantity
+    : 1;
+  const rawText = input.receiptLines.trim();
+
   const payload = {
-    mode: "manual",
-    source: "consumer_grocery_ui",
-    receiptText: input.receiptLines,
-    lines: input.receiptLines
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean),
-    items: [
+    source: rawText.length > 0 ? "receipt" : "manual",
+    rawText: rawText || null,
+    metadata: {
+      source: "consumer_grocery_ui",
+    },
+    lines: [
       {
         title: input.itemName,
-        quantity: input.quantity,
+        quantity,
         unit: input.unit,
         storageState: input.storageState,
-        expiryDate: input.expiryDate || null,
+        useByDate: input.expiryDate || null,
+        expiryConfidence: "medium",
+        metadata: {
+          source: "consumer_grocery_ui",
+          receiptLines: rawText || null,
+        },
       },
-    ].filter((item) => item.title.trim().length > 0),
+    ].filter((line) => line.title.trim().length > 0),
   };
 
   let lastResult: GroceryMutationResult | null = null;
@@ -379,18 +370,19 @@ export async function submitManualGrocery(fetcher: Fetcher, input: ManualGrocery
 
 export async function submitExpiryEdit(fetcher: Fetcher, input: ExpiryEditInput): Promise<GroceryMutationResult> {
   const payload = {
-    itemId: input.itemId,
     storageState: input.storageState,
-    labelDate: input.expiryDate || null,
-    expiryDate: input.expiryDate || null,
+    useByDate: input.expiryDate || null,
     safetyStatus: input.safetyStatus,
-    source: "consumer_grocery_ui",
+    expirySource: "manual",
+    metadata: {
+      source: "consumer_grocery_ui",
+    },
   };
 
   let lastResult: GroceryMutationResult | null = null;
   for (const [index, endpointForItem] of EXPIRY_ENDPOINTS.entries()) {
     const endpoint = endpointForItem(input.itemId);
-    const result = await postJson(fetcher, endpoint, index === 0 ? "PATCH" : "POST", payload);
+    const result = await postJson(fetcher, endpoint, index <= 1 ? "PATCH" : "POST", payload);
     if (result.status !== "unavailable") {
       return result;
     }

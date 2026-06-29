@@ -17,7 +17,7 @@ function jsonResponse(data: unknown, init: ResponseInit = {}) {
 }
 
 describe("grocery UI API helpers", () => {
-  it("normalizes shelf responses without exposing unavailable fallback data", async () => {
+  it("normalizes split route responses without exposing unavailable fallback data", async () => {
     const fetcher = async () => jsonResponse({
       inventory: [
         {
@@ -75,7 +75,7 @@ describe("grocery UI API helpers", () => {
 
     expect(snapshot.status).toBe("partial");
     expect(snapshot.inventory).toHaveLength(1);
-    expect(snapshot.endpoints.find((endpoint) => endpoint.endpoint === "/api/grocery/shelf")?.status).toBe("unavailable");
+    expect(snapshot.endpoints.find((endpoint) => endpoint.endpoint === "/api/grocery/action-cards")?.status).toBe("unavailable");
     expect(snapshot.actionCards).toHaveLength(0);
   });
 
@@ -103,8 +103,8 @@ describe("grocery UI API helpers", () => {
 
     expect(importResult.status).toBe("unavailable");
     expect(editResult.status).toBe("unavailable");
-    expect(calls).toContain("/api/grocery/receipt-imports");
-    expect(calls).toContain("/api/grocery/inventory/item-1");
+    expect(calls).toContain("/api/grocery/import");
+    expect(calls).toContain("/api/grocery/items/item-1");
   });
 
   it("derives honest expiry bands from visible dates when the backend omits a band", () => {
