@@ -4,6 +4,7 @@ import {
   RIVERSIDE_QUARTER_DEMO_WORLD,
   summarizeDemoWorld,
 } from "@/server/fixtures/demo-world";
+import { runRecomputeMatchesJob } from "@/server/jobs/recompute-matches";
 import { buildDemoSeedPlan, runDemoSeedOperation } from "@/server/seed/demo-seed-adapter";
 
 export const dynamic = "force-dynamic";
@@ -21,13 +22,22 @@ export async function GET() {
 
 export async function POST() {
   const result = await runDemoSeedOperation("reset");
+  const recompute = result.applied
+    ? await runRecomputeMatchesJob({
+        source: "/api/demo/reset",
+        idempotencyKey: `${result.idempotencyKey}:demo-ready:${result.mutationTimestamp}`,
+      })
+    : null;
+  const demoReady = recompute?.status === "succeeded";
 
   return NextResponse.json(
     {
-      ok: result.applied,
+      ok: result.applied && (recompute === null || demoReady),
       operation: "reset",
+      demoReady,
       result,
+      recompute,
     },
-    { status: result.applied ? 200 : 503 },
+    { status: result.applied && (recompute === null || demoReady) ? 200 : 503 },
   );
 }

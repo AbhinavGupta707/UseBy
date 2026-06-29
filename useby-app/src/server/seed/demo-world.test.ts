@@ -127,6 +127,17 @@ describe("demo seed/reset plan", () => {
     }
   });
 
+  it("makes the reset route demo-ready by recomputing derived matches after seeding", () => {
+    const resetRouteSource = readFileSync(
+      "src/app/api/demo/reset/route.ts",
+      "utf8",
+    );
+
+    expect(resetRouteSource).toContain("runDemoSeedOperation(\"reset\")");
+    expect(resetRouteSource).toContain("runRecomputeMatchesJob");
+    expect(resetRouteSource).toContain("demoReady");
+  });
+
   it("is dry-run when Aurora env is unavailable", async () => {
     const result = await runDemoSeedOperation("reset", {
       adapter: createDryRunDemoSeedAdapter(),
