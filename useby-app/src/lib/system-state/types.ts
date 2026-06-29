@@ -29,6 +29,45 @@ export type IntegrationAvailability = {
   };
 };
 
+export type Cp8ReadinessStatus = "ready" | "configured" | "disabled" | "unavailable";
+
+export type Cp8ProviderStatus = {
+  key: string;
+  label: string;
+  status: Cp8ReadinessStatus;
+  configured: boolean;
+  noKey: boolean;
+  detail: string;
+};
+
+export type Cp8EvidenceHook = {
+  key: string;
+  label: string;
+  status: Cp8ReadinessStatus;
+  detail: string;
+};
+
+export type Cp8SystemState = {
+  providers: Cp8ProviderStatus[];
+  privateFileEvidence: Cp8EvidenceHook;
+  geocodingPrivacy: Cp8EvidenceHook;
+  notificationJobs: Cp8EvidenceHook;
+  aiGuardrails: {
+    status: "ready";
+    detail: string;
+    allowedUses: readonly string[];
+    forbiddenDecisions: readonly string[];
+    copyOnly: true;
+    deterministicFirst: true;
+    canSetEligibility: false;
+    canSetTrust: false;
+    canSetPayment: false;
+    canSetSafety: false;
+    canSetReservationCapacity: false;
+    canSetVisibility: false;
+  };
+};
+
 export type SystemCount = {
   key: string;
   label: string;
@@ -77,6 +116,7 @@ export type SystemStateResponse = {
     runs: LatestJobRun[];
     reason?: string;
   };
+  cp8: Cp8SystemState;
 };
 
 export type ExtensionProof = {

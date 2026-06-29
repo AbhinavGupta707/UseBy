@@ -54,6 +54,10 @@ const CHECKPOINT_TABLES: RowCountProof[] = [
   { key: "cp7HeatmapCells", label: "CP7 Heatmap Sources", count: null },
   { key: "cp7ExpireDropJobRuns", label: "CP7 Expire Jobs", count: null },
   { key: "cp7AuditEvents", label: "CP7 Audit Events", count: null },
+  { key: "cp8PrivateFiles", label: "CP8 Private Files", count: null },
+  { key: "cp8NotificationRows", label: "CP8 Notifications", count: null },
+  { key: "cp8PickupReminderJobs", label: "CP8 Reminder Jobs", count: null },
+  { key: "cp8AiAuditEvents", label: "CP8 AI Audit", count: null },
   { key: "audit_events", label: "Audit Events", count: null },
   { key: "job_runs", label: "Job Runs", count: null },
 ];
@@ -397,8 +401,10 @@ function normalizeIntegrations(
   const sourceIntegrations = [
     ...toArray(getFirst(state, ["integrations", "integrationStatus", "services"])),
     ...toArray(getFirst(dbProof, ["integrations", "integrationStatus", "services"])),
+    ...toArray(getFirst(state, ["cp8.providers"])),
   ];
   const stateIntegrations = asRecord(getFirst(state, ["integrations"]));
+  const cp8 = asRecord(getFirst(state, ["cp8"]));
 
   const integrationLookup = new Map<string, Record<string, unknown>>();
   for (const entry of sourceIntegrations) {
@@ -459,6 +465,56 @@ function normalizeIntegrations(
         "Storage status must come from the system endpoint.",
     },
     {
+      key: "textract",
+      label: "Amazon Textract",
+      status: statusFromRecord(integrationLookup.get("textract")),
+      detail:
+        getString(integrationLookup.get("textract"), ["detail", "message"]) ??
+        "Textract status must come from the CP8 system endpoint.",
+    },
+    {
+      key: "geocoding",
+      label: "Geocoding",
+      status: statusFromRecord(integrationLookup.get("geocoding")),
+      detail:
+        getString(integrationLookup.get("geocoding"), ["detail", "message"]) ??
+        getString(asRecord(cp8?.geocodingPrivacy), ["detail"]) ??
+        "Geocoding privacy status must come from the CP8 system endpoint.",
+    },
+    {
+      key: "notifications",
+      label: "Notifications",
+      status: statusFromRecord(integrationLookup.get("notifications")),
+      detail:
+        getString(integrationLookup.get("notifications"), ["detail", "message"]) ??
+        getString(asRecord(cp8?.notificationJobs), ["detail"]) ??
+        "Notification job status must come from the CP8 system endpoint.",
+    },
+    {
+      key: "ai-copy",
+      label: "AI Copy",
+      status: statusFromRecord(integrationLookup.get("ai_copy")),
+      detail:
+        getString(integrationLookup.get("ai_copy"), ["detail", "message"]) ??
+        "AI copy status must come from the CP8 system endpoint.",
+    },
+    {
+      key: "semantic-ranking",
+      label: "Semantic Ranking",
+      status: statusFromRecord(integrationLookup.get("semantic_ranking")),
+      detail:
+        getString(integrationLookup.get("semantic_ranking"), ["detail", "message"]) ??
+        "Semantic ranking is disabled unless deterministic filters and embedding config are ready.",
+    },
+    {
+      key: "ai-guardrails",
+      label: "AI Guardrails",
+      status: statusFromRecord(asRecord(cp8?.aiGuardrails), "ok"),
+      detail:
+        getString(asRecord(cp8?.aiGuardrails), ["detail"]) ??
+        "AI can polish copy only; deterministic rules decide eligibility, safety, trust, payment, capacity, and visibility.",
+    },
+    {
       key: "vercel",
       label: "Vercel Runtime",
       status: statusFromRecord(integrationLookup.get("vercel") ?? integrationLookup.get("vercel_runtime")),
@@ -510,6 +566,20 @@ function normalizeArchitecture(integrations: IntegrationProof[]): ArchitectureNo
       label: "S3 Assets",
       detail: "Receipt, item, and label file storage when credentials are configured.",
       status: byKey.get("s3")?.status ?? "unknown",
+    },
+    {
+      label: "External Integrations",
+      detail: "Textract, geocoding, notifications, and no-key states are surfaced through CP8 system proof.",
+      status: worstStatus([
+        byKey.get("textract")?.status,
+        byKey.get("geocoding")?.status,
+        byKey.get("notifications")?.status,
+      ]),
+    },
+    {
+      label: "AI Guardrails",
+      detail: "AI writes copy and optional secondary ranking only after deterministic filters have passed.",
+      status: byKey.get("ai-guardrails")?.status ?? "unknown",
     },
   ];
 }
@@ -693,7 +763,7 @@ function statusFromRecord(
     return "ok";
   }
 
-  if (["warning", "degraded", "partial", "resuming"].includes(normalized)) {
+  if (["warning", "degraded", "partial", "resuming", "configured"].includes(normalized)) {
     return "warning";
   }
 
@@ -706,6 +776,26 @@ function statusFromRecord(
   }
 
   return fallback;
+}
+
+function worstStatus(statuses: Array<ProofStatus | undefined>): ProofStatus {
+  if (statuses.includes("error")) {
+    return "error";
+  }
+
+  if (statuses.includes("warning")) {
+    return "warning";
+  }
+
+  if (statuses.includes("unavailable")) {
+    return "unavailable";
+  }
+
+  if (statuses.includes("ok")) {
+    return "ok";
+  }
+
+  return "unknown";
 }
 
 function newestIso(left: string, right: string): string {
