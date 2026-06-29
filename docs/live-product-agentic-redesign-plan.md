@@ -355,7 +355,7 @@ The script prompts for Fireworks and LangSmith keys, writes `useby-app/.env.loca
 ```bash
 FIREWORKS_API_KEY=
 FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
-FIREWORKS_CHAT_MODEL=accounts/fireworks/models/kimi-k2-instruct-0905
+FIREWORKS_CHAT_MODEL=accounts/fireworks/models/kimi-k2p5
 FIREWORKS_FAST_MODEL=
 FIREWORKS_EMBEDDING_MODEL=fireworks/qwen3-embedding-8b
 FIREWORKS_RERANKER_MODEL=fireworks/qwen3-reranker-8b
@@ -364,9 +364,9 @@ AI_COPY_ENABLED=true
 AI_COPY_PROVIDER=fireworks
 AI_COPY_API_BASE_URL=https://api.fireworks.ai/inference/v1
 AI_COPY_API_KEY=
-AI_COPY_MODEL=accounts/fireworks/models/kimi-k2-instruct-0905
+AI_COPY_MODEL=accounts/fireworks/models/kimi-k2p5
 
-AI_SEMANTIC_RANKING_ENABLED=true
+AI_SEMANTIC_RANKING_ENABLED=false
 AI_EMBEDDING_PROVIDER=fireworks
 AI_EMBEDDING_API_KEY=
 AI_EMBEDDING_MODEL=fireworks/qwen3-embedding-8b

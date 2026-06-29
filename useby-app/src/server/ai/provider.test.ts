@@ -51,12 +51,12 @@ describe("AI copy provider guardrails", () => {
     const readiness = getAiCopyReadiness({
       AI_COPY_ENABLED: "true",
       FIREWORKS_API_KEY: "test-key",
-      FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2-instruct-0905",
+      FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2p5",
     });
 
     expect(readiness.status).toBe("ready");
     expect(readiness.provider).toBe("fireworks");
-    expect(readiness.model).toBe("accounts/fireworks/models/kimi-k2-instruct-0905");
+    expect(readiness.model).toBe("accounts/fireworks/models/kimi-k2p5");
     expect(readiness.noKey).toBe(false);
   });
 
@@ -86,7 +86,7 @@ describe("AI copy provider guardrails", () => {
         AI_COPY_PROVIDER: "fireworks",
         FIREWORKS_API_KEY: "test-key",
         FIREWORKS_BASE_URL: "https://api.fireworks.ai/inference/v1",
-        FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2-instruct-0905",
+        FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2p5",
       },
       fetcher,
     });
@@ -120,13 +120,13 @@ describe("AI copy provider guardrails", () => {
         AI_COPY_ENABLED: "true",
         AI_COPY_PROVIDER: "fireworks",
         FIREWORKS_API_KEY: "test-key",
-        FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2-instruct-0905",
+        FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2p5",
       },
       fetcher,
     });
 
     expect(requestedBody).toMatchObject({
-      model: "accounts/fireworks/models/kimi-k2-instruct-0905",
+      model: "accounts/fireworks/models/kimi-k2p5",
       messages: expect.arrayContaining([
         expect.objectContaining({
           role: "system",

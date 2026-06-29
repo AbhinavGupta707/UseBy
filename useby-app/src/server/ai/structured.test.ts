@@ -31,12 +31,12 @@ describe("structured agent provider", () => {
   it("accepts Fireworks aliases for OpenAI-compatible structured output", () => {
     const readiness = getStructuredAiReadiness({
       FIREWORKS_API_KEY: "test-key",
-      FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2-instruct-0905",
+      FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2p5",
     });
 
     expect(readiness.status).toBe("ready");
     expect(readiness.provider).toBe("fireworks");
-    expect(readiness.model).toBe("accounts/fireworks/models/kimi-k2-instruct-0905");
+    expect(readiness.model).toBe("accounts/fireworks/models/kimi-k2p5");
   });
 
   it("calls /chat/completions with response_format json schema", async () => {
@@ -95,7 +95,7 @@ describe("structured agent provider", () => {
           AI_AGENT_PROVIDER: "fireworks",
           FIREWORKS_API_KEY: "test-key",
           FIREWORKS_BASE_URL: "https://api.fireworks.ai/inference/v1",
-          FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2-instruct-0905",
+          FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2p5",
         },
         fetcher,
       },

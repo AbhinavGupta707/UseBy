@@ -11,7 +11,7 @@ const ENV_PATH = path.join(APP_ROOT, ".env.local");
 const BEGIN = "# BEGIN USEBY AGENT ENV";
 const END = "# END USEBY AGENT ENV";
 const DEFAULT_FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1";
-const DEFAULT_FIREWORKS_MODEL = "accounts/fireworks/models/kimi-k2-instruct-0905";
+const DEFAULT_FIREWORKS_MODEL = "accounts/fireworks/models/kimi-k2p5";
 const DEFAULT_LANGSMITH_ENDPOINT = "https://api.smith.langchain.com";
 
 const rl = readline.createInterface({

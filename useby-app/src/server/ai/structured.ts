@@ -42,7 +42,7 @@ type ChatCompletionResponse = {
 
 const DEFAULT_FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_MODEL = "accounts/fireworks/models/kimi-k2-instruct-0905";
+const DEFAULT_MODEL = "accounts/fireworks/models/kimi-k2p5";
 
 const receiptItemSchema = z.object({
   name: z.string().min(1).max(120),
