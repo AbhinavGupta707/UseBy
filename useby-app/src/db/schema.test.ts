@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   actionCardStatusValues,
+  agentRunStatusValues,
   bidStatusValues,
   bookingStatusValues,
   checkpoint8IntegrationTables,
+  checkpoint9AgentTables,
   checkpoint6DemandPoolOutputTables,
   checkpoint7StoreDropTables,
   checkpoint4LendingTables,
@@ -119,6 +121,13 @@ describe("checkpoint 1 schema contract", () => {
     expect(fileIntakeStatusValues).toContain("parse_unavailable");
     expect(providerRunModeValues).toEqual(["live", "fixture", "dry_run", "unavailable"]);
     expect(notificationStatusValues).toEqual(["unread", "read", "archived", "queued", "failed"]);
+    expect(agentRunStatusValues).toEqual([
+      "started",
+      "succeeded",
+      "failed",
+      "fallback",
+      "unavailable",
+    ]);
   });
 
   it("exports the checkpoint 3 booking lifecycle tables for booking and trust lanes", () => {
@@ -172,6 +181,16 @@ describe("checkpoint 1 schema contract", () => {
       [
         "fileIntakes",
         "notifications",
+      ].sort(),
+    );
+  });
+
+  it("exports checkpoint 9 agent persistence tables separately", () => {
+    expect(Object.keys(checkpoint9AgentTables).sort()).toEqual(
+      [
+        "agentArtifacts",
+        "agentRuns",
+        "agentToolCalls",
       ].sort(),
     );
   });

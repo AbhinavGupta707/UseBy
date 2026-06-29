@@ -196,6 +196,13 @@ export const notificationStatusValues = [
   "queued",
   "failed",
 ] as const;
+export const agentRunStatusValues = [
+  "started",
+  "succeeded",
+  "failed",
+  "fallback",
+  "unavailable",
+] as const;
 
 export const itemCategoryEnum = pgEnum("item_category", itemCategoryValues);
 export const itemStateEnum = pgEnum("item_state", itemStateValues);
@@ -247,6 +254,7 @@ export const fileIntakeKindEnum = pgEnum("file_intake_kind", fileIntakeKindValue
 export const fileIntakeStatusEnum = pgEnum("file_intake_status", fileIntakeStatusValues);
 export const providerRunModeEnum = pgEnum("provider_run_mode", providerRunModeValues);
 export const notificationStatusEnum = pgEnum("notification_status", notificationStatusValues);
+export const agentRunStatusEnum = pgEnum("agent_run_status", agentRunStatusValues);
 
 type JsonObject = Record<string, unknown>;
 type GeographyPoint = string;
@@ -1435,6 +1443,80 @@ export const jobRuns = pgTable(
   ],
 );
 
+export const agentRuns = pgTable(
+  "agent_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workflow: text("workflow").notNull(),
+    status: agentRunStatusEnum("status").default("started").notNull(),
+    provider: text("provider").notNull(),
+    model: text("model"),
+    providerStatus: text("provider_status").notNull(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    actorHouseholdId: uuid("actor_household_id").references(() => households.id, { onDelete: "set null" }),
+    actorMerchantId: uuid("actor_merchant_id").references(() => merchants.id, { onDelete: "set null" }),
+    neighbourhoodId: uuid("neighbourhood_id").references(() => neighbourhoods.id, { onDelete: "set null" }),
+    source: text("source").default("agent-api").notNull(),
+    sourceRoute: text("source_route"),
+    traceId: text("trace_id"),
+    traceProvider: text("trace_provider"),
+    requestFingerprint: text("request_fingerprint").notNull(),
+    idempotencyKey: text("idempotency_key"),
+    deterministicAuthority: jsonb("deterministic_authority").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    redactionSummary: jsonb("redaction_summary").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    metadata: metadata(),
+    ...demoScope,
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("agent_runs_workflow_created_idx").on(table.workflow, table.createdAt),
+    index("agent_runs_household_created_idx").on(table.actorHouseholdId, table.createdAt),
+    index("agent_runs_status_idx").on(table.status),
+    index("agent_runs_trace_idx").on(table.traceProvider, table.traceId),
+    uniqueIndex("agent_runs_idempotency_key_idx").on(table.idempotencyKey).where(sql`${table.idempotencyKey} is not null`),
+  ],
+);
+
+export const agentToolCalls = pgTable(
+  "agent_tool_calls",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    agentRunId: uuid("agent_run_id").notNull().references(() => agentRuns.id, { onDelete: "cascade" }),
+    sequence: integer("sequence").default(0).notNull(),
+    toolName: text("tool_name").notNull(),
+    toolType: text("tool_type").default("deterministic").notNull(),
+    status: text("status").notNull(),
+    inputMetadata: jsonb("input_metadata").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    outputMetadata: jsonb("output_metadata").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("agent_tool_calls_run_sequence_idx").on(table.agentRunId, table.sequence),
+  ],
+);
+
+export const agentArtifacts = pgTable(
+  "agent_artifacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    agentRunId: uuid("agent_run_id").notNull().references(() => agentRuns.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    payload: jsonb("payload").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    redactionLevel: text("redaction_level").default("safe_metadata").notNull(),
+    metadata: metadata(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("agent_artifacts_run_kind_idx").on(table.agentRunId, table.kind),
+  ],
+);
+
 export const auditEvents = pgTable(
   "audit_events",
   {
@@ -1562,4 +1644,10 @@ export const checkpoint7StoreDropTables = {
 export const checkpoint8IntegrationTables = {
   fileIntakes,
   notifications,
+};
+
+export const checkpoint9AgentTables = {
+  agentRuns,
+  agentToolCalls,
+  agentArtifacts,
 };
