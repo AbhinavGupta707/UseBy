@@ -84,14 +84,21 @@ describe("booking UI API helpers", () => {
 
     expect(ack.status).toBe("unavailable");
     expect(request.status).toBe("unavailable");
-    expect(calls).toContain("/api/safety/food-acknowledgements");
+    expect(calls).toContain("/api/safety/food-acknowledgements?itemId=item-1&acknowledgementType=food_handoff");
     expect(calls).toContain("/api/bookings/request");
   });
 
   it("passes household context through safety and booking mutations", async () => {
     const calls: string[] = [];
-    const fetcher = async (input: RequestInfo | URL) => {
+    const bodies: unknown[] = [];
+    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
       calls.push(String(input));
+      if (init?.body) {
+        bodies.push(JSON.parse(String(init.body)));
+      }
+      if (String(input).startsWith("/api/safety/food-acknowledgements")) {
+        return jsonResponse({ message: "missing" }, { status: 404 });
+      }
       return jsonResponse({ message: "ok", bookingId: "booking-1" });
     };
 
@@ -115,8 +122,47 @@ describe("booking UI API helpers", () => {
 
     expect(ack.status).toBe("ok");
     expect(request.status).toBe("ok");
-    expect(calls[0]).toBe("/api/safety/food-acknowledgements?householdId=hh-requester");
-    expect(calls[1]).toBe("/api/bookings/request?householdId=hh-requester");
+    expect(calls).toContain("/api/safety/acknowledgements?householdId=hh-requester&itemId=item-1&acknowledgementType=food_handoff");
+    expect(calls).toContain("/api/safety/acknowledgements?householdId=hh-requester");
+    expect(calls).toContain("/api/bookings/request?householdId=hh-requester");
+    expect(bodies[1]).toMatchObject({
+      acknowledgementType: "food_handoff",
+      itemId: "item-1",
+      acknowledgedNotice: true,
+      metadata: {
+        matchId: "match-1",
+        needId: "need-1",
+        sealedPackagedOnly: true,
+        noSafetyCertification: true,
+      },
+    });
+  });
+
+  it("treats an existing safety acknowledgement as success before booking", async () => {
+    const calls: string[] = [];
+    const fetcher = async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      if (String(input).startsWith("/api/safety/food-acknowledgements")) {
+        return jsonResponse({ message: "missing" }, { status: 404 });
+      }
+      return jsonResponse({ ok: true, acknowledged: true });
+    };
+
+    const ack = await submitSafetyAcknowledgement(fetcher, {
+      matchId: "match-1",
+      itemInstanceId: "item-1",
+      needId: "need-1",
+      householdId: "hh-requester",
+      acknowledged: true,
+      sealedPackagedOnly: true,
+      noSafetyCertification: true,
+      source: "grocery_match_card",
+    });
+
+    expect(ack.status).toBe("ok");
+    expect(ack.message).toBe("Food safety acknowledgement already recorded.");
+    expect(calls).toContain("/api/safety/acknowledgements?householdId=hh-requester&itemId=item-1&acknowledgementType=food_handoff");
+    expect(calls).not.toContain("/api/safety/acknowledgements?householdId=hh-requester");
   });
 
   it("builds transition endpoints for handoff actions", async () => {

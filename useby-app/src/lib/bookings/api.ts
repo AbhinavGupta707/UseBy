@@ -34,6 +34,25 @@ function withHouseholdContext(endpoint: string, householdId?: string | null): st
   return `${endpoint}${separator}householdId=${encodeURIComponent(householdId)}`;
 }
 
+function withSafetyAckQuery(endpoint: string, input: SafetyAcknowledgementInput): string {
+  const search = new URLSearchParams();
+  if (input.householdId) {
+    search.set("householdId", input.householdId);
+  }
+  if (input.itemInstanceId) {
+    search.set("itemId", input.itemInstanceId);
+  }
+  search.set("acknowledgementType", "food_handoff");
+
+  const query = search.toString();
+  if (!query) {
+    return endpoint;
+  }
+
+  const separator = endpoint.includes("?") ? "&" : "?";
+  return `${endpoint}${separator}${query}`;
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -129,6 +148,43 @@ async function readJsonResponse(response: Response): Promise<Record<string, unkn
   }
 
   return asRecord(await response.json().catch(() => ({})));
+}
+
+async function checkExistingSafetyAcknowledgement(
+  fetcher: Fetcher,
+  endpoint: string,
+  input: SafetyAcknowledgementInput,
+): Promise<BookingMutationResult | null> {
+  try {
+    const response = await fetcher(withSafetyAckQuery(endpoint, input), {
+      headers: { accept: "application/json" },
+    });
+    const body = await readJsonResponse(response);
+
+    if (response.ok && body.acknowledged === true) {
+      return {
+        status: "ok",
+        endpoint,
+        httpStatus: response.status,
+        message: "Food safety acknowledgement already recorded.",
+        bookingId: null,
+      };
+    }
+
+    if (response.status === 404 || response.status === 501) {
+      return {
+        status: "unavailable",
+        endpoint,
+        httpStatus: response.status,
+        message: responseMessage(response, body),
+        bookingId: null,
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 function responseStatus(response: Response, body: Record<string, unknown>): BookingEndpointState["status"] {
@@ -424,18 +480,27 @@ export async function submitSafetyAcknowledgement(
   input: SafetyAcknowledgementInput,
 ): Promise<BookingMutationResult> {
   const payload = {
-    matchId: input.matchId,
-    itemInstanceId: input.itemInstanceId,
-    needId: input.needId,
-    acknowledged: input.acknowledged,
-    sealedPackagedOnly: input.sealedPackagedOnly,
-    noSafetyCertification: input.noSafetyCertification,
-    category: "grocery",
-    source: input.source,
+    acknowledgementType: "food_handoff",
+    itemId: input.itemInstanceId,
+    bookingId: null,
+    acknowledgedNotice: input.acknowledged,
+    metadata: {
+      matchId: input.matchId,
+      needId: input.needId,
+      sealedPackagedOnly: input.sealedPackagedOnly,
+      noSafetyCertification: input.noSafetyCertification,
+      category: "grocery",
+      source: input.source,
+    },
   };
   let lastResult: BookingMutationResult | null = null;
 
   for (const endpoint of SAFETY_ACK_ENDPOINTS) {
+    const existing = await checkExistingSafetyAcknowledgement(fetcher, endpoint, input);
+    if (existing?.status === "ok") {
+      return existing;
+    }
+
     const result = await postJson(fetcher, withHouseholdContext(endpoint, input.householdId), payload);
     if (result.status !== "unavailable") {
       return result;
