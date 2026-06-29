@@ -260,11 +260,18 @@ Final integration commits:
 - `32ce318` - switched Fireworks defaults and Vercel production model env to the account-available structured-output model `accounts/fireworks/models/kimi-k2p5`.
 - `8091d08` - added conservative Fireworks structured-output cleanup for JSON-like booleans/fenced JSON, still followed by forbidden-decision scans and Zod schema validation.
 
-Final production deployment:
+Full-smoke production deployment:
 
 - Deployment id: `dpl_2gkXv8BFzE6XeHrAvYrNvLviED5K`.
 - Deployment URL: `https://useby-16b4wo4gc-abhinavs-projects-f1cef581.vercel.app`.
 - Public alias: `https://useby-app.vercel.app`.
+
+Final alias deployment after the docs-only smoke record:
+
+- Deployment id: `dpl_BV5WB3XprPNExjBhzvNN6m1ViQfm`.
+- Deployment URL: `https://useby-dkjsa2kf2-abhinavs-projects-f1cef581.vercel.app`.
+- Public alias: `https://useby-app.vercel.app`.
+- Quick post-alias smoke passed: `GET /api/system/state` HTTP `200` available, `POST /api/agent/receipt-draft` HTTP `201` generated with `2` draft items, `POST /api/agent/action-plan` HTTP `201` generated with `3` advisory cards, and `/grocery` HTTP `200`.
 
 Verification run from `useby-app`:
 

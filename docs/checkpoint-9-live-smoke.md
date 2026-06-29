@@ -220,10 +220,16 @@ Passing smoke means each mutation is reflected by a later read from Aurora-backe
 
 Completed on 2026-06-29 after CP9 integration commit `8091d08`.
 
-Deployment:
+Full-smoke deployment:
 
 - Production deployment id: `dpl_2gkXv8BFzE6XeHrAvYrNvLviED5K`.
 - Public alias: `https://useby-app.vercel.app`.
+
+Final alias deployment after the docs-only smoke record:
+
+- Production deployment id: `dpl_BV5WB3XprPNExjBhzvNN6m1ViQfm`.
+- Public alias: `https://useby-app.vercel.app`.
+- Quick post-alias smoke passed for `/api/system/state`, `/api/agent/receipt-draft`, `/api/agent/action-plan`, and `/grocery`.
 
 Local verification:
 
