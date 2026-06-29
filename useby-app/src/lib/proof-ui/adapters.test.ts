@@ -36,6 +36,8 @@ describe("proof UI adapters", () => {
     expect(snapshot.rowCounts.every((row) => row.count === null)).toBe(true);
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/demo/reset");
     expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/bookings/request");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/lending/listings");
+    expect(snapshot.demoControls.map((control) => control.endpoint)).toContain("/api/lending/:bookingId/complete");
   });
 
   it("normalizes live counts, extensions, audit events, and jobs", () => {
@@ -64,6 +66,14 @@ describe("proof UI adapters", () => {
           { key: "reviews", table: "reviews", count: 1, available: true },
           { key: "reports", table: "reports", count: 1, available: true },
           { key: "blocks", table: "blocks", count: 1, available: true },
+          { key: "cp4ListedLendingItems", table: "item_instances", count: 11, available: true },
+          { key: "cp4OpenLendingNeeds", table: "needs", count: 3, available: true },
+          { key: "cp4ActiveLendingBookings", table: "bookings", count: 2, available: true },
+          { key: "cp4LendingHandoffs", table: "handoffs", count: 1, available: true },
+          { key: "cp4LendingTrustEvents", table: "trust_events", count: 1, available: true },
+          { key: "cp4LendingReviews", table: "reviews", count: 1, available: true },
+          { key: "rentalWindows", table: "rental_windows", count: 2, available: true },
+          { key: "conditionEvents", table: "condition_events", count: 4, available: true },
           { key: "demandPools", table: "demand_pools", count: 3 },
           { key: "auditEvents", table: "audit_events", count: 12 },
           { key: "jobRuns", table: "job_runs", count: 2 },
@@ -118,6 +128,14 @@ describe("proof UI adapters", () => {
     expect(snapshot.rowCounts.find((row) => row.key === "reviews")?.count).toBe(1);
     expect(snapshot.rowCounts.find((row) => row.key === "reports")?.count).toBe(1);
     expect(snapshot.rowCounts.find((row) => row.key === "blocks")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp4ListedLendingItems")?.count).toBe(11);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp4OpenLendingNeeds")?.count).toBe(3);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp4ActiveLendingBookings")?.count).toBe(2);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp4LendingHandoffs")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp4LendingTrustEvents")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp4LendingReviews")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "rental_windows")?.count).toBe(2);
+    expect(snapshot.rowCounts.find((row) => row.key === "condition_events")?.count).toBe(4);
     expect(snapshot.extensions.find((extension) => extension.name === "postgis")?.status).toBe("ok");
     expect(snapshot.extensions.find((extension) => extension.name === "vector")?.status).toBe("unavailable");
     expect(snapshot.auditEvents[0]?.title).toBe("demo.seeded");
@@ -240,6 +258,61 @@ describe("proof UI adapters", () => {
         count: null,
         available: false,
         reason: "table is not available",
+      });
+    }
+  });
+
+  it("keeps CP4 missing tables and filtered counts visible as unavailable proof rows", () => {
+    const snapshot = normalizeProofSnapshot(
+      endpoint("/api/system/state", "ok", {
+        status: "partial",
+        counts: [
+          {
+            key: "cp4ListedLendingItems",
+            table: "item_instances",
+            available: false,
+            count: null,
+            reason: "category, state columns are required for filtered count",
+          },
+          {
+            key: "cp4ActiveLendingBookings",
+            table: "bookings",
+            available: false,
+            count: null,
+            reason: "item_instance_id column is required for filtered count",
+          },
+          {
+            key: "rentalWindows",
+            table: "rental_windows",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+          {
+            key: "conditionEvents",
+            table: "condition_events",
+            available: false,
+            count: null,
+            reason: "table is not available",
+          },
+        ],
+      }),
+      endpoint("/api/system/db-proof", "ok", {
+        status: "available",
+        database: { available: true, currentDatabase: "useby", versionSummary: "PostgreSQL 17.7" },
+        extensions: { available: true, items: [] },
+      }),
+    );
+
+    for (const key of [
+      "cp4ListedLendingItems",
+      "cp4ActiveLendingBookings",
+      "rental_windows",
+      "condition_events",
+    ]) {
+      expect(snapshot.rowCounts.find((row) => row.key === key)).toMatchObject({
+        count: null,
+        available: false,
       });
     }
   });
