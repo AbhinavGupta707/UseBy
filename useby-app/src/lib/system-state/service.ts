@@ -4,6 +4,7 @@ import {
 } from "../../server/db/env";
 import { checkLocationContracts } from "../../server/geocoding/contracts";
 import { geocodingProviderState } from "../../server/geocoding/provider";
+import { cp8UnavailableState, getCp8SystemState } from "./cp8";
 import {
   getTableAvailability,
   publicErrorMessage,
@@ -293,6 +294,33 @@ const CHECKPOINT_8_COUNT_TABLES = [
     table: "demand_pools",
     where: "target_location is not null",
     requiredColumns: ["target_location"],
+  },
+  {
+    key: "cp8PrivateFiles",
+    label: "CP8 private file rows",
+    table: "files",
+    where: "deleted_at is null",
+    requiredColumns: ["deleted_at", "bucket", "object_key", "role"],
+  },
+  {
+    key: "cp8NotificationRows",
+    label: "CP8 notification rows",
+    table: "notifications",
+  },
+  {
+    key: "cp8PickupReminderJobs",
+    label: "CP8 pickup reminder jobs",
+    table: "job_runs",
+    where: "job_type = 'pickup-reminders'",
+    requiredColumns: ["job_type"],
+  },
+  {
+    key: "cp8AiAuditEvents",
+    label: "CP8 AI guardrail audit events",
+    table: "audit_events",
+    where:
+      "action like 'ai.%' or metadata->>'aiGuardrail' = 'copy_only' or metadata->>'engine' = 'semantic-ranking'",
+    requiredColumns: ["action", "metadata"],
   },
 ] satisfies CountContract[];
 
@@ -623,6 +651,10 @@ export async function getSystemState(): Promise<SystemStateResponse> {
   const sanitizedEnv = sanitizeRuntimeEnv(env);
   const generatedAt = new Date().toISOString();
   const integrations = integrationState();
+  const cp8 = await getCp8SystemState({
+    env: process.env,
+    databaseConfigured: env.databaseConfigured,
+  });
 
   if (!env.databaseConfigured) {
     const reason = `Aurora env missing: ${env.missing.join(", ")}`;
@@ -654,6 +686,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
         runs: [],
         reason,
       },
+      cp8,
     };
   }
 
@@ -689,6 +722,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
       counts,
       latestAuditEvents,
       latestJobRuns,
+      cp8,
     };
   } catch (error) {
     const reason = publicErrorMessage(error);
@@ -720,6 +754,7 @@ export async function getSystemState(): Promise<SystemStateResponse> {
         runs: [],
         reason,
       },
+      cp8: cp8UnavailableState(reason),
     };
   }
 }

@@ -110,6 +110,10 @@ describe("proof UI adapters", () => {
           { key: "cp7HeatmapCells", table: "needs", count: 4, available: true },
           { key: "cp7ExpireDropJobRuns", table: "job_runs", count: 1, available: true },
           { key: "cp7AuditEvents", table: "audit_events", count: 8, available: true },
+          { key: "cp8PrivateFiles", table: "files", count: 2, available: true },
+          { key: "cp8NotificationRows", table: "notifications", count: 3, available: true },
+          { key: "cp8PickupReminderJobs", table: "job_runs", count: 1, available: true },
+          { key: "cp8AiAuditEvents", table: "audit_events", count: 1, available: true },
           { key: "auditEvents", table: "audit_events", count: 12 },
           { key: "jobRuns", table: "job_runs", count: 2 },
         ],
@@ -134,6 +138,40 @@ describe("proof UI adapters", () => {
               finishedAt: "2026-06-29T10:03:00.000Z",
             },
           ],
+        },
+        cp8: {
+          providers: [
+            {
+              key: "ai-copy",
+              label: "AI copy and explanations",
+              status: "unavailable",
+              configured: true,
+              noKey: true,
+              detail: "AI provider configured without key; fallback copy is returned.",
+            },
+            {
+              key: "semantic-ranking",
+              label: "Semantic ranking",
+              status: "disabled",
+              configured: false,
+              noKey: true,
+              detail: "Semantic ranking is disabled; deterministic score order remains authoritative.",
+            },
+          ],
+          geocodingPrivacy: {
+            status: "configured",
+            detail: "Public DTOs expose coarse labels only.",
+          },
+          notificationJobs: {
+            status: "ready",
+            detail: "Reminder jobs come from job_runs.",
+          },
+          aiGuardrails: {
+            status: "ready",
+            detail: "AI may write copy and explanations only.",
+            copyOnly: true,
+            deterministicFirst: true,
+          },
         },
       }),
       endpoint("/api/system/db-proof", "ok", {
@@ -187,6 +225,19 @@ describe("proof UI adapters", () => {
     expect(snapshot.rowCounts.find((row) => row.key === "cp7HeatmapCells")?.count).toBe(4);
     expect(snapshot.rowCounts.find((row) => row.key === "cp7ExpireDropJobRuns")?.count).toBe(1);
     expect(snapshot.rowCounts.find((row) => row.key === "cp7AuditEvents")?.count).toBe(8);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp8PrivateFiles")?.count).toBe(2);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp8NotificationRows")?.count).toBe(3);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp8PickupReminderJobs")?.count).toBe(1);
+    expect(snapshot.rowCounts.find((row) => row.key === "cp8AiAuditEvents")?.count).toBe(1);
+    expect(snapshot.integrations.find((integration) => integration.key === "ai-copy")).toMatchObject({
+      status: "unavailable",
+    });
+    expect(snapshot.integrations.find((integration) => integration.key === "semantic-ranking")).toMatchObject({
+      status: "unavailable",
+    });
+    expect(snapshot.integrations.find((integration) => integration.key === "ai-guardrails")).toMatchObject({
+      status: "ok",
+    });
     expect(snapshot.extensions.find((extension) => extension.name === "postgis")?.status).toBe("ok");
     expect(snapshot.extensions.find((extension) => extension.name === "vector")?.status).toBe("unavailable");
     expect(snapshot.auditEvents[0]?.title).toBe("demo.seeded");

@@ -8,6 +8,17 @@ const ENV_NAMES = [
   "AURORA_APP_SECRET_ARN",
   "AURORA_DATABASE",
   "AWS_S3_BUCKET",
+  "AI_COPY_ENABLED",
+  "AI_COPY_PROVIDER",
+  "AI_COPY_MODEL",
+  "AI_COPY_API_KEY",
+  "OPENAI_API_KEY",
+  "AI_SEMANTIC_RANKING_ENABLED",
+  "AI_EMBEDDING_PROVIDER",
+  "AI_EMBEDDING_MODEL",
+  "AI_EMBEDDING_API_KEY",
+  "MAPBOX_ACCESS_TOKEN",
+  "RESEND_API_KEY",
 ] as const;
 
 describe("system state service", () => {
@@ -208,6 +219,51 @@ describe("system state service", () => {
       available: false,
       count: null,
     });
+    expect(state.counts.find((count) => count.key === "cp8StorageTextractAuditEvents")).toMatchObject({
+      table: "audit_events",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8HouseholdGeographies")).toMatchObject({
+      table: "households",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8MerchantGeographies")).toMatchObject({
+      table: "merchant_locations",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8DropGeographies")).toMatchObject({
+      table: "store_drops",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8DemandPoolGeographies")).toMatchObject({
+      table: "demand_pools",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8PrivateFiles")).toMatchObject({
+      table: "files",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8NotificationRows")).toMatchObject({
+      table: "notifications",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8PickupReminderJobs")).toMatchObject({
+      table: "job_runs",
+      available: false,
+      count: null,
+    });
+    expect(state.counts.find((count) => count.key === "cp8AiAuditEvents")).toMatchObject({
+      table: "audit_events",
+      available: false,
+      count: null,
+    });
     expect(state.integrations.s3).toMatchObject({
       configured: false,
       mode: "unavailable",
@@ -217,6 +273,31 @@ describe("system state service", () => {
       configured: false,
       mode: "unavailable",
       requiresPrivateS3Object: true,
+    });
+    expect(state.integrations.geocoding).toMatchObject({
+      configured: false,
+      mode: "unavailable",
+      available: false,
+      schemaAvailable: false,
+      privacy: {
+        exactCoordinatesPublic: false,
+        rawAddressesPublic: false,
+        directContactPublic: false,
+      },
+    });
+    expect(state.cp8.providers.find((provider) => provider.key === "ai-copy")).toMatchObject({
+      status: "disabled",
+      noKey: true,
+    });
+    expect(state.cp8.aiGuardrails).toMatchObject({
+      copyOnly: true,
+      deterministicFirst: true,
+      canSetEligibility: false,
+      canSetTrust: false,
+      canSetPayment: false,
+      canSetSafety: false,
+      canSetReservationCapacity: false,
+      canSetVisibility: false,
     });
     expect(JSON.stringify(state)).not.toContain("secret-value");
   });
