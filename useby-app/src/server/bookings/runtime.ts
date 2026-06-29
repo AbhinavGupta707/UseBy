@@ -25,6 +25,8 @@ import {
   type BookingStatus,
   type HandoffStatus,
 } from "./contracts";
+import { evaluateBookingPolicy } from "./policy";
+import { persistHouseholdTrustScore } from "../trust/runtime";
 
 type BookingDetailRow = {
   id: string;
@@ -111,8 +113,6 @@ type IdempotencyRow = {
 const ACTIVE_RESERVATION_SQL = BOOKING_ACTIVE_RESERVATION_STATUSES.map(
   (status) => `'${status}'`,
 ).join(", ");
-const AVAILABLE_ITEM_STATES = new Set(["listed", "offered", "use_soon"]);
-const FOOD_STORAGE_STATES = new Set(["sealed", "cupboard", "fridge", "freezer"]);
 
 export class BookingRuntimeError extends Error {
   readonly status: number;
@@ -435,7 +435,7 @@ async function detailQuery(
   return row ? dtoFromRow(row) : null;
 }
 
-async function assertNotBlocked(
+async function relationshipBlockExists(
   context: TransactionContext,
   leftHouseholdId: string,
   rightHouseholdId: string,
@@ -455,38 +455,7 @@ async function assertNotBlocked(
     { leftHouseholdId, rightHouseholdId },
   );
 
-  if (result.rows[0]) {
-    throw new BookingRuntimeError(403, "Booking is unavailable between blocked households.");
-  }
-}
-
-function assertFoodShareable(row: {
-  category: string;
-  safety_status: string;
-  storage_state: string;
-  expiry_date: string | null;
-}) {
-  if (row.category !== "grocery") {
-    return;
-  }
-
-  if (row.safety_status !== "eligible") {
-    throw new BookingRuntimeError(409, "This grocery item is not eligible for neighbour sharing.");
-  }
-
-  if (!FOOD_STORAGE_STATES.has(row.storage_state)) {
-    throw new BookingRuntimeError(409, "Opened or cooked grocery items cannot be booked for sharing.");
-  }
-
-  if (row.expiry_date && row.expiry_date < new Date().toISOString().slice(0, 10)) {
-    throw new BookingRuntimeError(409, "Expired grocery items cannot be booked for sharing.");
-  }
-}
-
-function assertItemAvailable(row: { item_state: string }) {
-  if (!AVAILABLE_ITEM_STATES.has(row.item_state)) {
-    throw new BookingRuntimeError(409, "Item is not currently available for booking.");
-  }
+  return Boolean(result.rows[0]);
 }
 
 async function findFoodSafetyAcknowledgement(
@@ -508,6 +477,57 @@ async function findFoodSafetyAcknowledgement(
   );
 
   return result.rows[0]?.id ?? null;
+}
+
+function assertBookingPolicyDecision(input: {
+  action: "request" | "accept";
+  item: {
+    id: string;
+    ownerHouseholdId: string;
+    title: string;
+    category: string;
+    quantity: string;
+    itemState: string;
+    storageState: string;
+    safetyStatus: string;
+    expiryDate: string | null;
+  };
+  requesterHouseholdId: string;
+  ownerHouseholdId: string;
+  safetyAcknowledged: boolean;
+  relationshipBlocked: boolean;
+}) {
+  const decision = evaluateBookingPolicy({
+    action: input.action,
+    item: {
+      id: input.item.id,
+      ownerHouseholdId: input.item.ownerHouseholdId,
+      title: input.item.title,
+      category: input.item.category,
+      quantity: Number.parseFloat(input.item.quantity),
+      itemState: input.item.itemState,
+      storageState: input.item.storageState,
+      safetyStatus: input.item.safetyStatus,
+      useByDate: input.item.expiryDate,
+      metadata: {},
+    },
+    requesterHouseholdId: input.requesterHouseholdId,
+    ownerHouseholdId: input.ownerHouseholdId,
+    safetyAcknowledged: input.safetyAcknowledged,
+    relationshipBlocked: input.relationshipBlocked,
+  });
+
+  if (decision.allowed) {
+    return;
+  }
+
+  const status = decision.reasons.some((reason) => reason.includes("acknowledgement"))
+    ? 412
+    : decision.reasons.some((reason) => reason.includes("block exists"))
+      ? 403
+      : 409;
+
+  throw new BookingRuntimeError(status, decision.rationale);
 }
 
 async function loadRequestTarget(
@@ -811,24 +831,33 @@ export async function requestBooking(
         throw new BookingRuntimeError(409, "A household cannot request its own item.");
       }
 
-      assertItemAvailable(target);
-      assertFoodShareable(target);
-      await assertNotBlocked(
+      const relationshipBlocked = await relationshipBlockExists(
         transaction,
         target.requester_household_id,
         target.owner_household_id,
       );
-
       const safetyAcknowledgementId =
         target.category === "grocery"
           ? await findFoodSafetyAcknowledgement(transaction, target.requester_household_id)
           : null;
-      if (target.category === "grocery" && !safetyAcknowledgementId) {
-        throw new BookingRuntimeError(
-          412,
-          "Food safety acknowledgement is required before requesting a grocery handoff.",
-        );
-      }
+      assertBookingPolicyDecision({
+        action: "request",
+        item: {
+          id: target.item_instance_id,
+          ownerHouseholdId: target.owner_household_id,
+          title: target.title,
+          category: target.category,
+          quantity: target.quantity,
+          itemState: target.item_state,
+          storageState: target.storage_state,
+          safetyStatus: target.safety_status,
+          expiryDate: target.expiry_date,
+        },
+        requesterHouseholdId: target.requester_household_id,
+        ownerHouseholdId: target.owner_household_id,
+        safetyAcknowledged: target.category !== "grocery" || Boolean(safetyAcknowledgementId),
+        relationshipBlocked,
+      });
 
       const created = await execTx<{ id: string }>(
         transaction,
@@ -940,20 +969,33 @@ export async function acceptBooking(
         throw new BookingRuntimeError(409, `Booking cannot be accepted from ${locked.status}.`);
       }
 
-      assertItemAvailable({
-        item_state: locked.item_state,
-      });
-      assertFoodShareable({
-        category: locked.item_category,
-        safety_status: locked.safety_status,
-        storage_state: locked.storage_state,
-        expiry_date: locked.expiry_date,
-      });
-      await assertNotBlocked(
+      const relationshipBlocked = await relationshipBlockExists(
         transaction,
         locked.requester_household_id,
         locked.owner_household_id,
       );
+      const safetyAcknowledgementId =
+        locked.item_category === "grocery"
+          ? await findFoodSafetyAcknowledgement(transaction, locked.requester_household_id)
+          : null;
+      assertBookingPolicyDecision({
+        action: "accept",
+        item: {
+          id: locked.item_instance_id,
+          ownerHouseholdId: locked.owner_household_id,
+          title: locked.item_title,
+          category: locked.item_category,
+          quantity: "1",
+          itemState: locked.item_state,
+          storageState: locked.storage_state,
+          safetyStatus: locked.safety_status,
+          expiryDate: locked.expiry_date,
+        },
+        requesterHouseholdId: locked.requester_household_id,
+        ownerHouseholdId: locked.owner_household_id,
+        safetyAcknowledged: locked.item_category !== "grocery" || Boolean(safetyAcknowledgementId),
+        relationshipBlocked,
+      });
 
       const conflict = await execTx<{ id: string }>(
         transaction,
@@ -1482,7 +1524,7 @@ export async function completeBooking(
   bookingId: string,
   input: BookingCompleteInput,
 ) {
-  return mutateBooking(
+  const response = await mutateBooking(
     demoContext,
     "booking.complete",
     input.idempotencyKey,
@@ -1601,6 +1643,13 @@ export async function completeBooking(
       };
     },
   );
+
+  await Promise.allSettled([
+    persistHouseholdTrustScore(response.booking.owner.householdId),
+    persistHouseholdTrustScore(response.booking.requester.householdId),
+  ]);
+
+  return response;
 }
 
 export async function reviewBooking(

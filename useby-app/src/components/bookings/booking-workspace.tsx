@@ -263,7 +263,7 @@ function BookingCard({
         <div className="mt-4 rounded-md border border-[#e3e8dc] bg-[#fbfcf7] px-3 py-3 text-sm leading-6 text-[#566250]">
           <p className="font-semibold text-[#17231c]">Privacy and safety</p>
           <p className="mt-1">
-            UseBy does not show exact household coordinates or direct personal contact details. Food sharing is limited to eligible sealed packaged goods; the app records acknowledgement but does not certify safety or freshness.
+            UseBy does not show exact household coordinates or direct personal contact details. Food sharing is limited to eligible sealed packaged goods; the app records acknowledgement but is not a food safety or freshness guarantee.
           </p>
           {booking.handoff.pickupHint ? (
             <p className="mt-2">

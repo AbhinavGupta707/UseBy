@@ -36,6 +36,23 @@ npm run test -- src/lib/system-state/service.test.ts src/lib/proof-ui/adapters.t
 
 Before CP3 runtime routes are merged, the CP3 contract suite is expected to fail usefully on missing route/runtime files. After Lane 3A/3B integration, the same suite should pass route installation and transaction-contract checks.
 
+### Integrated Main Result
+
+After merging Lanes 3A, 3B, 3C, and 3D into `main`, the master integration patch connected the booking runtime to the safety/trust policy hooks and removed public wording that could be read as a food-safety overclaim.
+
+Verified locally from `useby-app`:
+
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test` passed: 24 files, 83 tests.
+- `npm run build` passed.
+
+Verified from the repository root:
+
+- `git diff --check` passed.
+
+Production migration, deployment, and browser/API smoke are still pending until `0002_booking_handoff_trust.sql` is applied to Aurora and the merged app is deployed.
+
 ## Migration Notes
 
 Lane 3A owns schema and migrations. The CP3 migration should add or verify these tables and contracts:

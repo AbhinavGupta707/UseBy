@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 import type { DemoActorContext } from "../demo/context";
 import {
@@ -49,5 +50,13 @@ describe("booking runtime", () => {
   it("narrows booking runtime errors for route handlers", () => {
     expect(isBookingRuntimeError(new BookingRuntimeError(409, "conflict"))).toBe(true);
     expect(isBookingRuntimeError(new Error("plain"))).toBe(false);
+  });
+
+  it("keeps merged safety policy and trust hooks wired into booking transitions", () => {
+    const source = readFileSync("src/server/bookings/runtime.ts", "utf8");
+
+    expect(source).toContain("evaluateBookingPolicy");
+    expect(source).toContain("persistHouseholdTrustScore");
+    expect(source).toContain("relationshipBlockExists");
   });
 });

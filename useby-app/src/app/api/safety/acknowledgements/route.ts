@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     acknowledgement: result.acknowledgement,
     audit: result.audit,
     notice:
-      "UseBy records acknowledgement only; it does not certify food safety or freshness.",
+      "UseBy records acknowledgement only; food safety and freshness remain the responsibility of the households involved.",
   });
 }
 
@@ -105,6 +105,6 @@ export async function GET(request: Request) {
     acknowledged: result.acknowledged,
     acknowledgement: result.acknowledgement,
     notice:
-      "UseBy records acknowledgement only; it does not certify food safety or freshness.",
+      "UseBy records acknowledgement only; food safety and freshness remain the responsibility of the households involved.",
   });
 }

@@ -225,7 +225,25 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 3A Booking Schema And Transactions | `019f110f-8a5c-7061-a078-01c3fb21cf24` | `/Users/abhinavgupta/.codex/worktrees/d288/UseBy` | Active | Owns all CP3 migrations/schema |
-| 3B Trust, Safety, And Moderation Runtime | `019f110f-de83-7421-ba5a-87a399fb4d99` | `/Users/abhinavgupta/.codex/worktrees/3394/UseBy` | Complete, pending merge | Commit `48fc87f`; merge after 3A |
-| 3C Booking And Handoff UI | `019f1110-282e-78f1-96a8-b93cbd1fce7c` | `/Users/abhinavgupta/.codex/worktrees/488e/UseBy` | Complete, pending merge | Commit `4262c40`; merge after 3B |
-| 3D Concurrency QA, Proof, And Docs | `019f1110-7205-7803-bd9a-7f06b1fce258` | `/Users/abhinavgupta/.codex/worktrees/0cf2/UseBy` | Complete, pending merge | Commit `e27becd`; merge after 3C |
+| 3A Booking Schema And Transactions | `019f110f-8a5c-7061-a078-01c3fb21cf24` | `/Users/abhinavgupta/.codex/worktrees/d288/UseBy` | Merged | Worker commit `f34d1ec`; merge commit `9962a4c` |
+| 3B Trust, Safety, And Moderation Runtime | `019f110f-de83-7421-ba5a-87a399fb4d99` | `/Users/abhinavgupta/.codex/worktrees/3394/UseBy` | Merged | Worker commit `48fc87f`; merge commit `768ed16` |
+| 3C Booking And Handoff UI | `019f1110-282e-78f1-96a8-b93cbd1fce7c` | `/Users/abhinavgupta/.codex/worktrees/488e/UseBy` | Merged | Worker commit `4262c40`; merge commit `8157239` |
+| 3D Concurrency QA, Proof, And Docs | `019f1110-7205-7803-bd9a-7f06b1fce258` | `/Users/abhinavgupta/.codex/worktrees/0cf2/UseBy` | Merged | Worker commit `e27becd`; merge commit `30ddc18` |
+
+## Integration Status
+
+All CP3 worker lanes have been merged into `main` in dependency order. The master integration patch wires Lane 3B policy/trust hooks into the Lane 3A booking runtime, removes public food-safety overclaim wording, and adds a regression test that keeps those hooks in place.
+
+Local verification after all merges and the integration patch:
+
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test` passed: 24 files, 83 tests.
+- `npm run build` passed.
+- `git diff --check` passed.
+
+Remaining production gate before launching Checkpoint 4:
+
+- Apply `useby-app/drizzle/0002_booking_handoff_trust.sql` to Aurora.
+- Deploy the merged CP3 app to Vercel.
+- Run the API/browser smoke steps in `docs/checkpoint-3-live-smoke.md`.

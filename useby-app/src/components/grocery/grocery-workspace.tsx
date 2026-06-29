@@ -683,7 +683,7 @@ function MatchBookingAction({ match }: { match: GroceryMatch }) {
           type="checkbox"
         />
         <span>
-          I understand neighbour food sharing is for eligible sealed packaged goods only, and UseBy does not certify safety or freshness.
+          I understand neighbour food sharing is for eligible sealed packaged goods only, and UseBy is not a food safety or freshness guarantee.
         </span>
       </label>
       <button
