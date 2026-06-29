@@ -13,7 +13,7 @@ This document records the master-session instruction for the post-Checkpoint 1 b
 - Checkpoint 4 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `81b3c0f`.
 - Checkpoint 6 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `0e50186`.
 - Checkpoint 7 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at integration commit `125b7f8`. Checkpoint 5 remains skipped for this run.
-- Checkpoint 8 status: lanes 8A-8D merged into `main` and locally verified at integration commit `0ceb43b`; deploy, Aurora migration, and live smoke are pending.
+- Checkpoint 8 status: merged, pushed, deployed, Aurora migration applied, API/browser live smoke passed at final integration commit `b0f4228`.
 - Next active checkpoint: none. Pause after Checkpoint 8 verification; do not launch Checkpoint 9 without explicit instruction.
 
 ## Sequential Scope

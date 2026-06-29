@@ -2,6 +2,24 @@
 
 Use this after the CP8 lanes merge and deploy. Keep no-key states honest: unavailable, disabled, or dry-run is acceptable when provider env is absent; fake live success is not.
 
+## Completed CP8 Smoke
+
+Completed on 2026-06-29 against final integration commit `b0f4228`.
+
+- Production deployment: `dpl_6HPfuJ59envCqWSRKhSLKHmAK2Un`.
+- Public alias: `https://useby-app.vercel.app`.
+- Aurora migration: `useby-app/drizzle/0006_aspiring_dorian_gray.sql`.
+- Migration SHA-256 recorded in `drizzle.__drizzle_migrations`: `fe15757fa1ca2dac13c62a81e64360e2e4bf694eb69dbaa6ee4880f83e2ee68a`.
+- Live migration verification found `file_intakes` and `notifications`.
+- Local checks after the final proof-page patch: `npm run lint`, `npm run typecheck`, `npm run test` (60 files, 199 tests), `npm run build`, and `git diff --check` all passed.
+- `GET /api/system/db-proof`: HTTP 200, `available`, Aurora database `useby`, PostgreSQL `17.7`, PostGIS, pgvector, pgcrypto, and pg_trgm installed.
+- `GET /api/system/state`: HTTP 200, `available`, CP8 evidence present. S3/Textract were live/configured; geocoding was unavailable/no-key; notifications were ready with no email key; AI copy and semantic ranking were disabled/no-key; AI guardrails remained copy-only and deterministic-first.
+- CP8 counts were available: file intakes `0`, private receipt/label files `0`, fixture parses `0`, notification rows `0`, storage/Textract audit events `0`, household geographies `8`, merchant geographies `3`, drop geographies `1`, DemandPool geographies `3`, private files `0`, pickup-reminder jobs `2`, AI audit events `0`.
+- `GET /api/grocery/import`: HTTP 200 route contract returned.
+- `GET /api/grocery/intake`: HTTP 200 route contract returned private/server-mediated access and no-key behavior; no public bucket URL was exposed.
+- `GET /api/jobs/pickup-reminders`: HTTP 200 `skipped`, with existing recorded job run `1134ae8a-e26d-486e-8cb6-e4e10998a4eb` for the claimed hourly idempotency window.
+- Chrome browser smoke rendered `/grocery`, `/merchant`, and `/proof`; `/proof` was patched and redeployed after smoke found stale CP7 hero copy, and the final screenshot showed the CP8 external-integration hero and live endpoint cards.
+
 ## Local Smoke
 
 From `useby-app`:

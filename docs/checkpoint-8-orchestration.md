@@ -4,7 +4,7 @@ Checkpoint 7 completed commit: `f9f4c61`.
 Checkpoint 8 plan commit: `5f821f3` (`Plan checkpoint 8 external integrations orchestration`).
 Worker launch base: `5f821f3`.
 Current worker registry commit: `01485ac` (`Record checkpoint 8 worker registry`).
-Current local integration commit: `0ceb43b` (`Merge checkpoint 8 AI proof and docs`).
+Current final integration commit: `b0f4228` (`Update proof page for checkpoint 8 evidence`).
 
 ## Outcome
 
@@ -197,6 +197,13 @@ Avoid:
   - `npm run test`: passed, 60 files and 199 tests.
   - `npm run build`: passed, including CP8 routes for grocery intake, locations, notifications, jobs, system state, and proof.
   - `git diff --check`: passed from the repository root.
+- `c329e23` recorded the CP8 local integration verification and was pushed to `main`.
+- `b0f4228` patched the proof page hero from stale CP7 copy to CP8 external-integration evidence copy after browser smoke found the mismatch. Post-patch verification passed:
+  - `npm run lint`: passed.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 60 files and 199 tests.
+  - `npm run build`: passed.
+  - `git diff --check`: passed from the repository root.
 
 ## Verification
 
@@ -216,6 +223,21 @@ Then run from repo root:
 ```bash
 git diff --check
 ```
+
+Production deployment and live smoke completed on 2026-06-29:
+
+- Pushed `main` through final integration commit `b0f4228`.
+- Production deployment succeeded as Vercel deployment `dpl_6HPfuJ59envCqWSRKhSLKHmAK2Un`.
+- Public production alias: `https://useby-app.vercel.app`.
+- CP8 Aurora migration `useby-app/drizzle/0006_aspiring_dorian_gray.sql` applied through the RDS Data API with SHA-256 `fe15757fa1ca2dac13c62a81e64360e2e4bf694eb69dbaa6ee4880f83e2ee68a`.
+- Migration verification found `file_intakes` and `notifications`, and found the CP8 hash in `drizzle.__drizzle_migrations`.
+- `GET /api/system/db-proof`: HTTP 200, `available`, database `useby`, PostgreSQL `17.7`, extensions present for PostGIS, pgvector, pgcrypto, and pg_trgm.
+- `GET /api/system/state`: HTTP 200, `available`, with `cp8` evidence present. S3 and Textract reported live/configured, geocoding reported unavailable/no-key, notifications reported ready/no-key email, AI copy and semantic ranking reported disabled/no-key, and AI guardrails stayed copy-only/deterministic-first with payment, safety, and visibility decisions disabled.
+- CP8 live counts were available: file intakes `0`, private receipt/label files `0`, fixture parses `0`, notifications `0`, storage/Textract audit events `0`, household geographies `8`, merchant geographies `3`, drop geographies `1`, DemandPool geographies `3`, private files `0`, notification rows `0`, pickup-reminder jobs `2`, AI audit events `0`.
+- `GET /api/grocery/import`: HTTP 200, route contract returned.
+- `GET /api/grocery/intake`: HTTP 200, route contract returned server-mediated private-access/no-key behavior and no public bucket URL.
+- `GET /api/jobs/pickup-reminders`: HTTP 200, `skipped`, job window already claimed by idempotency key, recorded job run `1134ae8a-e26d-486e-8cb6-e4e10998a4eb`.
+- Chrome browser smoke rendered `/grocery`, `/merchant`, and `/proof`. `/grocery` showed live grocery routes and import controls, `/merchant` showed aggregate/coarse merchant data with no-payment copy, and `/proof` showed the CP8 hero plus live Aurora/system-state proof cards.
 
 Live/prod smoke after deployment:
 
