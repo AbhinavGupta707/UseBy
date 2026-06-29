@@ -287,6 +287,142 @@ function guardrailText(value: unknown): string {
   return JSON.stringify(clone);
 }
 
+function stripMarkdownFence(value: string): string {
+  const trimmed = value.trim();
+  const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fence?.[1]?.trim() ?? trimmed;
+}
+
+function firstJsonObject(value: string): string {
+  const start = value.indexOf("{");
+  if (start < 0) {
+    return value;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = start; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = inString;
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return value.slice(start, index + 1);
+      }
+    }
+  }
+
+  return value.slice(start);
+}
+
+function normalizeJsonLikeLiterals(value: string): string {
+  let normalized = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (escaped) {
+      normalized += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      normalized += char;
+      escaped = inString;
+      continue;
+    }
+
+    if (char === "\"") {
+      normalized += char;
+      inString = !inString;
+      continue;
+    }
+
+    if (!inString) {
+      const rest = value.slice(index);
+      const replacement = rest.startsWith("True")
+        ? "true"
+        : rest.startsWith("False")
+          ? "false"
+          : rest.startsWith("None")
+            ? "null"
+            : null;
+
+      if (replacement) {
+        const before = value[index - 1] ?? "";
+        const after = value[index + (replacement === "true" ? 4 : replacement === "false" ? 5 : 4)] ?? "";
+        const boundaryBefore = !/[A-Za-z0-9_]/.test(before);
+        const boundaryAfter = !/[A-Za-z0-9_]/.test(after);
+
+        if (boundaryBefore && boundaryAfter) {
+          normalized += replacement;
+          index += replacement === "true" ? 3 : replacement === "false" ? 4 : 3;
+          continue;
+        }
+      }
+    }
+
+    normalized += char;
+  }
+
+  return normalized;
+}
+
+function parseStructuredContent(content: unknown): unknown {
+  if (typeof content !== "string") {
+    return content;
+  }
+
+  const fenced = stripMarkdownFence(content);
+  const objectCandidate = firstJsonObject(fenced);
+  const candidates = [
+    fenced,
+    objectCandidate,
+    normalizeJsonLikeLiterals(fenced),
+    normalizeJsonLikeLiterals(objectCandidate),
+  ];
+  let lastError: unknown = null;
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
+
 async function requestStructuredDraft<T>(
   options: {
     workflow: string;
@@ -372,7 +508,7 @@ async function requestStructuredDraft<T>(
 
     const payload = (await response.json()) as ChatCompletionResponse;
     const content = payload.choices?.[0]?.message?.content;
-    const parsedContent = typeof content === "string" ? JSON.parse(content) : content;
+    const parsedContent = parseStructuredContent(content);
     const forbidden = forbiddenDecisionClaims(guardrailText(parsedContent));
     if (forbidden.length > 0) {
       return {

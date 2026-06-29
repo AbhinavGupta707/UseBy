@@ -112,6 +112,86 @@ describe("structured agent provider", () => {
     });
   });
 
+  it("accepts Fireworks JSON-like booleans after schema validation", async () => {
+    const fetcher = async () =>
+      ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content:
+                  '{"items":[{"name":"Greek yoghurt","quantity":1,"unit":"pot","storageHint":"fridge","useByDate":None,"confidence":"medium"}],"notes":["Review before saving"],"requiresReview":True}',
+              },
+            },
+          ],
+        }),
+      }) as Response;
+
+    const result = await draftReceiptItems(
+      {
+        rawText: "Greek yoghurt 1",
+      },
+      {
+        env: {
+          AI_AGENT_ENABLED: "true",
+          AI_AGENT_PROVIDER: "fireworks",
+          FIREWORKS_API_KEY: "test-key",
+          FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2p5",
+        },
+        fetcher,
+      },
+    );
+
+    expect(result.status).toBe("generated");
+    expect(result.draft.items[0]).toMatchObject({
+      name: "Greek yoghurt",
+      storageHint: "fridge",
+      useByDate: null,
+    });
+  });
+
+  it("extracts fenced JSON from provider preambles", async () => {
+    const fetcher = async () =>
+      ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: [
+                  "Here is the draft:",
+                  "```json",
+                  '{"items":[{"name":"Baby spinach","quantity":1,"unit":"bag","storageHint":"fridge","useByDate":null,"confidence":"high"}],"notes":[],"requiresReview":true}',
+                  "```",
+                ].join("\n"),
+              },
+            },
+          ],
+        }),
+      }) as Response;
+
+    const result = await draftReceiptItems(
+      {
+        rawText: "Baby spinach 1",
+      },
+      {
+        env: {
+          AI_AGENT_ENABLED: "true",
+          AI_AGENT_PROVIDER: "fireworks",
+          FIREWORKS_API_KEY: "test-key",
+          FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2p5",
+        },
+        fetcher,
+      },
+    );
+
+    expect(result.status).toBe("generated");
+    expect(result.draft.items[0]?.name).toBe("Baby spinach");
+  });
+
   it("falls back when model output tries to decide forbidden state", async () => {
     const fetcher = async () =>
       ({

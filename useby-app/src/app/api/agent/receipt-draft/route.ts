@@ -218,6 +218,7 @@ export async function POST(request: Request) {
         status: result.status === "generated" ? "completed" : result.status,
         providerStatus: result.status,
         providerName: result.provider,
+        model: result.model,
         createdAt: now,
         updatedAt: now,
         langsmithTraceId: trace.traceId,
