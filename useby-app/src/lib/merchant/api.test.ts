@@ -116,10 +116,10 @@ describe("merchant API helpers", () => {
     });
     const cell = normalizeMerchantHeatmapCell({
       cellId: "rq-1",
-      label: "North riverside",
-      demandCount: 6,
-      dropCount: 2,
-      reservationCount: 4,
+      category: "bakery",
+      needCount: 6,
+      publishedDropCount: 2,
+      activeReservationCount: 4,
       intensity: "high",
     });
 
@@ -216,6 +216,7 @@ describe("merchant API helpers", () => {
       body: {
         title: "Evening bakery bundles",
         quantityTotal: 12,
+        pickupWindowStart: "2026-07-01T16:00:00.000Z",
         paymentMode: "unpaid_demo_intent",
         source: "merchant_portal",
       },

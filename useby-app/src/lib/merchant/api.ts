@@ -53,6 +53,15 @@ function dateTimeValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function offsetDateTimeValue(value: string): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+}
+
 function findFirst(record: Record<string, unknown>, keys: string[]): unknown {
   for (const key of keys) {
     if (record[key] !== undefined && record[key] !== null) {
@@ -289,7 +298,7 @@ export function normalizeMerchantStoreDrop(value: unknown, index = 0): MerchantS
     "store_drop_reservations",
   ]).map(normalizeMerchantStoreDropReservation);
   const activeReservations = reservations.filter((reservation) =>
-    ["active", "reserved", "confirmed", "pending_pickup"].includes(reservation.status),
+    reservation.status === "active",
   );
   const derivedReserved = activeReservations.reduce((sum, reservation) => sum + (reservation.quantity ?? 0), 0);
   const remainingQuantity = explicitRemaining ?? (
@@ -350,10 +359,13 @@ export function normalizeMerchantHeatmapCell(value: unknown, index = 0): Merchan
 
   return {
     id: stringValue(findFirst(record, ["id", "cellId", "cell_id", "geohash", "gridId", "grid_id"]), `cell-${index}`),
-    label: stringValue(findFirst(record, ["label", "areaLabel", "area_label", "neighbourhoodName"]), "Neighbourhood cell"),
+    label: stringValue(
+      findFirst(record, ["label", "areaLabel", "area_label", "neighbourhoodName", "category", "neighbourhoodId"]),
+      "Neighbourhood cell",
+    ),
     demandCount: numberValue(findFirst(record, ["demandCount", "demand_count", "needs", "needCount", "need_count"])),
-    dropCount: numberValue(findFirst(record, ["dropCount", "drop_count", "publishedDrops", "published_drops"])),
-    reservationCount: numberValue(findFirst(record, ["reservationCount", "reservation_count", "activeReservations", "active_reservations"])),
+    dropCount: numberValue(findFirst(record, ["dropCount", "drop_count", "publishedDrops", "published_drops", "publishedDropCount", "published_drop_count"])),
+    reservationCount: numberValue(findFirst(record, ["reservationCount", "reservation_count", "activeReservations", "active_reservations", "activeReservationCount", "active_reservation_count"])),
     intensity: stringValue(findFirst(record, ["intensity", "demandIntensity", "demand_intensity", "level"]), "low"),
     updatedAt: dateTimeValue(findFirst(record, ["updatedAt", "updated_at", "generatedAt", "generated_at"])),
   };
@@ -544,8 +556,8 @@ export async function submitMerchantStoreDrop(
     quantityTotal: input.quantityTotal,
     unit: input.unit,
     priceCents: input.priceCents,
-    pickupWindowStart: input.pickupWindowStart || null,
-    pickupWindowEnd: input.pickupWindowEnd || null,
+    pickupWindowStart: offsetDateTimeValue(input.pickupWindowStart),
+    pickupWindowEnd: offsetDateTimeValue(input.pickupWindowEnd),
     safetyNotes: input.safetyNotes,
     paymentMode: "unpaid_demo_intent",
     source: "merchant_portal",

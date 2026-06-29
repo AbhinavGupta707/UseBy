@@ -1,6 +1,6 @@
 # Checkpoint 7 Live Smoke
 
-Checkpoint 7 proves merchant surplus drops, household reservations, merchant status controls, expiry jobs, and coarse heatmap evidence against live Aurora rows. Seed data may create merchant drop input rows only. Reservations, sold-out or closed states, heatmap cells, expiry job runs, and CP7 audit evidence must be generated from current user, merchant, or job actions.
+Checkpoint 7 proves merchant surplus drops, household reservations, merchant status controls, expiry jobs, and coarse heatmap evidence against live Aurora rows. Seed data may create merchant drop input rows only. Reservations, sold-out or closed states, heatmap route output, expiry job runs, and CP7 audit evidence must be generated from current user, merchant, or job actions.
 
 ## Local Readiness
 
@@ -27,7 +27,7 @@ Before production smoke, apply the CP7 migration owned by Lane 7A/7B and verify 
 
 - `store_drops` with merchant ownership, status, quantity, pickup-window, safety-note, price-display/demo-intent, and demo-scope metadata.
 - `store_drop_reservations` with drop, household, status, quantity, idempotency, cancellation/release, and audit linkage.
-- Any Lane 7B heatmap storage, if used, exposed to `/api/system/state` as coarse aggregate cells.
+- Heatmap route output computed from current `needs`, `store_drops`, active reservations, and merchant service areas. CP7 does not require a persisted heatmap table.
 - `job_runs` rows for `expire-store-drops` and `audit_events` rows for drop and reservation mutations.
 
 Expected result: migrations do not add Stripe, payment ledger, deposit, authorization, captured-charge, or paid commitment state.
@@ -46,7 +46,7 @@ curl -i https://useby-app.vercel.app/api/merchant/heatmap
 curl -i https://useby-app.vercel.app/api/jobs/expire-store-drops
 ```
 
-Expected result: installed routes return JSON. Missing routes return honest unavailable JSON, not demo success. `/api/system/state` reports CP7 counts for published drops, active reservations, closed or sold-out drops, heatmap cells, expiry job runs, and CP7 audit events when the tables exist.
+Expected result: installed routes return JSON. Missing routes return honest unavailable JSON, not demo success. `/api/system/state` reports CP7 counts for published drops, active reservations, closed or sold-out drops, heatmap source rows, expiry job runs, and CP7 audit events when the tables exist.
 
 ## Mutation Smoke
 
@@ -80,7 +80,7 @@ Verify directly or through `/api/system/state`:
 - Published drops are counted from `store_drops.status = 'published'`.
 - Active reservations are counted from current non-terminal `store_drop_reservations` rows.
 - Sold-out, closed, and expired drops are counted as terminal.
-- Heatmap cells are coarse aggregate rows or route output, not household locations.
+- Heatmap cells are coarse route output from current rows, not household locations or a required persisted table.
 - `expire-store-drops` creates `job_runs` rows.
 - CP7 mutations create `audit_events` rows.
 

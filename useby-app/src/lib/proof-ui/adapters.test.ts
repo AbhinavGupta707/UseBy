@@ -107,7 +107,7 @@ describe("proof UI adapters", () => {
           { key: "cp7PublishedDrops", table: "store_drops", count: 2, available: true },
           { key: "cp7ActiveDropReservations", table: "store_drop_reservations", count: 3, available: true },
           { key: "cp7ClosedOrSoldOutDrops", table: "store_drops", count: 1, available: true },
-          { key: "cp7HeatmapCells", table: "merchant_heatmap_cells", count: 4, available: true },
+          { key: "cp7HeatmapCells", table: "needs", count: 4, available: true },
           { key: "cp7ExpireDropJobRuns", table: "job_runs", count: 1, available: true },
           { key: "cp7AuditEvents", table: "audit_events", count: 8, available: true },
           { key: "auditEvents", table: "audit_events", count: 12 },
@@ -447,10 +447,10 @@ describe("proof UI adapters", () => {
           },
           {
             key: "cp7HeatmapCells",
-            table: "merchant_heatmap_cells",
+            table: "needs",
             available: false,
             count: null,
-            reason: "table is not available",
+            reason: "status, location columns are required for filtered count",
           },
           {
             key: "cp7ExpireDropJobRuns",

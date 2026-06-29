@@ -174,7 +174,7 @@ describe("system state service", () => {
       count: null,
     });
     expect(state.counts.find((count) => count.key === "cp7HeatmapCells")).toMatchObject({
-      table: "merchant_heatmap_cells",
+      table: "needs",
       available: false,
       count: null,
     });

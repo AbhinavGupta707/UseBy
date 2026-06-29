@@ -292,7 +292,7 @@ export async function createMerchantStoreDrop(
             id::text,
             neighbourhood_id::text,
             name,
-        public_address
+            public_address
           from merchant_locations
           where id = :merchantLocationId::uuid
             and merchant_id = :merchantId::uuid
@@ -408,6 +408,227 @@ export async function createMerchantStoreDrop(
           merchantId: context.merchant.id,
           dropId: drop.id,
           afterState: { status: "draft", totalQuantity: parsed.totalQuantity },
+          metadata: { payment: "deferred_demo_no_charge" },
+          demoScope: context.demoScope,
+        },
+      );
+
+      return {
+        ok: true as const,
+        status: "ok" as MerchantRuntimeStatus,
+        drop: dropDto(drop),
+      };
+    });
+  } catch (error) {
+    if (error instanceof MerchantRuntimeError) {
+      throw error;
+    }
+
+    throw new MerchantRuntimeError(503, publicErrorMessage(error));
+  }
+}
+
+export async function updateMerchantStoreDrop(
+  context: MerchantActorContext,
+  dropId: string,
+  input: MerchantStoreDropCreateInput,
+) {
+  await ensureStoreDropRuntimeAvailable();
+
+  const parsed = merchantStoreDropCreateSchema.parse(input);
+  const merchantLocationId = parsed.merchantLocationId ?? context.location.id;
+
+  try {
+    return await withTransaction(async (transaction) => {
+      const before = await execTx<{
+        id: string;
+        status: string;
+        reserved_quantity: string;
+      }>(
+        transaction,
+        `
+          select
+            d.id::text,
+            d.status::text,
+            (
+              select coalesce(sum(r.quantity), 0)::text
+              from store_drop_reservations r
+              where r.store_drop_id = d.id and r.status = 'active'
+            ) as reserved_quantity
+          from store_drops d
+          where d.id = :dropId::uuid
+            and d.merchant_id = :merchantId::uuid
+            and d.deleted_at is null
+          for update of d
+        `,
+        { dropId, merchantId: context.merchant.id },
+      );
+
+      const beforeRow = before.rows[0];
+      if (!beforeRow) {
+        throw new MerchantRuntimeError(404, "Store drop is not available for this merchant.");
+      }
+
+      if (!["draft", "paused"].includes(beforeRow.status)) {
+        throw new MerchantRuntimeError(
+          409,
+          `Drop is ${beforeRow.status}, not editable. Pause it before editing active pickup details.`,
+        );
+      }
+
+      const reservedQuantity = numberFrom(beforeRow.reserved_quantity);
+      if (parsed.totalQuantity < reservedQuantity) {
+        throw new MerchantRuntimeError(
+          409,
+          `Total quantity cannot be below the active reserved quantity (${reservedQuantity}).`,
+        );
+      }
+
+      const location = await execTx<{
+        id: string;
+        neighbourhood_id: string;
+        name: string;
+        public_address: string;
+      }>(
+        transaction,
+        `
+          select
+            id::text,
+            neighbourhood_id::text,
+            name,
+            public_address
+          from merchant_locations
+          where id = :merchantLocationId::uuid
+            and merchant_id = :merchantId::uuid
+            and is_active = true
+            and deleted_at is null
+          limit 1
+        `,
+        {
+          merchantLocationId,
+          merchantId: context.merchant.id,
+        },
+      );
+
+      const locationRow = location.rows[0];
+      if (!locationRow) {
+        throw new MerchantRuntimeError(404, "Merchant location is not available for store drops.");
+      }
+
+      const result = await execTx<StoreDropRow>(
+        transaction,
+        `
+          update store_drops d
+          set
+            merchant_location_id = :merchantLocationId::uuid,
+            neighbourhood_id = :neighbourhoodId::uuid,
+            title = :title,
+            description = nullif(:description, ''),
+            quantity_total = :totalQuantity,
+            unit = :unit,
+            price_cents = :priceCents,
+            currency = :currency,
+            pickup_window_start = :pickupWindowStart::timestamp with time zone,
+            pickup_window_end = :pickupWindowEnd::timestamp with time zone,
+            safety_notes = nullif(:safetyNotes, ''),
+            pickup_location = (
+              select location from merchant_locations where id = :merchantLocationId::uuid
+            ),
+            metadata = coalesce(d.metadata, '{}'::jsonb) || :metadata::jsonb,
+            updated_at = now()
+          from merchant_locations ml
+          where d.id = :dropId::uuid
+            and d.merchant_id = :merchantId::uuid
+            and ml.id = :merchantLocationId::uuid
+          returning
+            d.id::text,
+            d.merchant_id::text,
+            d.merchant_location_id::text,
+            ml.name as merchant_location_name,
+            ml.public_address as merchant_public_address,
+            d.neighbourhood_id::text,
+            d.title,
+            d.description,
+            coalesce(d.metadata->>'category', 'surplus') as category,
+            d.status::text,
+            d.quantity_total::text as total_quantity,
+            (
+              select coalesce(sum(r.quantity), 0)::text
+              from store_drop_reservations r
+              where r.store_drop_id = d.id and r.status = 'active'
+            ) as reserved_quantity,
+            (
+              select count(r.id)::int
+              from store_drop_reservations r
+              where r.store_drop_id = d.id and r.status = 'active'
+            ) as active_reservation_count,
+            d.unit,
+            d.price_cents,
+            d.currency,
+            d.pickup_window_start::text,
+            d.pickup_window_end::text,
+            d.metadata->>'availableAt' as available_at,
+            d.metadata->>'expiresAt' as expires_at,
+            d.metadata->>'publishedAt' as published_at,
+            d.metadata->>'pausedAt' as paused_at,
+            d.metadata->>'closedAt' as closed_at,
+            null::text as sold_out_at,
+            d.safety_notes,
+            d.created_at::text,
+            d.updated_at::text
+        `,
+        {
+          dropId,
+          merchantId: context.merchant.id,
+          merchantLocationId,
+          neighbourhoodId: locationRow.neighbourhood_id,
+          title: parsed.title,
+          description: parsed.description ?? "",
+          totalQuantity: parsed.totalQuantity,
+          unit: parsed.unit,
+          priceCents: parsed.priceCents,
+          currency: parsed.currency.toUpperCase(),
+          pickupWindowStart: parsed.pickupWindowStart,
+          pickupWindowEnd: parsed.pickupWindowEnd,
+          safetyNotes:
+            parsed.safetyNotes ??
+            "Merchant packed surplus. Confirm pickup with the merchant; no freshness or allergen guarantee is provided by UseBy.",
+          metadata: {
+            ...parsed.metadata,
+            category: parsed.category,
+            availableAt: parsed.availableAt ?? parsed.pickupWindowStart,
+            expiresAt: parsed.expiresAt ?? parsed.pickupWindowEnd,
+            payment: "deferred_demo_no_charge",
+          },
+        },
+      );
+
+      const drop = result.rows[0];
+      await execTx(
+        transaction,
+        `
+          insert into audit_events (
+            actor_merchant_id, entity_type, entity_id, action, source,
+            source_route, before_state, after_state, metadata, demo_scope_id, is_demo
+          )
+          values (
+            :merchantId::uuid, 'store_drop', :dropId::uuid,
+            'store_drop.updated', 'api', '/api/merchant/store-drops/:dropId',
+            :beforeState::jsonb, :afterState::jsonb, :metadata::jsonb,
+            :demoScope, true
+          )
+        `,
+        {
+          merchantId: context.merchant.id,
+          dropId,
+          beforeState: {
+            status: beforeRow.status,
+            reservedQuantity,
+          },
+          afterState: {
+            status: drop.status,
+            totalQuantity: parsed.totalQuantity,
+          },
           metadata: { payment: "deferred_demo_no_charge" },
           demoScope: context.demoScope,
         },

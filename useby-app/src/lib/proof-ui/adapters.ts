@@ -51,7 +51,7 @@ const CHECKPOINT_TABLES: RowCountProof[] = [
   { key: "cp7PublishedDrops", label: "CP7 Published Drops", count: null },
   { key: "cp7ActiveDropReservations", label: "CP7 Active Reservations", count: null },
   { key: "cp7ClosedOrSoldOutDrops", label: "CP7 Closed/Sold Out", count: null },
-  { key: "cp7HeatmapCells", label: "CP7 Heatmap Cells", count: null },
+  { key: "cp7HeatmapCells", label: "CP7 Heatmap Sources", count: null },
   { key: "cp7ExpireDropJobRuns", label: "CP7 Expire Jobs", count: null },
   { key: "cp7AuditEvents", label: "CP7 Audit Events", count: null },
   { key: "audit_events", label: "Audit Events", count: null },

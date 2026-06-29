@@ -194,20 +194,23 @@ const CHECKPOINT_7_COUNT_TABLES = [
     key: "cp7ActiveDropReservations",
     label: "CP7 active drop reservations",
     table: "store_drop_reservations",
-    where: "status in ('active', 'reserved', 'confirmed', 'pending_pickup')",
+    where: "status = 'active'",
     requiredColumns: ["status"],
   },
   {
     key: "cp7ClosedOrSoldOutDrops",
     label: "CP7 closed or sold-out drops",
     table: "store_drops",
-    where: "status in ('sold_out', 'closed', 'expired')",
-    requiredColumns: ["status"],
+    where:
+      "status in ('closed', 'expired') or (status = 'published' and quantity_total <= coalesce((select sum(r.quantity) from store_drop_reservations r where r.store_drop_id = store_drops.id and r.status = 'active'), 0))",
+    requiredColumns: ["id", "status", "quantity_total"],
   },
   {
     key: "cp7HeatmapCells",
-    label: "CP7 heatmap cells",
-    table: "merchant_heatmap_cells",
+    label: "CP7 heatmap source needs",
+    table: "needs",
+    where: "status = 'open' and location is not null",
+    requiredColumns: ["status", "location"],
   },
   {
     key: "cp7ExpireDropJobRuns",
@@ -221,7 +224,7 @@ const CHECKPOINT_7_COUNT_TABLES = [
     label: "CP7 audit events",
     table: "audit_events",
     where:
-      "entity_type in ('store_drop', 'store_drop_reservation', 'merchant_heatmap_cell') or action like 'store_drop.%' or action like 'store_drop_reservation.%' or action like 'merchant_heatmap.%'",
+      "entity_type in ('store_drop', 'store_drop_reservation') or action like 'store_drop.%' or action like 'store_drop_reservation.%' or action like 'merchant_heatmap.%'",
     requiredColumns: ["entity_type", "action"],
   },
 ] satisfies CountContract[];
