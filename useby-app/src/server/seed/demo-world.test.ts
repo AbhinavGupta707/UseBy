@@ -85,6 +85,12 @@ describe("demo seed/reset plan", () => {
     expect(resetPlan.deleteOrder).toContain("action_cards");
     expect(resetPlan.deleteOrder).toContain("matches");
     expect(resetPlan.deleteOrder).toContain("bookings");
+    expect(resetPlan.deleteOrder.indexOf("pickup_tasks")).toBeLessThan(
+      resetPlan.deleteOrder.indexOf("pool_orders"),
+    );
+    expect(resetPlan.deleteOrder.indexOf("pool_orders")).toBeLessThan(
+      resetPlan.deleteOrder.indexOf("demand_pool_commitments"),
+    );
     expect(resetPlan.deleteOrder.at(-1)).toBe("neighbourhoods");
 
     for (const finalOutputTable of FINAL_OUTPUT_TABLES_NOT_SEEDED) {
