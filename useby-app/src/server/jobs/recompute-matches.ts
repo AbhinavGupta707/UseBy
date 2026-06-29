@@ -96,7 +96,7 @@ async function upsertJobRun(input: {
       )
       values (
         'recompute-matches',
-        :status,
+        :status::job_run_status,
         nullif(:neighbourhoodId, '')::uuid,
         :idempotencyKey,
         :windowStart::timestamp with time zone,

@@ -63,6 +63,7 @@ describe("recompute matches job", () => {
       "utf8",
     );
 
+    expect(source).toContain(":status::job_run_status");
     expect(source).toContain(
       "on conflict (idempotency_key) where idempotency_key is not null do update",
     );
