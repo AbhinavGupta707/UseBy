@@ -30,6 +30,12 @@ export default function Home() {
               Grocery
             </Link>
             <Link
+              className="rounded-md border border-[#c4ceba] px-3 py-2 text-[#315b44] transition hover:border-[#315b44] hover:bg-white"
+              href="/pools"
+            >
+              Pools
+            </Link>
+            <Link
               className="rounded-md bg-[#315b44] px-3 py-2 text-white transition hover:bg-[#254635]"
               href="/proof"
             >

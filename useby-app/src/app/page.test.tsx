@@ -10,6 +10,7 @@ describe("Home", () => {
     expect(screen.getByRole("heading", { name: "Grocery inventory and neighbour actions" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Live backend signals" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Grocery" })).toHaveAttribute("href", "/grocery");
+    expect(screen.getByRole("link", { name: "Pools" })).toHaveAttribute("href", "/pools");
     expect(screen.getByRole("link", { name: "Proof" })).toHaveAttribute("href", "/proof");
   });
 });
