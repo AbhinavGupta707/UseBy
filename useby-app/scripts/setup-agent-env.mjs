@@ -100,9 +100,17 @@ async function updateLocalEnv(values) {
 
 function run(command, args, options = {}) {
   return new Promise((resolve) => {
+    const stdio =
+      options.input === undefined
+        ? options.quiet
+          ? ["ignore", "ignore", "ignore"]
+          : "inherit"
+        : options.quiet
+          ? ["pipe", "ignore", "ignore"]
+          : ["pipe", "inherit", "inherit"];
     const child = spawn(command, args, {
       cwd: APP_ROOT,
-      stdio: options.input === undefined ? "inherit" : ["pipe", "inherit", "inherit"],
+      stdio,
     });
 
     if (options.input !== undefined) {
@@ -146,7 +154,7 @@ async function pushVercelEnv(values, target) {
 
   for (const [name, value] of entries) {
     console.log(`Setting Vercel ${target} env: ${name}`);
-    await run("npx", ["vercel", "env", "rm", name, target, "--yes"]);
+    await run("npx", ["vercel", "env", "rm", name, target, "--yes"], { quiet: true });
     const code = await run("npx", ["vercel", "env", "add", name, target], { input: value });
     if (code !== 0) {
       throw new Error(`Failed to set Vercel env ${name}.`);
