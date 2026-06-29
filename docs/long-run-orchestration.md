@@ -14,7 +14,7 @@ This document records the master-session instruction for the post-Checkpoint 1 b
 - Checkpoint 6 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at commit `0e50186`.
 - Checkpoint 7 status: merged, pushed, deployed, Aurora migration applied, API/browser/live mutation smoke passed at integration commit `125b7f8`. Checkpoint 5 remains skipped for this run.
 - Checkpoint 8 status: merged, pushed, deployed, Aurora migration applied, API/browser live smoke passed at final integration commit `b0f4228`.
-- Checkpoint 9 status: merged, pushed, deployed, premium UI/browser smoke passed, and Fireworks agent draft/action-plan generation passed at integration commit `8091d08`. Agent-run persistence remains gated on applying the CP9 `0007_agent_runtime_contracts` Aurora migration.
+- Checkpoint 9 status: merged, pushed, deployed, premium UI/browser smoke passed, CP9 `0007_agent_runtime_contracts` Aurora migration applied, Fireworks agent draft/action-plan generation persisted, and full live mutation smoke passed through grocery import, recompute, booking, DemandPool, surplus drop reservation/cancel, pickup reminders, proof, and agent-run surfaces. Final code fix commit: `cb29090`; final production deployment: `dpl_6usQUz9qQgYC1z785tymfiA43iD9`.
 - Next active checkpoint: none. Pause after Checkpoint 9 verification; do not launch Checkpoint 10 without explicit instruction.
 
 ## Sequential Scope

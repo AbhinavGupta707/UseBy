@@ -220,6 +220,64 @@ Passing smoke means each mutation is reflected by a later read from Aurora-backe
 
 Completed on 2026-06-29 after CP9 integration commit `8091d08`.
 
+## Final Clean Production Pass
+
+Completed on 2026-06-29 after the CP9 agent runtime migration and final integration fixes.
+
+Final fix commits:
+
+- `5fd6110` - fixed demo reset cleanup for derived rows before inventory rows.
+- `60b4e66` - normalized Fireworks draft copy bounds before persistence.
+- `cb29090` - enforced the agent output schema before the forbidden-decision guardrail scan.
+
+Final deployment:
+
+- Production deployment id: `dpl_6usQUz9qQgYC1z785tymfiA43iD9`.
+- Public alias: `https://useby-app.vercel.app`.
+
+Agent runtime contract:
+
+- Aurora migration `0007_agent_runtime_contracts.sql` applied.
+- Migration hash: `61015cd57a9b852e2988c88be1300c9220d586cf87675973f2d3b61987b90f34`.
+- Installed contract verified for `agent_runs`, `agent_tool_calls`, `agent_artifacts`, and enum `agent_run_status`.
+- `GET /api/agent/runs` returned HTTP `200` and listed persisted redacted runs.
+
+Verification before final deploy:
+
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test` passed with `65` files and `224` tests.
+- `npm run build` passed.
+- `git diff --check` passed.
+
+Full mutation smoke against `https://useby-app.vercel.app` passed with stamp `1782745263114`:
+
+- `POST /api/demo/reset` returned HTTP `200`, `resultStatus: applied`, and reset the demo world without foreign-key failures.
+- `POST /api/agent/receipt-draft` returned HTTP `201`, `providerStatus: generated`, `providerName: fireworks`, model `accounts/fireworks/models/kimi-k2p5`, persistence `recorded`, run id `38253f5a-b4ad-482e-ae79-fa4c2bffb644`, and `4` draft items.
+- `POST /api/agent/action-plan` returned HTTP `201`, `providerStatus: generated`, `providerName: fireworks`, model `accounts/fireworks/models/kimi-k2p5`, persistence `recorded`, and run id `e3438467-746b-439d-9067-dabdbb579c26`.
+- `POST /api/grocery/import` created live item `7fb8c652-83c8-496b-8d9a-5defacdce35d`, titled `Final smoke yoghurt 1782745263114`.
+- `POST /api/jobs/recompute-matches` returned HTTP `200`, `status: succeeded`, generated `41` action cards and `3` matches.
+- `GET /api/grocery/action-cards` returned HTTP `200` with `41` current computed cards.
+- `GET /api/grocery/matches` returned HTTP `200` with active coarse-distance matches; selected booking match `6ce11f10-e5cf-49e9-9c6f-6c692a064f7a` showed `159` meters and no exact coordinates.
+- `POST /api/safety/acknowledgements` returned HTTP `200` for acknowledgement `64987ab0-8c29-436c-9ab5-145d724bbcb4`.
+- `POST /api/bookings/request` returned HTTP `200`, booking `b13e7b22-92af-47fc-b856-9e2753e9c4a9`, status `requested`.
+- `POST /api/demand-pools` returned HTTP `200`, pool `d66452ab-d10b-45f0-97d2-a602e44e746b`, status `gathering`.
+- `POST /api/demand-pools/:poolId/commit` returned HTTP `200`, commitment `ba649b40-0bdf-4fe3-a6db-a76988f1895c`, with unpaid demo payment notice and no card/deposit/payment ledger state.
+- `POST /api/merchant/store-drops` returned HTTP `201`, drop `718074b8-cee1-4981-99ba-26dfb318d238`, status `draft`.
+- `POST /api/merchant/store-drops/:dropId/publish` returned HTTP `200`, status `published`.
+- `POST /api/store-drops/:dropId/reserve` returned HTTP `200`, reservation `6f333275-8c44-44bf-80af-63247ccac2d0`, remaining quantity `2.000`, with unpaid demo pickup intent.
+- `POST /api/store-drops/:dropId/cancel-reservation` returned HTTP `200`, restored remaining quantity to `3.000`.
+- `GET /api/jobs/pickup-reminders` returned HTTP `200`, `status: succeeded`, recorded job run `75e9eed6-33f9-4247-bea5-a4ef2fe992f7`.
+- `/agent-runs` returned HTTP `200` without migration-unavailable copy.
+- `/proof` returned HTTP `200`.
+- Final `GET /api/system/state` returned HTTP `200` with current live counts, including `37` item instances, `41` action cards, `2` remaining active matches after booking conversion, `1` booking, `0` active drop reservations after cancellation, and `6` pickup reminder job runs.
+
+Remaining caveats:
+
+- Recompute remains an explicit job step after reset/import for the clean demo flow.
+- LangSmith is configured, but trace ids should only be claimed when a traced workflow returns one in run metadata.
+- Payment remains intentionally deferred as unpaid demo intent only.
+
 Full-smoke deployment:
 
 - Production deployment id: `dpl_2gkXv8BFzE6XeHrAvYrNvLviED5K`.
@@ -256,6 +314,6 @@ Browser smoke:
 - `/agent-runs` had expected console fetch errors from `GET /api/agent/runs` returning HTTP `503` and a deferred-route probe returning HTTP `404`.
 - Screenshots were captured in `/private/tmp/useby-cp9-production-smoke`.
 
-Still required:
+Superseded gate:
 
-- Apply Aurora migration `0007_agent_runtime_contracts` before claiming persisted agent run ledger, LangSmith trace-id rows, or durable agent-run proof in production.
+- Earlier logs below mention the CP9 agent runtime migration as still required. That was resolved in the final clean production pass above.

@@ -248,7 +248,7 @@ Run local/browser smoke before deploy where practical. After deploy, verify:
 - Installed CP9 agent routes: `POST /api/agent/receipt-draft`, `POST /api/agent/action-plan`, and `GET /api/agent/runs`.
 - Installed CP9 admin/proof route: `/agent-runs`.
 - Installed premium customer shell: Today, Inventory, Matches, Pools, Drops, and Activity-style surfaces are represented through `/`, `/grocery`, `/pools`, `/drops`, `/bookings`, `/lending`, and secondary `/merchant`, `/proof`, `/agent-runs` routes.
-- Agent persistence requires the CP9 `0007_agent_runtime_contracts` migration before production run rows can be recorded. Production currently reports this honestly from `GET /api/agent/runs`.
+- Agent persistence is live in production after applying CP9 `0007_agent_runtime_contracts`; `GET /api/agent/runs` now returns persisted redacted run metadata.
 - AI remains draft/explain/summarize only. Deterministic UseBy code remains authoritative for safety, eligibility, privacy, trust, payment, reservation capacity, and visibility.
 - Deferred from CP9: Stripe/payment capture, UiPath integration, Mapbox dependency, match/pool/drop assistant endpoints, run detail/resume endpoints, and any AI authority over product decisions.
 
@@ -259,6 +259,20 @@ Final integration commits:
 - `a4333c6` - final CP9 agent/UI integration.
 - `32ce318` - switched Fireworks defaults and Vercel production model env to the account-available structured-output model `accounts/fireworks/models/kimi-k2p5`.
 - `8091d08` - added conservative Fireworks structured-output cleanup for JSON-like booleans/fenced JSON, still followed by forbidden-decision scans and Zod schema validation.
+- `5fd6110` - fixed demo reset cleanup for derived rows before inventory rows.
+- `60b4e66` - normalized Fireworks draft copy bounds before persistence.
+- `cb29090` - enforced the agent output schema before the forbidden-decision guardrail scan.
+
+Final clean production pass:
+
+- Deployment id: `dpl_6usQUz9qQgYC1z785tymfiA43iD9`.
+- Public alias: `https://useby-app.vercel.app`.
+- Aurora migration `0007_agent_runtime_contracts.sql` applied with hash `61015cd57a9b852e2988c88be1300c9220d586cf87675973f2d3b61987b90f34`.
+- Agent runtime tables/type verified: `agent_runs`, `agent_tool_calls`, `agent_artifacts`, and `agent_run_status`.
+- `POST /api/agent/receipt-draft` returned HTTP `201`, provider `fireworks`, status `generated`, model `accounts/fireworks/models/kimi-k2p5`, persistence `recorded`, run id `38253f5a-b4ad-482e-ae79-fa4c2bffb644`, and `4` draft items.
+- `POST /api/agent/action-plan` returned HTTP `201`, provider `fireworks`, status `generated`, model `accounts/fireworks/models/kimi-k2p5`, persistence `recorded`, and run id `e3438467-746b-439d-9067-dabdbb579c26`.
+- Full live mutation smoke passed with stamp `1782745263114`: demo reset, grocery import, recompute, safety acknowledgement, booking request, DemandPool create/commit, merchant drop create/publish, reservation/cancel, pickup reminder job, `/agent-runs`, `/proof`, and `/api/system/state`.
+- Final local verification before deployment passed: `npm run lint`, `npm run typecheck`, `npm run test` (`65` files, `224` tests), `npm run build`, and `git diff --check`.
 
 Full-smoke production deployment:
 
@@ -299,9 +313,11 @@ Production browser smoke:
 - `/agent-runs` intentionally showed console fetch errors from the unavailable `agent_runs` table and deferred route probing; customer routes had no console errors.
 - Screenshot set: `/private/tmp/useby-cp9-production-smoke`.
 
-Remaining deploy gate:
+Remaining caveats:
 
-- Apply `useby-app/drizzle/0007_agent_runtime_contracts.sql` to production Aurora to enable persisted redacted agent run metadata and later LangSmith trace-id proof rows. The local AWS CLI session was expired during orchestration, and Vercel sensitive env values are not pullable as plaintext, so the migration could not be safely applied from this session.
+- Recompute remains an explicit job step after reset/import for the clean demo flow.
+- LangSmith is configured, but trace ids should only be claimed when a traced workflow returns one in persisted run metadata.
+- Payment remains intentionally deferred as unpaid demo intent only.
 
 ## Handoff Contract
 

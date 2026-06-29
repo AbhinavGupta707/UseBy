@@ -23,7 +23,7 @@ Known current state after CP9 lane integration:
 - S3 and Textract may be configured in production; geocoding and semantic ranking still depend on env/provider availability.
 - Fireworks production agent draft routes are configured and smoked with model `accounts/fireworks/models/kimi-k2p5`; they generated review-only receipt and action-plan drafts on 2026-06-29.
 - LangSmith env is configured, but trace ids should not be claimed until a real traced workflow records one.
-- Agent run persistence requires the CP9 `0007_agent_runtime_contracts` migration. If it is not installed, `/api/agent/runs` reports that as an unavailable migration state, not an empty success.
+- Agent run persistence is live after the CP9 `0007_agent_runtime_contracts` migration. `/api/agent/runs` should return persisted redacted run metadata after a receipt/action agent run.
 - Pickup reminder notifications require the deployed notifications table to match the runtime contract before claiming fully working notification rows.
 
 ## Pre-Demo Setup
@@ -319,3 +319,20 @@ End on `/proof` or `/agent-runs` only after showing the consumer flow. The closi
 - Provider states are honest.
 - AI guardrails are deterministic-first and copy/draft-only.
 - LangSmith trace ids appear only when actual traced agent runs exist.
+
+## Final Clean Smoke Reference
+
+The final clean production smoke on 2026-06-29 used deployment `dpl_6usQUz9qQgYC1z785tymfiA43iD9` at `https://useby-app.vercel.app` and passed the full mutation path:
+
+1. Reset demo world.
+2. Generate Fireworks receipt draft with recorded agent run.
+3. Generate Fireworks action-plan draft with recorded agent run.
+4. Import a grocery item.
+5. Recompute action cards and matches.
+6. Acknowledge safety and request a booking from an active eligible match.
+7. Create and commit to a DemandPool with unpaid demo intent only.
+8. Create, publish, reserve, and cancel a merchant surplus drop with unpaid demo pickup intent only.
+9. Run pickup reminders.
+10. Confirm `/agent-runs`, `/proof`, and `/api/system/state` all return live production evidence.
+
+Use that order for the judged walkthrough when you want a clean, repeatable end-to-end path.
