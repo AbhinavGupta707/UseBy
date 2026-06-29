@@ -12,7 +12,7 @@ import { getTableAvailability } from "../db/introspection";
 export const DEMAND_POOL_PAYMENT_NOTICE =
   "Unpaid demo intent only. No card, deposit, payment authorization, ledger entry, or captured charge is created.";
 
-export const CP6_DEMAND_POOL_TABLE_CONTRACTS = [
+const CP6_POOL_TABLE_CONTRACTS = [
   {
     table: "demand_pools",
     requiredColumns: [
@@ -87,6 +87,41 @@ export const CP6_DEMAND_POOL_TABLE_CONTRACTS = [
       "deleted_at",
     ],
   },
+] as const;
+
+export const CP6_BASE_TABLE_CONTRACTS = [
+  ...CP6_POOL_TABLE_CONTRACTS,
+  {
+    table: "merchants",
+    requiredColumns: [
+      "id",
+      "slug",
+      "name",
+      "category",
+      "demo_scope_id",
+      "is_demo",
+      "deleted_at",
+    ],
+  },
+  {
+    table: "merchant_locations",
+    requiredColumns: [
+      "id",
+      "merchant_id",
+      "neighbourhood_id",
+      "name",
+      "public_address",
+      "location",
+      "pickup_notes",
+      "is_active",
+      "demo_scope_id",
+      "is_demo",
+      "deleted_at",
+    ],
+  },
+] as const;
+
+export const CP6_OUTPUT_TABLE_CONTRACTS = [
   {
     table: "pool_orders",
     requiredColumns: [
@@ -143,9 +178,19 @@ export const CP6_DEMAND_POOL_TABLE_CONTRACTS = [
   },
 ] as const;
 
-export async function checkDemandPoolContracts() {
+export const CP6_DEMAND_POOL_TABLE_CONTRACTS = [
+  ...CP6_POOL_TABLE_CONTRACTS,
+  ...CP6_OUTPUT_TABLE_CONTRACTS,
+] as const;
+
+async function checkTableContracts(
+  contracts: readonly {
+    table: string;
+    requiredColumns: readonly string[];
+  }[],
+) {
   const checks = await Promise.all(
-    CP6_DEMAND_POOL_TABLE_CONTRACTS.map(async (contract) => {
+    contracts.map(async (contract) => {
       const availability = await getTableAvailability(contract.table);
       const missingColumns = contract.requiredColumns.filter(
         (column) => !availability.columns.has(column),
@@ -166,6 +211,19 @@ export async function checkDemandPoolContracts() {
   };
 }
 
+export async function checkDemandPoolContracts() {
+  return checkTableContracts(CP6_DEMAND_POOL_TABLE_CONTRACTS);
+}
+
+export async function checkCp6Contracts(
+  contracts: readonly {
+    table: string;
+    requiredColumns: readonly string[];
+  }[] = [...CP6_BASE_TABLE_CONTRACTS, ...CP6_OUTPUT_TABLE_CONTRACTS],
+) {
+  return checkTableContracts(contracts);
+}
+
 export function unavailableDemandPoolReason(
   contracts: Awaited<ReturnType<typeof checkDemandPoolContracts>>,
 ): string {
@@ -177,6 +235,12 @@ export function unavailableDemandPoolReason(
         : `${check.table} table is not available`,
     )
     .join("; ");
+}
+
+export function unavailableCp6Reason(
+  contracts: Awaited<ReturnType<typeof checkCp6Contracts>>,
+): string {
+  return unavailableDemandPoolReason(contracts);
 }
 
 const optionalMetadata = z.record(z.string(), z.unknown()).default({});
@@ -217,9 +281,50 @@ export const demandPoolCancelCommitmentSchema = z.object({
   metadata: optionalMetadata,
 });
 
+export const merchantBidInputSchema = z
+  .object({
+    demandPoolId: z.string().uuid(),
+    merchantLocationId: z.string().uuid().optional().nullable(),
+    priceCents: z.number().int().nonnegative(),
+    currency: z.string().trim().length(3).default("GBP"),
+    minQuantity: z.number().nonnegative().default(0),
+    availableQuantity: z.number().positive(),
+    pickupWindowStart: z.string().datetime({ offset: true }).optional().nullable(),
+    pickupWindowEnd: z.string().datetime({ offset: true }).optional().nullable(),
+    terms: z.string().trim().max(2000).optional().nullable(),
+    substitutionPolicy: z.string().trim().max(1000).optional().nullable(),
+    fulfilmentNotes: z.string().trim().max(1000).optional().nullable(),
+    reliabilityEvidence: z.string().trim().max(1000).optional().nullable(),
+    metadata: optionalMetadata,
+  })
+  .refine(
+    (input) =>
+      !input.pickupWindowStart ||
+      !input.pickupWindowEnd ||
+      new Date(input.pickupWindowEnd).getTime() >
+        new Date(input.pickupWindowStart).getTime(),
+    {
+      message: "pickupWindowEnd must be after pickupWindowStart.",
+      path: ["pickupWindowEnd"],
+    },
+  );
+
+export const merchantBidWithdrawSchema = z.object({
+  reason: z.string().trim().max(500).optional().nullable(),
+  metadata: optionalMetadata,
+});
+
+export const pickupTransitionSchema = z.object({
+  note: z.string().trim().max(500).optional().nullable(),
+  metadata: optionalMetadata,
+});
+
 export type DemandPoolCreateInput = z.infer<typeof demandPoolCreateSchema>;
 export type DemandPoolCommitInput = z.infer<typeof demandPoolCommitSchema>;
 export type DemandPoolCancelCommitmentInput = z.infer<typeof demandPoolCancelCommitmentSchema>;
+export type MerchantBidInput = z.infer<typeof merchantBidInputSchema>;
+export type MerchantBidWithdrawInput = z.infer<typeof merchantBidWithdrawSchema>;
+export type PickupTransitionInput = z.infer<typeof pickupTransitionSchema>;
 
 export type PoolStatus = (typeof poolStatusValues)[number];
 export type CommitmentStatus = (typeof commitmentStatusValues)[number];
