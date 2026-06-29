@@ -199,7 +199,7 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 2A Grocery Schema And Inventory Runtime | pending | `local:3365e94c-074c-43c7-8775-6ec01a2c323e` | Queued | Owns all CP2 migrations/schema |
-| 2B Action Engine And Food Matching | pending | `local:be0ead1f-c5bd-498b-b8fe-50b7b7e38a00` | Queued | No schema edits |
-| 2C Consumer Grocery UI | pending | `local:52bf4f3c-dc04-46f8-b263-16962b531594` | Queued | API consumer only |
-| 2D QA Contracts And Proof Integration | pending | `local:623d4003-25e2-49fb-a07c-e84171060263` | Queued | Proof/docs/tests |
+| 2A Grocery Schema And Inventory Runtime | `019f10d5-68d7-7220-9286-9ce00cdcb77a` | `/Users/abhinavgupta/.codex/worktrees/0005/UseBy` | Active | Pending ID `local:3365e94c-074c-43c7-8775-6ec01a2c323e`; owns all CP2 migrations/schema |
+| 2B Action Engine And Food Matching | `019f10d5-b450-7151-a62a-565f4e78afa1` | `/Users/abhinavgupta/.codex/worktrees/ccd1/UseBy` | Active | Pending ID `local:be0ead1f-c5bd-498b-b8fe-50b7b7e38a00`; no schema edits |
+| 2C Consumer Grocery UI | `019f10d7-687f-7c23-959b-552f7b0da41a` | `/Users/abhinavgupta/.codex/worktrees/1325/UseBy` | Active | Pending ID `local:52bf4f3c-dc04-46f8-b263-16962b531594`; API consumer only |
+| 2D QA Contracts And Proof Integration | `019f10d7-9c3d-7820-941e-61df0f663866` | `/Users/abhinavgupta/.codex/worktrees/f534/UseBy` | Active | Pending ID `local:623d4003-25e2-49fb-a07c-e84171060263`; proof/docs/tests |
