@@ -34,7 +34,7 @@ export default function ProofPage() {
 
         <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-lg border border-[#d2dbc9] bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase text-[#65715f]">H0 Checkpoint 1</p>
+            <p className="text-xs font-semibold uppercase text-[#65715f]">H0 Checkpoint 2</p>
             <h1 className="mt-2 max-w-2xl text-4xl font-semibold leading-tight text-[#17231c]">
               Architecture and database proof for the live UseBy system.
             </h1>
