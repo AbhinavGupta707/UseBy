@@ -209,6 +209,8 @@ export function normalizeMatch(value: unknown, index = 0): GroceryMatch {
 
   return {
     id: stringValue(findFirst(record, ["id", "matchId", "match_id"]), `match-${index}`),
+    itemId: stringValue(findFirst(record, ["itemInstanceId", "item_instance_id"]) ?? item.id ?? item.itemId, "") || null,
+    needId: stringValue(findFirst(record, ["needId", "need_id"]) ?? need.id ?? need.needId, "") || null,
     itemName: stringValue(findFirst(record, ["itemName", "item_name"]) ?? item.name ?? item.title, "Available grocery"),
     needTitle: stringValue(findFirst(record, ["needTitle", "need_title"]) ?? need.title, "Neighbour need"),
     distanceMeters: numberValue(findFirst(record, ["distanceMeters", "distance_meters", "distanceM", "distance_m"])),
@@ -216,6 +218,18 @@ export function normalizeMatch(value: unknown, index = 0): GroceryMatch {
     rationale: stringValue(findFirst(record, ["rationale", "explanation", "reason"]), "Match rationale was not returned."),
     safetyStatus: normalizeSafety(findFirst(record, ["safetyStatus", "safety_status"]) ?? item.safetyStatus),
     status: stringValue(record.status, "proposed"),
+    ownerCoarseLocation: stringValue(
+      findFirst(record, ["ownerCoarseLocation", "owner_coarse_location"]) ??
+      item.ownerCoarseLocation ??
+      item.owner_coarse_location,
+      "",
+    ) || null,
+    requesterCoarseLocation: stringValue(
+      findFirst(record, ["requesterCoarseLocation", "requester_coarse_location"]) ??
+      need.requesterCoarseLocation ??
+      need.requester_coarse_location,
+      "",
+    ) || null,
   };
 }
 

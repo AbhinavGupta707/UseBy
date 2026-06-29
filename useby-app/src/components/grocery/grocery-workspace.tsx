@@ -8,6 +8,11 @@ import {
   submitExpiryEdit,
   submitManualGrocery,
 } from "../../lib/grocery/api";
+import {
+  requestBooking,
+  submitSafetyAcknowledgement,
+} from "../../lib/bookings/api";
+import type { BookingMutationResult } from "../../lib/bookings/types";
 import type {
   ExpiryEditInput,
   GroceryActionCard,
@@ -601,7 +606,7 @@ function MatchesPanel({ matches }: { matches: GroceryMatch[] }) {
       ) : (
         <div className="divide-y divide-[#edf1e8]">
           {matches.map((match) => (
-            <article key={match.id} className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_180px]">
+            <article key={match.id} className="grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_260px]">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase text-[#65715f]">{formatLabel(match.status)}</p>
                 <h2 className="mt-1 break-words text-lg font-semibold leading-snug text-[#17231c]">
@@ -611,16 +616,95 @@ function MatchesPanel({ matches }: { matches: GroceryMatch[] }) {
                 <p className="mt-3 text-sm leading-6 text-[#65715f]">
                   Safety status: {formatLabel(match.safetyStatus)}. Food sharing remains blocked unless backend eligibility allows it.
                 </p>
+                <p className="mt-2 text-sm leading-6 text-[#65715f]">
+                  Location: {match.ownerCoarseLocation ?? "owner area not returned"} to {match.requesterCoarseLocation ?? "receiver area not returned"}. Exact household coordinates and direct contact details are not shown.
+                </p>
               </div>
               <div className="grid content-start gap-2">
                 <Fact label="Distance" value={formatDistance(match.distanceMeters)} />
                 <Fact label="Score" value={formatScore(match.score)} />
+                <MatchBookingAction match={match} />
               </div>
             </article>
           ))}
         </div>
       )}
     </Panel>
+  );
+}
+
+function MatchBookingAction({ match }: { match: GroceryMatch }) {
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<BookingMutationResult | null>(null);
+  const isEligible = match.safetyStatus === "eligible" && ["proposed", "active"].includes(match.status);
+  const hasRouteContext = Boolean(match.itemId || match.needId || match.id);
+  const canSubmit = isEligible && hasRouteContext && acknowledged && !isSubmitting;
+
+  async function handleRequest() {
+    setIsSubmitting(true);
+    setResult(null);
+
+    const ackResult = await submitSafetyAcknowledgement(window.fetch.bind(window), {
+      matchId: match.id,
+      itemInstanceId: match.itemId,
+      needId: match.needId,
+      acknowledged,
+      sealedPackagedOnly: true,
+      noSafetyCertification: true,
+      source: "grocery_match_card",
+    });
+
+    if (ackResult.status !== "ok") {
+      setResult(ackResult);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const requestResult = await requestBooking(window.fetch.bind(window), {
+      matchId: match.id,
+      itemInstanceId: match.itemId,
+      needId: match.needId,
+      source: "grocery_match_card",
+    });
+    setResult(requestResult);
+    setIsSubmitting(false);
+  }
+
+  return (
+    <div className="rounded-md border border-[#e3e8dc] bg-white px-3 py-3">
+      <p className="text-xs font-semibold uppercase text-[#65715f]">Booking request</p>
+      <label className="mt-3 flex items-start gap-2 text-sm leading-6 text-[#566250]">
+        <input
+          checked={acknowledged}
+          className="mt-1 size-4"
+          disabled={!isEligible}
+          onChange={(event) => setAcknowledged(event.target.checked)}
+          type="checkbox"
+        />
+        <span>
+          I understand neighbour food sharing is for eligible sealed packaged goods only, and UseBy does not certify safety or freshness.
+        </span>
+      </label>
+      <button
+        className="mt-3 min-h-11 w-full rounded-md bg-[#315b44] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#254635] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315b44] disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={!canSubmit}
+        onClick={() => void handleRequest()}
+        type="button"
+      >
+        {isSubmitting ? "Requesting" : "Request booking"}
+      </button>
+      {!isEligible ? (
+        <p className="mt-2 text-sm leading-6 text-[#65715f]">
+          Request unavailable until the live match is active and safety eligible.
+        </p>
+      ) : null}
+      {result ? (
+        <p className={`mt-2 text-sm leading-6 ${result.status === "ok" ? "text-emerald-800" : "text-rose-800"}`}>
+          {result.endpoint}{result.httpStatus ? ` returned HTTP ${result.httpStatus}` : ""}. {result.message}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
