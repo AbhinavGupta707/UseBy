@@ -4,6 +4,7 @@ import {
   actionCardStatusValues,
   bidStatusValues,
   bookingStatusValues,
+  checkpoint6DemandPoolOutputTables,
   checkpoint4LendingTables,
   checkpoint3BookingTables,
   checkpoint1Tables,
@@ -21,6 +22,8 @@ import {
   lendingAvailabilityStatusValues,
   lendingConditionEventTypeValues,
   lendingReservationStatusValues,
+  pickupTaskStatusValues,
+  poolOrderStatusValues,
 } from "./schema";
 
 describe("checkpoint 1 schema contract", () => {
@@ -72,6 +75,8 @@ describe("checkpoint 1 schema contract", () => {
     expect(poolStatusValues).toContain("threshold_met");
     expect(poolStatusValues).toContain("ready_for_pickup");
     expect(bidStatusValues).toContain("winning");
+    expect(poolOrderStatusValues).toEqual(["pending", "ready", "collected", "fulfilled", "cancelled"]);
+    expect(pickupTaskStatusValues).toEqual(["pending", "ready", "collected", "cancelled"]);
     expect(receiptImportStatusValues).toEqual(["started", "parsed", "applied", "failed"]);
     expect(expiryObservationSourceValues).toContain("label");
     expect(expiryConfidenceValues).toEqual(["low", "medium", "high", "confirmed"]);
@@ -124,5 +129,16 @@ describe("checkpoint 1 schema contract", () => {
         "lendingReservations",
       ].sort(),
     );
+  });
+
+  it("exports checkpoint 6 DemandPool output tables separately from seed input tables", () => {
+    expect(Object.keys(checkpoint6DemandPoolOutputTables).sort()).toEqual(
+      [
+        "pickupTasks",
+        "poolOrders",
+      ].sort(),
+    );
+    expect(Object.keys(checkpoint1Tables)).not.toContain("poolOrders");
+    expect(Object.keys(checkpoint1Tables)).not.toContain("pickupTasks");
   });
 });

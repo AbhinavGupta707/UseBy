@@ -74,6 +74,19 @@ export const inventoryEventTypeValues = [
   "deleted",
 ] as const;
 export const commitmentStatusValues = ["active", "cancelled", "fulfilled"] as const;
+export const poolOrderStatusValues = [
+  "pending",
+  "ready",
+  "collected",
+  "fulfilled",
+  "cancelled",
+] as const;
+export const pickupTaskStatusValues = [
+  "pending",
+  "ready",
+  "collected",
+  "cancelled",
+] as const;
 export const fileRoleValues = [
   "receipt",
   "expiry_label",
@@ -166,6 +179,8 @@ export const merchantUserRoleEnum = pgEnum("merchant_user_role", merchantUserRol
 export const membershipStatusEnum = pgEnum("membership_status", membershipStatusValues);
 export const inventoryEventTypeEnum = pgEnum("inventory_event_type", inventoryEventTypeValues);
 export const commitmentStatusEnum = pgEnum("commitment_status", commitmentStatusValues);
+export const poolOrderStatusEnum = pgEnum("pool_order_status", poolOrderStatusValues);
+export const pickupTaskStatusEnum = pgEnum("pickup_task_status", pickupTaskStatusValues);
 export const fileRoleEnum = pgEnum("file_role", fileRoleValues);
 export const jobRunStatusEnum = pgEnum("job_run_status", jobRunStatusValues);
 export const idempotencyStatusEnum = pgEnum("idempotency_status", idempotencyStatusValues);
@@ -1100,6 +1115,92 @@ export const merchantBids = pgTable(
   ],
 );
 
+export const poolOrders = pgTable(
+  "pool_orders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    demandPoolId: uuid("demand_pool_id")
+      .notNull()
+      .references(() => demandPools.id, { onDelete: "cascade" }),
+    commitmentId: uuid("commitment_id")
+      .notNull()
+      .references(() => demandPoolCommitments.id, { onDelete: "restrict" }),
+    householdId: uuid("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    merchantBidId: uuid("merchant_bid_id").references(() => merchantBids.id, { onDelete: "set null" }),
+    merchantId: uuid("merchant_id").references(() => merchants.id, { onDelete: "set null" }),
+    merchantLocationId: uuid("merchant_location_id").references(() => merchantLocations.id, { onDelete: "set null" }),
+    status: poolOrderStatusEnum("status").default("pending").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
+    unit: text("unit").default("each").notNull(),
+    priceCents: integer("price_cents"),
+    currency: varchar("currency", { length: 3 }).default("GBP").notNull(),
+    pickupWindowStart: timestamp("pickup_window_start", { withTimezone: true }),
+    pickupWindowEnd: timestamp("pickup_window_end", { withTimezone: true }),
+    readyAt: timestamp("ready_at", { withTimezone: true }),
+    collectedAt: timestamp("collected_at", { withTimezone: true }),
+    fulfilledAt: timestamp("fulfilled_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    statusEvidence: jsonb("status_evidence").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+    ...softDelete,
+  },
+  (table) => [
+    uniqueIndex("pool_orders_commitment_idx").on(table.commitmentId),
+    index("pool_orders_pool_status_idx").on(table.demandPoolId, table.status),
+    index("pool_orders_household_status_idx").on(table.householdId, table.status),
+    index("pool_orders_merchant_status_idx").on(table.merchantId, table.status),
+    check("pool_orders_quantity_positive", sql`${table.quantity} > 0`),
+    check("pool_orders_price_non_negative", sql`${table.priceCents} is null or ${table.priceCents} >= 0`),
+    check(
+      "pool_orders_pickup_window_order",
+      sql`${table.pickupWindowStart} is null or ${table.pickupWindowEnd} is null or ${table.pickupWindowEnd} > ${table.pickupWindowStart}`,
+    ),
+  ],
+);
+
+export const pickupTasks = pgTable(
+  "pickup_tasks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    poolOrderId: uuid("pool_order_id")
+      .notNull()
+      .references(() => poolOrders.id, { onDelete: "cascade" }),
+    demandPoolId: uuid("demand_pool_id")
+      .notNull()
+      .references(() => demandPools.id, { onDelete: "cascade" }),
+    householdId: uuid("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    merchantId: uuid("merchant_id").references(() => merchants.id, { onDelete: "set null" }),
+    merchantLocationId: uuid("merchant_location_id").references(() => merchantLocations.id, { onDelete: "set null" }),
+    status: pickupTaskStatusEnum("status").default("pending").notNull(),
+    coarsePickupLabel: text("coarse_pickup_label"),
+    pickupWindowStart: timestamp("pickup_window_start", { withTimezone: true }),
+    pickupWindowEnd: timestamp("pickup_window_end", { withTimezone: true }),
+    readyAt: timestamp("ready_at", { withTimezone: true }),
+    collectedAt: timestamp("collected_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    evidence: jsonb("evidence").$type<JsonObject>().default(sql`'{}'::jsonb`).notNull(),
+    metadata: metadata(),
+    ...demoScope,
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("pickup_tasks_order_idx").on(table.poolOrderId),
+    index("pickup_tasks_pool_status_idx").on(table.demandPoolId, table.status),
+    index("pickup_tasks_household_status_idx").on(table.householdId, table.status),
+    index("pickup_tasks_merchant_status_idx").on(table.merchantId, table.status),
+    check(
+      "pickup_tasks_window_order",
+      sql`${table.pickupWindowStart} is null or ${table.pickupWindowEnd} is null or ${table.pickupWindowEnd} > ${table.pickupWindowStart}`,
+    ),
+  ],
+);
+
 export const files = pgTable(
   "files",
   {
@@ -1263,4 +1364,9 @@ export const checkpoint4LendingTables = {
   lendingAvailabilityWindows,
   lendingReservations,
   lendingConditionEvents,
+};
+
+export const checkpoint6DemandPoolOutputTables = {
+  poolOrders,
+  pickupTasks,
 };
