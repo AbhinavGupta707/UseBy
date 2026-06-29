@@ -68,4 +68,28 @@ describe("recompute matches job", () => {
       "on conflict (idempotency_key) where idempotency_key is not null do update",
     );
   });
+
+  it("targets CP2 recompute schema columns and jsonb rationales", () => {
+    const actionSource = readFileSync(
+      join(process.cwd(), "src/server/actions/recompute.ts"),
+      "utf8",
+    );
+    const matchingSource = readFileSync(
+      join(process.cwd(), "src/server/matching/recompute.ts"),
+      "utf8",
+    );
+    const contractSource = readFileSync(
+      join(process.cwd(), "src/server/actions/contracts.ts"),
+      "utf8",
+    );
+
+    expect(contractSource).toContain('"recompute_key"');
+    expect(contractSource).not.toContain('"idempotency_key"');
+    expect(actionSource).toContain("recompute_key");
+    expect(actionSource).toContain("jsonb_build_object('explanation', :rationale)");
+    expect(matchingSource).toContain("recompute_key");
+    expect(matchingSource).toContain("jsonb_build_object(");
+    expect(actionSource).not.toContain("idempotency_key");
+    expect(matchingSource).not.toContain("idempotency_key");
+  });
 });

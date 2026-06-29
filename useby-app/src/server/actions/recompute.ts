@@ -265,7 +265,7 @@ export async function recomputeActionCards(
         const cards = actionCardsForItem(item, now);
 
         for (const card of cards) {
-          const idempotencyKey = [
+          const recomputeKey = [
             ACTION_ENGINE_ID,
             "action-card",
             row.id,
@@ -287,7 +287,7 @@ export async function recomputeActionCards(
                 body,
                 rationale,
                 metadata,
-                idempotency_key,
+                recompute_key,
                 created_at,
                 updated_at
               )
@@ -301,9 +301,9 @@ export async function recomputeActionCards(
                 :priority,
                 :title,
                 :body,
-                :rationale,
+                jsonb_build_object('explanation', :rationale),
                 :metadata::jsonb,
-                :idempotencyKey,
+                :recomputeKey,
                 now(),
                 now()
               )
@@ -325,7 +325,7 @@ export async function recomputeActionCards(
                 itemQuantity: Number(row.quantity),
                 recomputedAt: now.toISOString(),
               },
-              idempotencyKey,
+              recomputeKey,
             }),
           );
           generated += 1;
@@ -378,7 +378,7 @@ export async function listActionCards(
           c.priority::int as priority,
           c.title,
           c.body,
-          c.rationale,
+          coalesce(c.rationale->>'explanation', c.rationale::text) as rationale,
           c.item_instance_id::text as item_instance_id,
           i.title as item_title,
           i.quantity::text as item_quantity,

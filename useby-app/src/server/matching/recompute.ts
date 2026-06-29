@@ -268,7 +268,7 @@ export async function recomputeGroceryMatches(
             score,
             rationale,
             metadata,
-            idempotency_key,
+            recompute_key,
             created_at,
             updated_at
           )
@@ -282,9 +282,16 @@ export async function recomputeGroceryMatches(
             'proposed',
             distance_meters,
             score,
-            item_title || ' matches "' || need_title || '" within '
-              || round(distance_meters)::text
-              || 'm. Package-safe grocery filters passed; exact coordinates are not exposed.',
+            jsonb_build_object(
+              'explanation',
+              item_title || ' matches "' || need_title || '" within '
+                || round(distance_meters)::text
+                || 'm. Package-safe grocery filters passed; exact coordinates are not exposed.',
+              'privacy',
+              'coarse_locations_only',
+              'safetyRule',
+              'eligible sealed/package-safe grocery only'
+            ),
             jsonb_build_object(
               'engine', :engine,
               'textSimilarity', text_similarity,
@@ -354,7 +361,7 @@ export async function listGroceryMatches(
           m.status::text as status,
           m.score::text as score,
           m.distance_meters::text as distance_meters,
-          m.rationale,
+          coalesce(m.rationale->>'explanation', m.rationale::text) as rationale,
           n.id::text as need_id,
           n.title as need_title,
           n.quantity::text as need_quantity,
