@@ -37,6 +37,19 @@ export type IntegrationAvailability = {
     requiresPrivateS3Object: boolean;
     reason?: string | null;
   };
+  geocoding: {
+    configured: boolean;
+    provider: "mapbox" | "fixture" | "unavailable";
+    mode: "live" | "fixture" | "unavailable";
+    available: boolean;
+    reason: string | null;
+    schemaAvailable: boolean;
+    privacy: {
+      exactCoordinatesPublic: false;
+      rawAddressesPublic: false;
+      directContactPublic: false;
+    };
+  };
 };
 
 export type SystemCount = {

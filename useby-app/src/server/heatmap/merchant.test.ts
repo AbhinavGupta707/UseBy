@@ -14,6 +14,6 @@ describe("merchant heatmap privacy contract", () => {
     expect(keys).not.toContain("unitLabel");
     expect(keys).not.toContain("email");
     expect(keys).not.toContain("phone");
+    expect(keys).not.toContain("address");
   });
 });
-
