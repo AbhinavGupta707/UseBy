@@ -125,10 +125,9 @@ const CHECKPOINT_4_ROUTE_CONTRACTS: Checkpoint4RouteContract[] = [
 const FINAL_CP4_OUTPUT_TABLES = [
   "bookings",
   "handoffs",
-  "rental_windows",
-  "condition_events",
-  "lending_requests",
-  "lending_holds",
+  "lending_availability_windows",
+  "lending_reservations",
+  "lending_condition_events",
   "inventory_events",
   "trust_events",
   "reviews",

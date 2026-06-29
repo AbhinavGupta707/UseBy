@@ -2,6 +2,20 @@
 
 Checkpoint 4 proves wardrobe rental and household lending against live Aurora rows. Seed data may create listed fashion/household items and open needs, but lending requests, reservations, handoffs, returns, completions, reviews, trust changes, and CP4 audit evidence must come from live API actions.
 
+## Completed Local And Migration Evidence
+
+Completed on 2026-06-29 before production deployment:
+
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test` passed: 32 files, 116 tests.
+- `npm run build` passed.
+- `git diff --check` passed.
+- Aurora migration `useby-app/drizzle/0003_lending_schema_runtime.sql` applied through the RDS Data API.
+- Migration hash recorded in `drizzle.__drizzle_migrations`: `efe8381a07ffe76b227e482f42482fc6263f980ee8b9ec5f25059d8ad5dd18ab`.
+- Verified live Aurora tables: `lending_availability_windows`, `lending_reservations`, and `lending_condition_events`.
+- `drizzle-kit migrate` woke the paused cluster but exited without a usable diagnostic, so the same SQL was applied in one explicit RDS Data API transaction and the Drizzle hash was recorded manually.
+
 ## Local Checks
 
 Run from `useby-app`:
@@ -29,7 +43,7 @@ git diff --check
 Expected local proof behavior:
 
 - `/api/system/state` reports CP4 counts for listed fashion/household inputs and reused booking, handoff, trust, and review evidence.
-- Optional CP4 tables such as `rental_windows` and `condition_events` are reported as unavailable until the migration installs them.
+- CP4 lending tables such as `lending_availability_windows`, `lending_reservations`, and `lending_condition_events` are reported as unavailable until the migration installs them.
 - `/proof` shows CP4 lending controls. Missing lending routes must appear unavailable rather than successful.
 - Wording remains privacy-safe: no exact coordinates, no direct contact fields, and no payment-captured claims.
 - Grocery safety copy remains uncertainty-based and must not claim certified freshness or guaranteed safety.

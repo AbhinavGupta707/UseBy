@@ -188,6 +188,9 @@ function householdUserEmail(householdDemoId: string): string {
 async function resetDemoRows(context: TransactionContext) {
   const scoped = params({ demoScope: DEMO_SCOPE });
   const statements = [
+    "delete from lending_condition_events where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope or booking_id in (select id from bookings where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope) or item_instance_id in (select id from item_instances where demo_scope_id = :demoScope)",
+    "delete from lending_reservations where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope or booking_id in (select id from bookings where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope) or item_instance_id in (select id from item_instances where demo_scope_id = :demoScope) or requester_household_id in (select id from households where demo_scope_id = :demoScope) or owner_household_id in (select id from households where demo_scope_id = :demoScope)",
+    "delete from lending_availability_windows where demo_scope_id = :demoScope or metadata->>'demoScope' = :demoScope or item_instance_id in (select id from item_instances where demo_scope_id = :demoScope) or owner_household_id in (select id from households where demo_scope_id = :demoScope)",
     "delete from inventory_events where metadata->>'demoScope' = :demoScope or item_instance_id in (select id from item_instances where demo_scope_id = :demoScope)",
     "delete from demand_pool_commitments where demo_scope_id = :demoScope or demand_pool_id in (select id from demand_pools where demo_scope_id = :demoScope)",
     "delete from merchant_bids where demo_scope_id = :demoScope or demand_pool_id in (select id from demand_pools where demo_scope_id = :demoScope)",
