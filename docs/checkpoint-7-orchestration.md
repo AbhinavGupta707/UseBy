@@ -1,9 +1,9 @@
 # Checkpoint 7 Orchestration Control
 
 Checkpoint 6 completed commit: `f2d1147`.
-Checkpoint 7 plan commit: pending.
-Worker launch base: pending.
-Current registry commit: pending.
+Checkpoint 7 plan commit: `bf7d84b`.
+Worker launch base: `bf7d84b` (`Plan checkpoint 7 surplus orchestration`).
+Current registry commit: pending worker launch.
 
 ## Outcome
 
