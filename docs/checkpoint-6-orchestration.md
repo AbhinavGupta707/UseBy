@@ -4,6 +4,7 @@ Checkpoint 4 completed commit: `d7777f5`.
 Checkpoint 6 plan commit: `8720a21`.
 Worker launch base: `8720a21` (`Plan checkpoint 6 demandpool orchestration`).
 Current registry commit: `2576aab`.
+Current integration commit: `4865177` (`Merge checkpoint 6A demand pool runtime`).
 
 ## Outcome
 
@@ -240,7 +241,7 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 6A DemandPool Schema And Consumer Runtime | `019f11f6-7b46-7600-ad63-6759126a6a16` | `/Users/abhinavgupta/.codex/worktrees/cecf/UseBy` | Active | Owns CP6 migration/schema and consumer pool APIs |
+| 6A DemandPool Schema And Consumer Runtime | `019f11f6-7b46-7600-ad63-6759126a6a16` | `/Users/abhinavgupta/.codex/worktrees/cecf/UseBy` | Merged | Commit `7346d3f`, merged to main as `4865177`; post-merge targeted tests, typecheck, and `git diff --check` passed |
 | 6B Merchant Bid, Award, And Pickup Runtime | `019f11f6-7b46-7600-ad63-676fbd2d7186` | `/Users/abhinavgupta/.codex/worktrees/bbb6/UseBy` | Active | Depends on 6A schema; no migrations |
-| 6C Consumer DemandPool UI | `019f11f6-7d61-74f3-b8b7-547158565685` | `/Users/abhinavgupta/.codex/worktrees/b1cd/UseBy` | Active | Depends on 6A APIs |
-| 6D Merchant Portal UI, Proof, Contracts, And Docs | `019f11f6-7f6f-7243-94d2-fd732f140d8c` | `/Users/abhinavgupta/.codex/worktrees/3c20/UseBy` | Active | Depends on 6A/6B routes and contracts |
+| 6C Consumer DemandPool UI | `019f11f6-7d61-74f3-b8b7-547158565685` | `/Users/abhinavgupta/.codex/worktrees/b1cd/UseBy` | Complete, pending merge | Commit `f834326`; merge after 6B runtime/API |
+| 6D Merchant Portal UI, Proof, Contracts, And Docs | `019f11f6-7f6f-7243-94d2-fd732f140d8c` | `/Users/abhinavgupta/.codex/worktrees/3c20/UseBy` | Complete, pending merge | Commit `98b24ce`; merge after 6C and reconcile proof/API contracts |
