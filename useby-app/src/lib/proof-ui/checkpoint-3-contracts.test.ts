@@ -271,6 +271,7 @@ describe("Checkpoint 3 transaction, seed, and safety proof contracts", () => {
       evidence,
       "Booking runtime must use SELECT ... FOR UPDATE, serializable isolation, or equivalent active-reservation exclusion before CP3 merge.",
     ).toMatch(/for\s+update|serializable|skip\s+locked|active[_-]?reservation|double[_-]?reservation/);
+    expect(evidence).not.toMatch(/set\s+transaction\s+isolation\s+level/);
     expect(evidence).toMatch(/inventory_events/);
     expect(evidence).toMatch(/audit_events/);
   });

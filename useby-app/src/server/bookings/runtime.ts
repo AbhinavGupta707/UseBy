@@ -960,7 +960,6 @@ export async function acceptBooking(
     input.idempotencyKey,
     { bookingId, input },
     async (transaction, key) => {
-      await execTx(transaction, "set transaction isolation level serializable");
       const locked = await lockBookingForActor(transaction, bookingId, demoContext.household.id);
       if (locked.owner_household_id !== demoContext.household.id) {
         throw new BookingRuntimeError(403, "Only the owner household can accept this booking.");
