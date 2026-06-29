@@ -225,7 +225,7 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 3A Booking Schema And Transactions | Pending | `local:9aa9a839-c075-4aad-938b-663d08a4b9bf` | Queued | Owns all CP3 migrations/schema |
-| 3B Trust, Safety, And Moderation Runtime | Pending | `local:9e5c3b5f-51e6-46c6-bf89-117dbe6c2da0` | Queued | No schema edits |
-| 3C Booking And Handoff UI | Pending | `local:af5358d2-3324-4077-9363-4e4110654713` | Queued | API consumer only |
-| 3D Concurrency QA, Proof, And Docs | Pending | `local:412c1823-f979-462b-ba5c-ac8891076ef0` | Queued | Proof/docs/tests |
+| 3A Booking Schema And Transactions | `019f110f-8a5c-7061-a078-01c3fb21cf24` | `/Users/abhinavgupta/.codex/worktrees/d288/UseBy` | Active | Owns all CP3 migrations/schema |
+| 3B Trust, Safety, And Moderation Runtime | `019f110f-de83-7421-ba5a-87a399fb4d99` | `/Users/abhinavgupta/.codex/worktrees/3394/UseBy` | Active | No schema edits |
+| 3C Booking And Handoff UI | `019f1110-282e-78f1-96a8-b93cbd1fce7c` | `/Users/abhinavgupta/.codex/worktrees/488e/UseBy` | Active | API consumer only |
+| 3D Concurrency QA, Proof, And Docs | `019f1110-7205-7803-bd9a-7f06b1fce258` | `/Users/abhinavgupta/.codex/worktrees/0cf2/UseBy` | Active | Proof/docs/tests |
