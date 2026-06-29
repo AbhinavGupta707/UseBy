@@ -174,10 +174,16 @@ export function normalizeStoreDropReservation(value: unknown, dropIdFallback = "
   return {
     id: stringValue(findFirst(record, ["id", "reservationId", "reservation_id"]), "") || null,
     dropId,
+    dropTitle: stringValue(findFirst(record, ["dropTitle", "drop_title", "title"]), "") || null,
+    merchantName: stringValue(findFirst(record, ["merchantName", "merchant_name"]), "") || null,
+    pickupAreaLabel: stringValue(findFirst(record, ["pickupAreaLabel", "pickup_area_label", "coarsePickupArea", "coarse_pickup_area"]), "") || null,
     quantity: Math.max(1, integerValue(findFirst(record, ["quantity", "qty", "reservedQuantity", "reserved_quantity"])) ?? 1),
+    unit: stringValue(findFirst(record, ["unit"]), "") || null,
     status: stringValue(findFirst(record, ["status", "reservationStatus", "reservation_status"]), "active"),
     unpaidDemoIntent: booleanValue(findFirst(record, ["unpaidDemoIntent", "unpaid_demo_intent", "demoIntent", "demo_intent"]), true),
-    createdAt: dateTimeValue(findFirst(record, ["createdAt", "created_at"])),
+    reservedAt: dateTimeValue(findFirst(record, ["reservedAt", "reserved_at"])),
+    expiresAt: dateTimeValue(findFirst(record, ["expiresAt", "expires_at"])),
+    createdAt: dateTimeValue(findFirst(record, ["createdAt", "created_at", "reservedAt", "reserved_at"])),
     updatedAt: dateTimeValue(findFirst(record, ["updatedAt", "updated_at"])),
     cancelledAt: dateTimeValue(findFirst(record, ["cancelledAt", "cancelled_at"])),
   };

@@ -37,12 +37,13 @@ import {
   canReserveDrop,
   formatDropPrice,
   formatDropStatus,
+  isActiveReservationStatus,
   isDropExpired,
   loadStoreDropSnapshot,
   pickupWindowLabel,
   submitStoreDropReservation,
 } from "../../lib/store-drops/api";
-import type { StoreDrop, StoreDropMutationResult } from "../../lib/store-drops/types";
+import type { StoreDrop, StoreDropMutationResult, StoreDropReservation } from "../../lib/store-drops/types";
 import {
   formatDateTime as formatLendingDate,
   formatLendingStatus,
@@ -366,8 +367,13 @@ export function DropsDashboard() {
 export function ActivityDashboard() {
   const bookings = useAsyncData(loadBookingsSnapshot);
   const lending = useAsyncData(loadLendingSnapshot);
+  const drops = useAsyncData(loadStoreDropSnapshot);
   const bookingList = bookings.data?.bookings ?? [];
   const requests = lending.data?.requests ?? [];
+  const dropReservations = (drops.data?.reservations ?? []).filter((reservation) =>
+    isActiveReservationStatus(reservation.status),
+  );
+  const dropById = new Map((drops.data?.drops ?? []).map((drop) => [drop.id, drop]));
 
   return (
     <main className="useby-page">
@@ -380,6 +386,7 @@ export function ActivityDashboard() {
 
       <section className="useby-metrics" aria-label="Activity summary">
         <MetricCard tone="sage" label="Food bookings" value={String(bookingList.length)} detail={bookingsEndpointSummary(bookings.data)} />
+        <MetricCard tone="gold" label="Merchant pickups" value={String(dropReservations.length)} detail="surplus drop reservations" />
         <MetricCard tone="gold" label="Lending requests" value={String(requests.length)} detail="wardrobe and household" />
         <MetricCard tone="coral" label="Closed handoffs" value={String(bookingList.filter((booking) => ["completed", "reviewed"].includes(booking.status)).length)} detail="from current rows" />
       </section>
@@ -387,10 +394,17 @@ export function ActivityDashboard() {
       <section className="useby-section">
         <div className="useby-activity-list">
           {bookingList.map((booking) => <BookingActivityCard booking={booking} key={booking.id} />)}
+          {dropReservations.map((reservation) => (
+            <StoreDropReservationActivityCard
+              drop={dropById.get(reservation.dropId) ?? null}
+              key={reservation.id ?? reservation.dropId}
+              reservation={reservation}
+            />
+          ))}
           {requests.map((request) => <LendingActivityCard request={request} key={request.id} />)}
         </div>
-        {!bookings.loading && !lending.loading && bookingList.length + requests.length === 0 ? (
-          <EmptyConsumerState title="No activity returned" detail="Bookings and lending requests will appear here when the live routes return current rows." />
+        {!bookings.loading && !lending.loading && !drops.loading && bookingList.length + dropReservations.length + requests.length === 0 ? (
+          <EmptyConsumerState title="No activity returned" detail="Bookings, merchant pickups, and lending requests will appear here when live routes return current rows." />
         ) : null}
       </section>
     </main>
@@ -752,6 +766,33 @@ function BookingActivityCard({ booking }: { booking: Booking }) {
         <p>{booking.locationLabel ?? booking.owner.coarseLocation ?? "Coarse location only"} - {booking.distanceLabel ?? "Approximate distance"}</p>
       </div>
       <Link className="useby-soft-button" href={`/bookings/${encodeURIComponent(booking.id)}`}>Open</Link>
+    </article>
+  );
+}
+
+function StoreDropReservationActivityCard({
+  drop,
+  reservation,
+}: {
+  drop: StoreDrop | null;
+  reservation: StoreDropReservation;
+}) {
+  const title = consumerTitle(reservation.dropTitle ?? drop?.title ?? "Merchant pickup");
+  const merchant = reservation.merchantName ?? drop?.merchantDisplayName ?? "Local merchant";
+  const pickupArea = reservation.pickupAreaLabel ?? drop?.coarsePickupArea ?? "Coarse pickup area";
+  const quantity = `${reservation.quantity}${reservation.unit ? ` ${reservation.unit}` : ""}`;
+  const expires = reservation.expiresAt ? `Pickup by ${formatPoolDate(reservation.expiresAt)}` : "Pickup window confirmed";
+
+  return (
+    <article className="useby-activity-card">
+      <Visual src={visualFor(title, "brunch")} label="" className="useby-activity-image" decorative />
+      <div>
+        <span>{formatDropStatus(reservation.status)}</span>
+        <h3>{title}</h3>
+        <p>{merchant} - {pickupArea}</p>
+        <p>{quantity} reserved. {expires}.</p>
+      </div>
+      <Link className="useby-soft-button" href="/drops">Open</Link>
     </article>
   );
 }

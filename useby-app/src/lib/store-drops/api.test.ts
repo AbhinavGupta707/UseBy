@@ -47,8 +47,14 @@ describe("store drops UI API helpers", () => {
           {
             id: "reservation-1",
             drop_id: "drop-bread",
+            drop_title: "Bakery end-of-day bag",
+            merchant_name: "Riverside Bakery",
+            pickup_area_label: "Riverside Quarter",
             quantity: 2,
+            unit: "box",
             status: "active",
+            reserved_at: "2026-06-29T16:30:00.000Z",
+            expires_at: "2026-06-29T19:00:00.000Z",
             unpaid_demo_intent: true,
           },
         ],
@@ -62,6 +68,12 @@ describe("store drops UI API helpers", () => {
     expect(snapshot.drops[0]?.coarsePickupArea).toBe("Riverside Quarter");
     expect(snapshot.drops[0]?.remainingQuantity).toBe(5);
     expect(snapshot.drops[0]?.currentReservation?.quantity).toBe(2);
+    expect(snapshot.reservations[0]?.dropTitle).toBe("Bakery end-of-day bag");
+    expect(snapshot.reservations[0]?.merchantName).toBe("Riverside Bakery");
+    expect(snapshot.reservations[0]?.pickupAreaLabel).toBe("Riverside Quarter");
+    expect(snapshot.reservations[0]?.unit).toBe("box");
+    expect(snapshot.reservations[0]?.reservedAt).toBe("2026-06-29T16:30:00.000Z");
+    expect(snapshot.reservations[0]?.expiresAt).toBe("2026-06-29T19:00:00.000Z");
     expect(JSON.stringify(snapshot.drops[0])).not.toContain("Private Street");
     expect(JSON.stringify(snapshot.drops[0])).not.toContain("latitude");
     expect(JSON.stringify(snapshot.drops[0])).not.toContain("longitude");

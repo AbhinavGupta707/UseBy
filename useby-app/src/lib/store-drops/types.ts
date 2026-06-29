@@ -16,9 +16,15 @@ export type StoreDropStatus =
 export type StoreDropReservation = {
   id: string | null;
   dropId: string;
+  dropTitle: string | null;
+  merchantName: string | null;
+  pickupAreaLabel: string | null;
   quantity: number;
+  unit: string | null;
   status: string;
   unpaidDemoIntent: boolean;
+  reservedAt: string | null;
+  expiresAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
   cancelledAt: string | null;
