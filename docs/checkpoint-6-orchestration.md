@@ -238,7 +238,7 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 6A DemandPool Schema And Consumer Runtime | pending | `local:e3f0060b-6882-4a86-9458-a05fbd3d369b` | Pending worktree setup | Owns CP6 migration/schema and consumer pool APIs |
-| 6B Merchant Bid, Award, And Pickup Runtime | pending | `local:202c1d08-6e83-49c0-8c74-e664f324730f` | Pending worktree setup | Depends on 6A schema; no migrations |
-| 6C Consumer DemandPool UI | pending | `local:5a6f89ff-5405-4553-b53d-649fde8ece90` | Pending worktree setup | Depends on 6A APIs |
-| 6D Merchant Portal UI, Proof, Contracts, And Docs | pending | `local:f2c3740e-e9ec-4fca-bfcd-477a8612a33d` | Pending worktree setup | Depends on 6A/6B routes and contracts |
+| 6A DemandPool Schema And Consumer Runtime | `019f11f6-7b46-7600-ad63-6759126a6a16` | `/Users/abhinavgupta/.codex/worktrees/cecf/UseBy` | Active | Owns CP6 migration/schema and consumer pool APIs |
+| 6B Merchant Bid, Award, And Pickup Runtime | `019f11f6-7b46-7600-ad63-676fbd2d7186` | `/Users/abhinavgupta/.codex/worktrees/bbb6/UseBy` | Active | Depends on 6A schema; no migrations |
+| 6C Consumer DemandPool UI | `019f11f6-7d61-74f3-b8b7-547158565685` | `/Users/abhinavgupta/.codex/worktrees/b1cd/UseBy` | Active | Depends on 6A APIs |
+| 6D Merchant Portal UI, Proof, Contracts, And Docs | `019f11f6-7f6f-7243-94d2-fd732f140d8c` | `/Users/abhinavgupta/.codex/worktrees/3c20/UseBy` | Active | Depends on 6A/6B routes and contracts |
