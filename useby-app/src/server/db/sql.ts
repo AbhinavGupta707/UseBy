@@ -52,10 +52,26 @@ const DEFAULT_RETRY: Required<RetryOptions> = {
 
 let cachedClient: RDSDataClient | undefined;
 
+async function getVercelOidcCredentials() {
+  const roleArn = process.env.AWS_ROLE_ARN?.trim();
+  if (!roleArn) {
+    return undefined;
+  }
+
+  const { awsCredentialsProvider } = await import(
+    "@vercel/oidc-aws-credentials-provider"
+  );
+
+  return awsCredentialsProvider({ roleArn });
+}
+
 async function getRdsDataClient(region: string): Promise<RDSDataClient> {
   if (!cachedClient) {
     const { RDSDataClient } = await import("@aws-sdk/client-rds-data");
-    cachedClient = new RDSDataClient({ region });
+    cachedClient = new RDSDataClient({
+      region,
+      credentials: await getVercelOidcCredentials(),
+    });
   }
 
   return cachedClient;
