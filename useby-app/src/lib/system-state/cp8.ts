@@ -1,4 +1,5 @@
 import { getAiCopyReadiness } from "../../server/ai/provider";
+import { getLangSmithReadiness } from "../../server/ai/langsmith";
 import { aiGuardrailSummary } from "../../server/ai/guardrails";
 import {
   getTableAvailability,
@@ -98,6 +99,7 @@ export async function getCp8SystemState(
 ): Promise<Cp8SystemState> {
   const env = options.env ?? process.env;
   const ai = getAiCopyReadiness(env);
+  const langsmith = getLangSmithReadiness(env);
   const semantic = getSemanticRankingReadiness(env);
   const storageConfigured = hasAny(env, ["AWS_S3_BUCKET"]);
   const textractConfigured = hasAny(env, [
@@ -238,6 +240,14 @@ export async function getCp8SystemState(
         configured: semantic.enabled,
         noKey: semantic.noKey,
         detail: semantic.detail,
+      },
+      {
+        key: "langsmith",
+        label: "LangSmith tracing",
+        status: langsmith.status,
+        configured: langsmith.configured,
+        noKey: langsmith.noKey,
+        detail: langsmith.detail,
       },
     ],
     privateFileEvidence,

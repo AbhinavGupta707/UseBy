@@ -47,6 +47,54 @@ describe("AI copy provider guardrails", () => {
     expect(readiness.detail).toContain("summaries");
   });
 
+  it("treats Fireworks env aliases as an OpenAI-compatible provider", () => {
+    const readiness = getAiCopyReadiness({
+      AI_COPY_ENABLED: "true",
+      FIREWORKS_API_KEY: "test-key",
+      FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2-instruct-0905",
+    });
+
+    expect(readiness.status).toBe("ready");
+    expect(readiness.provider).toBe("fireworks");
+    expect(readiness.model).toBe("accounts/fireworks/models/kimi-k2-instruct-0905");
+    expect(readiness.noKey).toBe(false);
+  });
+
+  it("uses the Fireworks base URL alias when AI_COPY_API_BASE_URL is absent", async () => {
+    let requestedUrl: string | null = null;
+    const fetcher = async (input: string | URL | Request) => {
+      requestedUrl = typeof input === "string" ? input : input.toString();
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: "This match is nearby and uses coarse location details only.",
+              },
+            },
+          ],
+        }),
+      } as Response;
+    };
+
+    const result = await generateAiCopy(request, {
+      env: {
+        AI_COPY_ENABLED: "true",
+        AI_COPY_PROVIDER: "fireworks",
+        FIREWORKS_API_KEY: "test-key",
+        FIREWORKS_BASE_URL: "https://api.fireworks.ai/inference/v1",
+        FIREWORKS_CHAT_MODEL: "accounts/fireworks/models/kimi-k2-instruct-0905",
+      },
+      fetcher,
+    });
+
+    expect(result.status).toBe("generated");
+    expect(requestedUrl).toBe("https://api.fireworks.ai/inference/v1/chat/completions");
+  });
+
   it("falls back if generated content attempts forbidden decisions", async () => {
     const fetcher = async () =>
       ({

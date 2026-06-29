@@ -45,6 +45,7 @@ type ChatCompletionResponse = {
 type Fetcher = typeof fetch;
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
+const DEFAULT_FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1";
 const DEFAULT_MODEL = "gpt-4o-mini";
 
 function read(source: Record<string, string | undefined>, name: string): string | null {
@@ -61,14 +62,37 @@ function enabled(value: string | null): boolean {
 }
 
 function providerName(source: Record<string, string | undefined>): string {
-  return read(source, "AI_COPY_PROVIDER") ?? read(source, "AI_PROVIDER") ?? "disabled";
+  return (
+    read(source, "AI_COPY_PROVIDER") ??
+    read(source, "AI_PROVIDER") ??
+    (read(source, "FIREWORKS_API_KEY") ? "fireworks" : "disabled")
+  );
 }
 
 function providerApiKey(source: Record<string, string | undefined>): string | null {
   return (
     read(source, "AI_COPY_API_KEY") ??
+    read(source, "FIREWORKS_API_KEY") ??
     read(source, "OPENAI_API_KEY") ??
     read(source, "AI_GATEWAY_API_KEY")
+  );
+}
+
+function providerModel(source: Record<string, string | undefined>): string {
+  return (
+    read(source, "AI_COPY_MODEL") ??
+    read(source, "AI_MODEL") ??
+    read(source, "FIREWORKS_CHAT_MODEL") ??
+    DEFAULT_MODEL
+  );
+}
+
+function providerBaseUrl(source: Record<string, string | undefined>, provider: string): string {
+  return (
+    read(source, "AI_COPY_API_BASE_URL") ??
+    read(source, "AI_BASE_URL") ??
+    read(source, "FIREWORKS_BASE_URL") ??
+    (provider === "fireworks" ? DEFAULT_FIREWORKS_BASE_URL : DEFAULT_OPENAI_BASE_URL)
   );
 }
 
@@ -76,7 +100,7 @@ export function getAiCopyReadiness(
   source: Record<string, string | undefined> = process.env,
 ): AiProviderReadiness {
   const provider = providerName(source);
-  const model = read(source, "AI_COPY_MODEL") ?? read(source, "AI_MODEL") ?? DEFAULT_MODEL;
+  const model = providerModel(source);
   const configured = enabled(read(source, "AI_COPY_ENABLED")) || provider !== "disabled";
   const hasKey = Boolean(providerApiKey(source));
 
@@ -172,7 +196,7 @@ export async function generateAiCopy(
     return fallback(request, readiness, "AI provider key is unavailable.");
   }
 
-  const baseUrl = read(env, "AI_COPY_API_BASE_URL") ?? DEFAULT_OPENAI_BASE_URL;
+  const baseUrl = providerBaseUrl(env, readiness.provider);
   const fetcher = options.fetcher ?? fetch;
 
   try {

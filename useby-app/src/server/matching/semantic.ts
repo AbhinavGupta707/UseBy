@@ -80,10 +80,15 @@ export function getSemanticRankingReadiness(
 ): SemanticRankingReadiness {
   const enabledByEnv = enabled(read(source, "AI_SEMANTIC_RANKING_ENABLED"));
   const provider =
-    read(source, "AI_EMBEDDING_PROVIDER") ?? read(source, "AI_COPY_PROVIDER") ?? "disabled";
-  const model = read(source, "AI_EMBEDDING_MODEL") ?? null;
+    read(source, "AI_EMBEDDING_PROVIDER") ??
+    read(source, "FIREWORKS_EMBEDDING_PROVIDER") ??
+    read(source, "AI_COPY_PROVIDER") ??
+    (read(source, "FIREWORKS_API_KEY") ? "fireworks" : "disabled");
+  const model =
+    read(source, "AI_EMBEDDING_MODEL") ?? read(source, "FIREWORKS_EMBEDDING_MODEL") ?? null;
   const hasKey = Boolean(
     read(source, "AI_EMBEDDING_API_KEY") ??
+      read(source, "FIREWORKS_API_KEY") ??
       read(source, "AI_COPY_API_KEY") ??
       read(source, "OPENAI_API_KEY") ??
       read(source, "AI_GATEWAY_API_KEY"),
