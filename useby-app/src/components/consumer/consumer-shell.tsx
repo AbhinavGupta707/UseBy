@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import type { ReactNode, SVGProps } from "react";
 
 type IconComponent = (props: SVGProps<SVGSVGElement>) => ReactNode;
@@ -24,30 +23,6 @@ const secondaryNav = [
 
 export function ConsumerShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [demoGuideEnabled, setDemoGuideEnabled] = useState(false);
-  const demoCue = cueForPath(pathname);
-
-  useEffect(() => {
-    const syncDemoGuide = window.setTimeout(() => {
-      const params = new URLSearchParams(window.location.search);
-      const enabledByUrl = params.get("demo") === "1";
-      if (enabledByUrl) {
-        window.localStorage.setItem("useby-demo-guide", "on");
-      }
-      const enabledByStorage = window.localStorage.getItem("useby-demo-guide") === "on";
-      setDemoGuideEnabled(enabledByUrl || enabledByStorage);
-    }, 0);
-
-    return () => window.clearTimeout(syncDemoGuide);
-  }, [pathname]);
-
-  function toggleDemoGuide() {
-    setDemoGuideEnabled((current) => {
-      const next = !current;
-      window.localStorage.setItem("useby-demo-guide", next ? "on" : "off");
-      return next;
-    });
-  }
 
   return (
     <div className="useby-shell">
@@ -100,14 +75,6 @@ export function ConsumerShell({ children }: { children: ReactNode }) {
           </label>
 
           <div className="useby-userbar">
-            <button
-              aria-pressed={demoGuideEnabled}
-              className={`useby-demo-toggle ${demoGuideEnabled ? "is-active" : ""}`}
-              onClick={toggleDemoGuide}
-              type="button"
-            >
-              Demo guide
-            </button>
             <button className="useby-icon-button" aria-label="Notifications" type="button">
               <BellIcon aria-hidden="true" />
               <span>3</span>
@@ -119,8 +86,6 @@ export function ConsumerShell({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
-
-        {demoGuideEnabled ? <DemoPresenterCue cue={demoCue} onClose={toggleDemoGuide} /> : null}
 
         {children}
       </div>
@@ -138,119 +103,6 @@ export function ConsumerShell({ children }: { children: ReactNode }) {
       </nav>
     </div>
   );
-}
-
-type DemoCue = {
-  eyebrow: string;
-  title: string;
-  body: string;
-  chips: string[];
-  action: string;
-};
-
-function DemoPresenterCue({ cue, onClose }: { cue: DemoCue; onClose: () => void }) {
-  return (
-    <section className="useby-demo-cue" aria-label="Demo presenter cue">
-      <div>
-        <p>{cue.eyebrow}</p>
-        <h2>{cue.title}</h2>
-        <span>{cue.body}</span>
-      </div>
-      <div className="useby-demo-cue-side">
-        <div className="useby-demo-chip-row" aria-label="Demo proof points">
-          {cue.chips.map((chip) => (
-            <span key={chip}>{chip}</span>
-          ))}
-        </div>
-        <div className="useby-demo-cue-actions">
-          <strong>{cue.action}</strong>
-          <button aria-label="Hide demo guide" onClick={onClose} type="button">
-            Hide
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function cueForPath(pathname: string): DemoCue {
-  if (pathname.startsWith("/grocery")) {
-    return {
-      eyebrow: "0:45-2:10 | Inventory to exchange",
-      title: "AI drafts, Aurora decides, PostGIS matches nearby.",
-      body: "Paste receipt text, review the extracted row, save a selected item, then show sealed eligible matches nearby.",
-      chips: ["AI draft only", "Aurora mutation", "Expiry rules", "PostGIS distance", "Safety gate"],
-      action: "Show receipt review, then matches.",
-    };
-  }
-
-  if (pathname.startsWith("/bookings")) {
-    return {
-      eyebrow: "1:45-2:10 | Handoff state machine",
-      title: "A match becomes a transaction-safe local handoff.",
-      body: "Aurora owns requested, reserved, pickup, completion, and review states so an item cannot be double-booked.",
-      chips: ["Requested", "Reserved", "Pickup", "Completed", "Audit trail"],
-      action: "Open a booking and show state controls.",
-    };
-  }
-
-  if (pathname.startsWith("/pools")) {
-    return {
-      eyebrow: "2:10-2:35 | DemandPool",
-      title: "Household intent becomes merchant demand.",
-      body: "Neighbours join unpaid demo intent pools; merchants can bid against real local demand instead of guessing.",
-      chips: ["Unpaid intent", "Merchant bids", "Price scoring", "Pickup window", "Reliability"],
-      action: "Show the pool target and join flow.",
-    };
-  }
-
-  if (pathname.startsWith("/drops")) {
-    return {
-      eyebrow: "2:10-2:35 | Merchant surplus",
-      title: "Nearby surplus becomes a reservable pickup.",
-      body: "Store drops reuse the same availability, capacity, privacy, and audit patterns as the rest of UseBy.",
-      chips: ["Live capacity", "Merchant route", "Pickup window", "Demo display only"],
-      action: "Show reservable merchant drop cards.",
-    };
-  }
-
-  if (pathname.startsWith("/merchant")) {
-    return {
-      eyebrow: "2:10-2:35 | Merchant view",
-      title: "Small shops see demand signals and operational state.",
-      body: "The backend complexity stays behind the scenes while merchants get bids, pickups, and demand context.",
-      chips: ["Heatmap", "Bids", "Pickup ops", "No payment capture"],
-      action: "Show merchant demand and pickup surfaces.",
-    };
-  }
-
-  if (pathname.startsWith("/proof")) {
-    return {
-      eyebrow: "2:35-2:55 | Proof and deployment",
-      title: "Judge proof: AWS database state and Vercel runtime.",
-      body: "Use this screen to show Aurora PostgreSQL, PostGIS, pgvector readiness, row counts, audit events, jobs, and redacted agent metadata.",
-      chips: ["Aurora", "PostGIS", "pgvector", "S3/Textract", "Vercel routes"],
-      action: "Show proof, then return to Today.",
-    };
-  }
-
-  if (pathname.startsWith("/agent-runs")) {
-    return {
-      eyebrow: "Agentic proof",
-      title: "Agent runs are review-only and redacted.",
-      body: "Fireworks can draft and explain; LangSmith traces can prove runs. Deterministic routes still decide safety, trust, payment, capacity, and visibility.",
-      chips: ["Fireworks", "LangSmith", "Redaction", "Guardrails"],
-      action: "Use only if judges ask about AI.",
-    };
-  }
-
-  return {
-    eyebrow: "0:00-0:45 | Problem and promise",
-    title: "A calm daily action layer over a live neighbourhood exchange graph.",
-    body: "Start here: UseBy turns expiring groceries, idle assets, local needs, pools, and drops into concrete actions.",
-    chips: ["Use more", "Share nearby", "Borrow instead", "Join pools", "Claim drops"],
-    action: "Open with Today, then move to Inventory.",
-  };
 }
 
 function LeafMark() {
