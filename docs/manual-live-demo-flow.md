@@ -79,13 +79,17 @@ On `/grocery`:
 
 1. Enter receipt lines or a manual item.
 2. Choose quantity, unit, storage, and optional label date.
-3. Submit the import.
+3. Use `Draft with agent` to create a reviewable receipt/action draft.
+4. Confirm one reviewed draft line, or use the direct import path as a fallback.
 
 Expected:
 
-- New inventory rows should be created through the live API if the route accepts the input.
+- If Lane 9A agent routes are installed, provider status should distinguish generated, fallback, and unavailable states.
+- If agent routes are not installed, the UI should say provider unavailable and show only a local review scaffold.
+- New inventory rows should be created only after `Confirm reviewed import` or direct import calls the live grocery API.
 - Action cards should change based on current rows after refresh.
 - If OCR/Textract is used without a file upload path, the UI should honestly show fallback/manual behavior.
+- LangSmith should not be claimed unless run metadata includes a trace id.
 
 ### 4. Label Edit
 
@@ -128,6 +132,21 @@ Expected:
 - AI guardrails show copy/explanation only and deterministic-first.
 - Provider no-key states are explicit.
 
+### 7. Agent Runs
+
+Open:
+
+```text
+https://useby-app.vercel.app/agent-runs
+```
+
+Expected:
+
+- The route first reports agent route discovery state.
+- Missing `/api/agent/runs` style routes are shown as unavailable, not as empty success.
+- Run rows, when present, show status, generated/fallback/unavailable provider state, redaction state, deterministic guardrails, and LangSmith trace id only if returned by metadata.
+- No exact household coordinates, direct contacts, secrets, or raw uploaded-file contents appear in this admin surface.
+
 ## Target Post-Redesign Demo
 
 The redesigned demo should be much simpler for the viewer.
@@ -142,7 +161,7 @@ The redesigned demo should be much simpler for the viewer.
    - Nearby surplus drop
 3. Click `Add groceries`.
 4. Upload receipt/label or paste receipt text.
-5. Receipt agent extracts a draft using Textract plus Fireworks.
+5. Receipt agent extracts a draft using Textract plus Fireworks when configured, or shows an honest local fallback when unavailable.
 6. User reviews the draft and confirms.
 7. Aurora inventory updates.
 8. Action cards recompute.
@@ -169,9 +188,9 @@ The redesigned demo should be much simpler for the viewer.
    - Aurora rows
    - PostGIS distance logic
    - deterministic safety and eligibility filters
-   - Fireworks model call
+   - Fireworks model call only when provider metadata says generated
    - LangGraph workflow state
-   - LangSmith trace id
+   - LangSmith trace id only when a run returns trace metadata
    - optional UiPath job id
 3. Explain in narration, not in the primary product UI.
 
