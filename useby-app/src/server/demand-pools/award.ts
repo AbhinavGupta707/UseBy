@@ -479,6 +479,10 @@ export async function awardDemandPool(
               'source', :source,
               'payment', 'deferred_demo_no_charge'
             ),
+            jsonb_build_object(
+              'source', :source,
+              'payment', 'deferred_demo_no_charge'
+            ),
             po.demo_scope_id,
             po.is_demo
           from pool_orders po
