@@ -238,7 +238,7 @@ The orchestrator must update this table after worker creation.
 
 | Lane | Thread ID | Worktree/Pending ID | Status | Notes |
 |---|---|---|---|---|
-| 6A DemandPool Schema And Consumer Runtime | TBD | TBD | Planned | Owns CP6 migration/schema and consumer pool APIs |
-| 6B Merchant Bid, Award, And Pickup Runtime | TBD | TBD | Planned | Depends on 6A schema; no migrations |
-| 6C Consumer DemandPool UI | TBD | TBD | Planned | Depends on 6A APIs |
-| 6D Merchant Portal UI, Proof, Contracts, And Docs | TBD | TBD | Planned | Depends on 6A/6B routes and contracts |
+| 6A DemandPool Schema And Consumer Runtime | pending | `local:e3f0060b-6882-4a86-9458-a05fbd3d369b` | Pending worktree setup | Owns CP6 migration/schema and consumer pool APIs |
+| 6B Merchant Bid, Award, And Pickup Runtime | pending | `local:202c1d08-6e83-49c0-8c74-e664f324730f` | Pending worktree setup | Depends on 6A schema; no migrations |
+| 6C Consumer DemandPool UI | pending | `local:5a6f89ff-5405-4553-b53d-649fde8ece90` | Pending worktree setup | Depends on 6A APIs |
+| 6D Merchant Portal UI, Proof, Contracts, And Docs | pending | `local:f2c3740e-e9ec-4fca-bfcd-477a8612a33d` | Pending worktree setup | Depends on 6A/6B routes and contracts |
